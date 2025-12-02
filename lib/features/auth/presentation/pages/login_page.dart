@@ -6,8 +6,8 @@ import '../../../../injection_container.dart';
 import '../bloc/auth_bloc.dart';
 import '../bloc/auth_event.dart';
 import '../bloc/auth_state.dart';
-import '../widgets/auth_text_field.dart';
 import 'register_page.dart';
+import 'forgot_password_page.dart';
 import 'home_page.dart';
 
 class LoginPage extends StatelessWidget {
@@ -56,6 +56,7 @@ class _LoginPageContentState extends State<_LoginPageContent> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.white,
       body: BlocConsumer<AuthBloc, AuthState>(
         listener: (context, state) {
           if (state is AuthSuccess) {
@@ -78,189 +79,438 @@ class _LoginPageContentState extends State<_LoginPageContent> {
 
           return SafeArea(
             child: SingleChildScrollView(
-              padding: const EdgeInsets.all(24),
-              child: Form(
-                key: _formKey,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    const SizedBox(height: 40),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24),
+                child: Form(
+                  key: _formKey,
+                  child: Column(
+                    children: [
+                      const SizedBox(height: 60),
 
-                    // Logo/Icon
-                    Center(
-                      child: Container(
-                        height: 100,
-                        width: 100,
-                        decoration: BoxDecoration(
-                          gradient: const LinearGradient(
-                            colors: [AppColors.primary, AppColors.secondary],
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                          ),
-                          borderRadius: BorderRadius.circular(24),
-                          boxShadow: [
-                            BoxShadow(
-                              color: AppColors.primary.withOpacity(0.3),
-                              blurRadius: 20,
-                              offset: const Offset(0, 10),
+                      // Logo Section
+                      _buildLogo(),
+
+                      const SizedBox(height: 40),
+
+                      // Welcome Text
+                      Text(
+                        'Welcome Back',
+                        style: Theme.of(context).textTheme.displaySmall?.copyWith(
+                              fontWeight: FontWeight.bold,
                             ),
-                          ],
-                        ),
-                        child: const Icon(
-                          Icons.electric_moped,
-                          size: 50,
-                          color: Colors.white,
-                        ),
                       ),
-                    ),
 
-                    const SizedBox(height: 32),
+                      const SizedBox(height: 8),
 
-                    // Title
-                    Text(
-                      'Chào mừng trở lại!',
-                      style: Theme.of(context).textTheme.displaySmall,
-                      textAlign: TextAlign.center,
-                    ),
+                      Text(
+                        'Log in to your account using email\nor social networks',
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                              color: AppColors.textSecondary,
+                            ),
+                        textAlign: TextAlign.center,
+                      ),
 
-                    const SizedBox(height: 8),
+                      const SizedBox(height: 32),
 
-                    Text(
-                      'Đăng nhập để tiếp tục thuê xe điện',
-                      style: Theme.of(context).textTheme.bodyMedium,
-                      textAlign: TextAlign.center,
-                    ),
-
-                    const SizedBox(height: 40),
-
-                    // Email Field
-                    AuthTextField(
-                      controller: _emailController,
-                      label: 'Email',
-                      hint: 'example@email.com',
-                      prefixIcon: Icons.email_outlined,
-                      keyboardType: TextInputType.emailAddress,
-                      enabled: !isLoading,
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Vui lòng nhập email';
-                        }
-                        if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$')
-                            .hasMatch(value)) {
-                          return 'Email không hợp lệ';
-                        }
-                        return null;
-                      },
-                    ),
-
-                    const SizedBox(height: 16),
-
-                    // Password Field
-                    AuthTextField(
-                      controller: _passwordController,
-                      label: 'Mật khẩu',
-                      hint: '••••••••',
-                      prefixIcon: Icons.lock_outline,
-                      obscureText: _obscurePassword,
-                      textInputAction: TextInputAction.done,
-                      enabled: !isLoading,
-                      suffixIcon: IconButton(
-                        icon: Icon(
-                          _obscurePassword
-                              ? Icons.visibility_off_outlined
-                              : Icons.visibility_outlined,
-                          color: AppColors.textSecondary,
-                        ),
-                        onPressed: () {
-                          setState(() {
-                            _obscurePassword = !_obscurePassword;
-                          });
+                      // Email Field
+                      _buildTextField(
+                        controller: _emailController,
+                        hintText: 'Email',
+                        prefixIcon: Icons.email_outlined,
+                        keyboardType: TextInputType.emailAddress,
+                        enabled: !isLoading,
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'Please enter your email';
+                          }
+                          if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$')
+                              .hasMatch(value)) {
+                            return 'Please enter a valid email';
+                          }
+                          return null;
                         },
                       ),
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Vui lòng nhập mật khẩu';
-                        }
-                        return null;
-                      },
-                    ),
 
-                    const SizedBox(height: 12),
+                      const SizedBox(height: 16),
 
-                    // Forgot Password
-                    Align(
-                      alignment: Alignment.centerRight,
-                      child: TextButton(
-                        onPressed: () {
-                          // TODO: Implement forgot password
+                      // Password Field
+                      _buildTextField(
+                        controller: _passwordController,
+                        hintText: 'Password',
+                        prefixIcon: Icons.lock_outline,
+                        obscureText: _obscurePassword,
+                        enabled: !isLoading,
+                        suffixIcon: IconButton(
+                          icon: Icon(
+                            _obscurePassword
+                                ? Icons.visibility_off_outlined
+                                : Icons.visibility_outlined,
+                            color: AppColors.textMuted,
+                            size: 20,
+                          ),
+                          onPressed: () {
+                            setState(() {
+                              _obscurePassword = !_obscurePassword;
+                            });
+                          },
+                        ),
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'Please enter your password';
+                          }
+                          return null;
                         },
-                        child: const Text('Quên mật khẩu?'),
                       ),
-                    ),
 
-                    const SizedBox(height: 24),
+                      const SizedBox(height: 8),
 
-                    // Login Button
-                    SizedBox(
-                      height: 56,
-                      child: ElevatedButton(
-                        onPressed: isLoading ? null : _onLogin,
-                        child: isLoading
-                            ? const SpinKitThreeBounce(
-                                color: Colors.white,
-                                size: 24,
-                              )
-                            : const Text('Đăng nhập'),
-                      ),
-                    ),
-
-                    const SizedBox(height: 24),
-
-                    // Divider
-                    Row(
-                      children: [
-                        const Expanded(child: Divider()),
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                      // Forgot Password
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: TextButton(
+                          onPressed: () {
+                            Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (_) => const ForgotPasswordPage(),
+                              ),
+                            );
+                          },
+                          style: TextButton.styleFrom(
+                            padding: EdgeInsets.zero,
+                            minimumSize: Size.zero,
+                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          ),
                           child: Text(
-                            'hoặc',
-                            style: Theme.of(context).textTheme.bodyMedium,
+                            'Forgot Password?',
+                            style: TextStyle(
+                              color: AppColors.primary,
+                              fontSize: 14,
+                              fontWeight: FontWeight.w500,
+                            ),
                           ),
                         ),
-                        const Expanded(child: Divider()),
-                      ],
-                    ),
+                      ),
 
-                    const SizedBox(height: 24),
+                      const SizedBox(height: 24),
 
-                    // Register Link
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text(
-                          'Chưa có tài khoản? ',
-                          style: Theme.of(context).textTheme.bodyMedium,
+                      // Login Button
+                      SizedBox(
+                        width: double.infinity,
+                        height: 56,
+                        child: ElevatedButton(
+                          onPressed: isLoading ? null : _onLogin,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.primary,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                            elevation: 0,
+                          ),
+                          child: isLoading
+                              ? const SpinKitThreeBounce(
+                                  color: Colors.white,
+                                  size: 20,
+                                )
+                              : const Text(
+                                  'Log In',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w600,
+                                    color: Colors.white,
+                                  ),
+                                ),
                         ),
-                        TextButton(
-                          onPressed: isLoading
-                              ? null
-                              : () {
-                                  Navigator.of(context).push(
-                                    MaterialPageRoute(
-                                      builder: (_) => const RegisterPage(),
-                                    ),
-                                  );
-                                },
-                          child: const Text('Đăng ký ngay'),
-                        ),
-                      ],
-                    ),
-                  ],
+                      ),
+
+                      const SizedBox(height: 24),
+
+                      // Sign Up Link
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            'First time here? ',
+                            style: TextStyle(
+                              color: AppColors.textSecondary,
+                              fontSize: 14,
+                            ),
+                          ),
+                          GestureDetector(
+                            onTap: isLoading
+                                ? null
+                                : () {
+                                    Navigator.of(context).push(
+                                      MaterialPageRoute(
+                                        builder: (_) => const RegisterPage(),
+                                      ),
+                                    );
+                                  },
+                            child: Text(
+                              'Sign up',
+                              style: TextStyle(
+                                color: AppColors.primary,
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+
+                      const SizedBox(height: 32),
+
+                      // Divider
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Container(
+                              height: 1,
+                              color: AppColors.border,
+                            ),
+                          ),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 16),
+                            child: Text(
+                              'Or sign in with',
+                              style: TextStyle(
+                                color: AppColors.textSecondary,
+                                fontSize: 14,
+                              ),
+                            ),
+                          ),
+                          Expanded(
+                            child: Container(
+                              height: 1,
+                              color: AppColors.border,
+                            ),
+                          ),
+                        ],
+                      ),
+
+                      const SizedBox(height: 24),
+
+                      // Social Buttons
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _buildSocialButton(
+                              label: 'Google',
+                              icon: 'G',
+                              isGoogle: true,
+                              onPressed: () {
+                                // TODO: Implement Google Sign In
+                              },
+                            ),
+                          ),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: _buildSocialButton(
+                              label: 'Facebook',
+                              icon: 'f',
+                              isFacebook: true,
+                              onPressed: () {
+                                // TODO: Implement Facebook Sign In
+                              },
+                            ),
+                          ),
+                        ],
+                      ),
+
+                      const SizedBox(height: 40),
+                    ],
+                  ),
                 ),
               ),
             ),
           );
         },
+      ),
+    );
+  }
+
+  Widget _buildLogo() {
+    return Column(
+      children: [
+        // DREAM text
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            _buildLogoLetter('D', isBlue: true),
+            const SizedBox(width: 8),
+            _buildLogoLetter('R', isBlue: true),
+            const SizedBox(width: 8),
+            _buildLogoLetter('E', isBlue: true),
+            const SizedBox(width: 8),
+            _buildLogoLetter('A', isBlue: true),
+            const SizedBox(width: 8),
+            _buildLogoLetter('M', isBlue: true),
+          ],
+        ),
+        const SizedBox(height: 4),
+        // RIDE text with helmet
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            _buildLogoLetter('R', isBlue: true),
+            const SizedBox(width: 8),
+            _buildLogoLetter('I', isBlue: true),
+            const SizedBox(width: 8),
+            // Helmet icon
+            Icon(
+              Icons.sports_motorsports_outlined,
+              color: AppColors.primary,
+              size: 28,
+            ),
+            const SizedBox(width: 8),
+            _buildLogoLetter('E', isBlue: true),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildLogoLetter(String letter, {bool isBlue = false}) {
+    return Text(
+      letter,
+      style: TextStyle(
+        fontSize: 24,
+        fontWeight: FontWeight.w600,
+        color: isBlue ? AppColors.primary : AppColors.textPrimary,
+        letterSpacing: 2,
+        fontStyle: FontStyle.italic,
+      ),
+    );
+  }
+
+  Widget _buildTextField({
+    required TextEditingController controller,
+    required String hintText,
+    required IconData prefixIcon,
+    bool obscureText = false,
+    TextInputType keyboardType = TextInputType.text,
+    Widget? suffixIcon,
+    bool enabled = true,
+    String? Function(String?)? validator,
+  }) {
+    return TextFormField(
+      controller: controller,
+      obscureText: obscureText,
+      keyboardType: keyboardType,
+      enabled: enabled,
+      validator: validator,
+      style: const TextStyle(
+        fontSize: 14,
+        color: AppColors.textPrimary,
+      ),
+      decoration: InputDecoration(
+        hintText: hintText,
+        hintStyle: TextStyle(
+          color: AppColors.textMuted,
+          fontSize: 14,
+        ),
+        prefixIcon: Icon(
+          prefixIcon,
+          color: AppColors.primary.withOpacity(0.7),
+          size: 20,
+        ),
+        suffixIcon: suffixIcon,
+        filled: true,
+        fillColor: AppColors.inputBackground,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: BorderSide.none,
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: BorderSide.none,
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: BorderSide(color: AppColors.primary, width: 1.5),
+        ),
+        errorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: BorderSide(color: AppColors.error, width: 1),
+        ),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
+      ),
+    );
+  }
+
+  Widget _buildSocialButton({
+    required String label,
+    required String icon,
+    bool isGoogle = false,
+    bool isFacebook = false,
+    required VoidCallback onPressed,
+  }) {
+    return OutlinedButton(
+      onPressed: onPressed,
+      style: OutlinedButton.styleFrom(
+        padding: const EdgeInsets.symmetric(vertical: 14),
+        side: BorderSide(color: AppColors.border),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          if (isGoogle)
+            Container(
+              width: 24,
+              height: 24,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+              ),
+              child: Center(
+                child: Text(
+                  'G',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    foreground: Paint()
+                      ..shader = const LinearGradient(
+                        colors: [
+                          Color(0xFF4285F4),
+                          Color(0xFF34A853),
+                          Color(0xFFFBBC05),
+                          Color(0xFFEA4335),
+                        ],
+                      ).createShader(Rect.fromLTWH(0, 0, 24, 24)),
+                  ),
+                ),
+              ),
+            )
+          else if (isFacebook)
+            Container(
+              width: 24,
+              height: 24,
+              decoration: const BoxDecoration(
+                color: Color(0xFF1877F2),
+                shape: BoxShape.circle,
+              ),
+              child: const Center(
+                child: Text(
+                  'f',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ),
+          const SizedBox(width: 8),
+          Text(
+            label,
+            style: TextStyle(
+              color: AppColors.textPrimary,
+              fontSize: 14,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
       ),
     );
   }

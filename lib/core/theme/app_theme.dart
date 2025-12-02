@@ -1,42 +1,36 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-/// App color palette - Electric Vehicle theme
+/// App color palette - Dream Ride theme
 class AppColors {
   AppColors._();
 
-  // Primary - Electric Blue
-  static const Color primary = Color(0xFF0066FF);
-  static const Color primaryLight = Color(0xFF4D94FF);
-  static const Color primaryDark = Color(0xFF0052CC);
+  // Primary - Blue
+  static const Color primary = Color(0xFF4A6CF7);
+  static const Color primaryLight = Color(0xFF7B93FA);
+  static const Color primaryDark = Color(0xFF3451D1);
 
-  // Secondary - Electric Green (EV energy)
-  static const Color secondary = Color(0xFF00D084);
-  static const Color secondaryLight = Color(0xFF33DBAD);
-  static const Color secondaryDark = Color(0xFF00A66A);
+  // Secondary - Light Blue
+  static const Color secondary = Color(0xFF6B8AFD);
 
-  // Accent - Vibrant Orange
-  static const Color accent = Color(0xFFFF6B35);
+  // Accent
+  static const Color accent = Color(0xFF4A6CF7);
 
   // Neutrals
-  static const Color background = Color(0xFFF8FAFC);
+  static const Color background = Color(0xFFFFFFFF);
   static const Color surface = Color(0xFFFFFFFF);
-  static const Color surfaceVariant = Color(0xFFF1F5F9);
-  static const Color textPrimary = Color(0xFF1E293B);
-  static const Color textSecondary = Color(0xFF64748B);
-  static const Color textMuted = Color(0xFF94A3B8);
+  static const Color surfaceVariant = Color(0xFFF5F7FA);
+  static const Color inputBackground = Color(0xFFF5F7FA);
+  static const Color textPrimary = Color(0xFF1E2A3B);
+  static const Color textSecondary = Color(0xFF6B7B8F);
+  static const Color textMuted = Color(0xFF9CA3AF);
+  static const Color border = Color(0xFFE5E7EB);
 
   // Status colors
   static const Color success = Color(0xFF10B981);
   static const Color warning = Color(0xFFF59E0B);
   static const Color error = Color(0xFFEF4444);
   static const Color info = Color(0xFF3B82F6);
-
-  // Dark theme colors
-  static const Color backgroundDark = Color(0xFF0F172A);
-  static const Color surfaceDark = Color(0xFF1E293B);
-  static const Color textPrimaryDark = Color(0xFFF8FAFC);
-  static const Color textSecondaryDark = Color(0xFFCBD5E1);
 }
 
 /// App theme configuration
@@ -71,7 +65,7 @@ class AppTheme {
         ),
         displaySmall: GoogleFonts.poppins(
           fontSize: 24,
-          fontWeight: FontWeight.w600,
+          fontWeight: FontWeight.bold,
           color: AppColors.textPrimary,
         ),
         headlineMedium: GoogleFonts.poppins(
@@ -98,7 +92,7 @@ class AppTheme {
           color: AppColors.textSecondary,
         ),
         labelLarge: GoogleFonts.poppins(
-          fontSize: 14,
+          fontSize: 16,
           fontWeight: FontWeight.w600,
           color: Colors.white,
         ),
@@ -131,15 +125,16 @@ class AppTheme {
       ),
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
-          foregroundColor: AppColors.primary,
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+          foregroundColor: AppColors.textPrimary,
+          backgroundColor: Colors.white,
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
           ),
-          side: const BorderSide(color: AppColors.primary, width: 1.5),
+          side: const BorderSide(color: AppColors.border, width: 1),
           textStyle: GoogleFonts.poppins(
-            fontSize: 16,
-            fontWeight: FontWeight.w600,
+            fontSize: 14,
+            fontWeight: FontWeight.w500,
           ),
         ),
       ),
@@ -154,45 +149,49 @@ class AppTheme {
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: AppColors.surfaceVariant,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+        fillColor: AppColors.inputBackground,
+        contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(14),
           borderSide: BorderSide.none,
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(14),
           borderSide: BorderSide.none,
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: AppColors.primary, width: 2),
+          borderRadius: BorderRadius.circular(14),
+          borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
         ),
         errorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(14),
           borderSide: const BorderSide(color: AppColors.error, width: 1),
         ),
         focusedErrorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: AppColors.error, width: 2),
+          borderRadius: BorderRadius.circular(14),
+          borderSide: const BorderSide(color: AppColors.error, width: 1.5),
         ),
         labelStyle: GoogleFonts.poppins(
-          color: AppColors.textSecondary,
+          color: AppColors.textMuted,
+          fontSize: 14,
         ),
         hintStyle: GoogleFonts.poppins(
           color: AppColors.textMuted,
+          fontSize: 14,
         ),
         errorStyle: GoogleFonts.poppins(
           color: AppColors.error,
           fontSize: 12,
         ),
+        prefixIconColor: AppColors.textMuted,
+        suffixIconColor: AppColors.textMuted,
       ),
       cardTheme: CardThemeData(
         color: AppColors.surface,
-        elevation: 2,
-        shadowColor: Colors.black.withOpacity(0.1),
+        elevation: 0,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
+          side: const BorderSide(color: AppColors.border, width: 1),
         ),
       ),
       snackBarTheme: SnackBarThemeData(
@@ -206,4 +205,3 @@ class AppTheme {
     );
   }
 }
-
