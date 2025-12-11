@@ -17,6 +17,17 @@ class ApiConstants {
   static const String authRegister = '/auth/register';
   static const String authLogin = '/auth/login';
   static const String authProfile = '/auth/profile';
+
+  /// Vehicle endpoints
+  static const String vehicles = '/vehicles';
+  static const String myVehicles = '/vehicles/my-vehicles';
+  static const String availableVehicles = '/vehicles/available';
+  static String vehicleById(String id) => '/vehicles/$id';
+
+  /// Upload endpoints
+  static const String uploadVehicleImage = '/upload/vehicle-image';
+  static const String uploadVehicleImages = '/upload/vehicle-images';
+  static const String uploadLicense = '/upload/license';
 }
 
 /// Storage keys

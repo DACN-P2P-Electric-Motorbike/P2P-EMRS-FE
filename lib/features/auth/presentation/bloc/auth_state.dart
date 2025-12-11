@@ -44,8 +44,13 @@ class AuthUnauthenticated extends AuthState {
   const AuthUnauthenticated();
 }
 
-/// Authenticated state - user is logged in (without full user data)
+/// Authenticated state - user is logged in
 class AuthAuthenticated extends AuthState {
-  const AuthAuthenticated();
+  final UserEntity user;
+
+  const AuthAuthenticated({required this.user});
+
+  @override
+  List<Object> get props => [user];
 }
 
