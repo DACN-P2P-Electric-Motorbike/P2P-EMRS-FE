@@ -36,7 +36,7 @@ class UserModel {
   final String fullName;
   final String phone;
   final String? avatarUrl;
-  final UserRole role;
+  final List<String> roles;
   final UserStatus status;
   final double trustScore;
   final String? idCardNum;
@@ -50,7 +50,7 @@ class UserModel {
     required this.fullName,
     required this.phone,
     this.avatarUrl,
-    required this.role,
+    required this.roles,
     required this.status,
     required this.trustScore,
     this.idCardNum,
@@ -61,13 +61,27 @@ class UserModel {
 
   /// Parse from JSON response
   factory UserModel.fromJson(Map<String, dynamic> json) {
+    List<String> roles;
+
+    // Check if backend returns roles array (new format)
+    if (json.containsKey('roles') && json['roles'] is List) {
+      roles = (json['roles'] as List).map((e) => e.toString()).toList();
+    }
+    // Fallback to single role (backward compatibility)
+    else if (json.containsKey('role')) {
+      roles = [json['role'] as String];
+    }
+    // Default to RENTER if no role specified
+    else {
+      roles = ['RENTER'];
+    }
     return UserModel(
       id: json['id'] as String,
       email: json['email'] as String,
       fullName: json['fullName'] as String,
       phone: json['phone'] as String,
       avatarUrl: json['avatarUrl'] as String?,
-      role: UserRole.fromString(json['role'] as String),
+      roles: roles,
       status: UserStatus.fromString(json['status'] as String),
       trustScore: (json['trustScore'] as num).toDouble(),
       idCardNum: json['idCardNum'] as String?,
@@ -85,7 +99,7 @@ class UserModel {
       'fullName': fullName,
       'phone': phone,
       'avatarUrl': avatarUrl,
-      'role': role.name,
+      'roles': roles,
       'status': status.name,
       'trustScore': trustScore,
       'idCardNum': idCardNum,
@@ -103,7 +117,7 @@ class UserModel {
       fullName: fullName,
       phone: phone,
       avatarUrl: avatarUrl,
-      role: role.name,
+      roles: roles,
       status: status.name,
       trustScore: trustScore,
       idCardNum: idCardNum,
@@ -113,4 +127,3 @@ class UserModel {
     );
   }
 }
-

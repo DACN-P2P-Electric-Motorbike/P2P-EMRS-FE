@@ -28,7 +28,8 @@ class _RegisterVehicleContent extends StatefulWidget {
   const _RegisterVehicleContent();
 
   @override
-  State<_RegisterVehicleContent> createState() => _RegisterVehicleContentState();
+  State<_RegisterVehicleContent> createState() =>
+      _RegisterVehicleContentState();
 }
 
 class _RegisterVehicleContentState extends State<_RegisterVehicleContent> {
@@ -58,6 +59,7 @@ class _RegisterVehicleContentState extends State<_RegisterVehicleContent> {
         licensePlate: _licensePlateController.text.trim().toUpperCase(),
         model: _modelController.text.trim(),
         type: _selectedType,
+        brand: VehicleBrand.other,
         pricePerHour: double.parse(_priceController.text.trim()),
         address: _addressController.text.trim(),
         description: _descriptionController.text.trim().isEmpty
@@ -68,7 +70,9 @@ class _RegisterVehicleContentState extends State<_RegisterVehicleContent> {
             : _mockImages,
       );
 
-      context.read<OwnerVehicleBloc>().add(RegisterVehicleSubmit(params: params));
+      context.read<OwnerVehicleBloc>().add(
+        RegisterVehicleSubmit(params: params),
+      );
     }
   }
 
@@ -132,10 +136,7 @@ class _RegisterVehicleContentState extends State<_RegisterVehicleContent> {
                     ),
                     child: Row(
                       children: [
-                        Icon(
-                          Icons.info_outline,
-                          color: AppColors.info,
-                        ),
+                        Icon(Icons.info_outline, color: AppColors.info),
                         const SizedBox(width: 12),
                         Expanded(
                           child: Text(
@@ -164,14 +165,17 @@ class _RegisterVehicleContentState extends State<_RegisterVehicleContent> {
                     enabled: !isLoading,
                     textCapitalization: TextCapitalization.characters,
                     inputFormatters: [
-                      FilteringTextInputFormatter.allow(RegExp(r'[0-9A-Za-z-]')),
+                      FilteringTextInputFormatter.allow(
+                        RegExp(r'[0-9A-Za-z-]'),
+                      ),
                     ],
                     validator: (value) {
                       if (value == null || value.isEmpty) {
                         return 'License plate is required';
                       }
-                      if (!RegExp(r'^[0-9]{2}[A-Z]-[0-9]{4,5}$')
-                          .hasMatch(value.toUpperCase())) {
+                      if (!RegExp(
+                        r'^[0-9]{2}[A-Z]-[0-9]{4,5}$',
+                      ).hasMatch(value.toUpperCase())) {
                         return 'Format: 59A-12345';
                       }
                       return null;
@@ -337,10 +341,7 @@ class _RegisterVehicleContentState extends State<_RegisterVehicleContent> {
       textCapitalization: textCapitalization,
       inputFormatters: inputFormatters,
       validator: validator,
-      style: GoogleFonts.poppins(
-        fontSize: 15,
-        color: AppColors.textPrimary,
-      ),
+      style: GoogleFonts.poppins(fontSize: 15, color: AppColors.textPrimary),
       decoration: InputDecoration(
         labelText: label,
         hintText: hint,
@@ -365,15 +366,9 @@ class _RegisterVehicleContentState extends State<_RegisterVehicleContent> {
         labelText: label,
         prefixIcon: Icon(Icons.category_outlined, color: AppColors.primary),
       ),
-      style: GoogleFonts.poppins(
-        fontSize: 15,
-        color: AppColors.textPrimary,
-      ),
+      style: GoogleFonts.poppins(fontSize: 15, color: AppColors.textPrimary),
       items: items.map((type) {
-        return DropdownMenuItem(
-          value: type,
-          child: Text(type.displayName),
-        );
+        return DropdownMenuItem(value: type, child: Text(type.displayName));
       }).toList(),
     );
   }
@@ -384,7 +379,11 @@ class _RegisterVehicleContentState extends State<_RegisterVehicleContent> {
       children: [
         Row(
           children: [
-            Icon(Icons.photo_library_outlined, color: AppColors.primary, size: 20),
+            Icon(
+              Icons.photo_library_outlined,
+              color: AppColors.primary,
+              size: 20,
+            ),
             const SizedBox(width: 8),
             Text(
               'Vehicle Images',
@@ -486,13 +485,9 @@ class _RegisterVehicleContentState extends State<_RegisterVehicleContent> {
         const SizedBox(height: 8),
         Text(
           '* At least one image is required',
-          style: GoogleFonts.poppins(
-            fontSize: 12,
-            color: AppColors.textMuted,
-          ),
+          style: GoogleFonts.poppins(fontSize: 12, color: AppColors.textMuted),
         ),
       ],
     );
   }
 }
-

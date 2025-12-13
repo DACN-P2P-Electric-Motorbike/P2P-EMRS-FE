@@ -8,11 +8,7 @@ class VehicleCard extends StatelessWidget {
   final VehicleEntity vehicle;
   final VoidCallback? onTap;
 
-  const VehicleCard({
-    super.key,
-    required this.vehicle,
-    this.onTap,
-  });
+  const VehicleCard({super.key, required this.vehicle, this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -100,7 +96,7 @@ class VehicleCard extends StatelessWidget {
                         ),
                         const SizedBox(width: 4),
                         Text(
-                          vehicle.formattedPrice,
+                          vehicle.formattedPricePerDay,
                           style: const TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.w600,
@@ -151,11 +147,7 @@ class VehicleCard extends StatelessWidget {
 
   Widget _buildPlaceholder() {
     return const Center(
-      child: Icon(
-        Icons.electric_moped,
-        size: 40,
-        color: AppColors.textMuted,
-      ),
+      child: Icon(Icons.electric_moped, size: 40, color: AppColors.textMuted),
     );
   }
 
@@ -185,6 +177,10 @@ class VehicleCard extends StatelessWidget {
         textColor = AppColors.error;
         break;
       case VehicleStatus.locked:
+        backgroundColor = Colors.grey.withOpacity(0.1);
+        textColor = Colors.grey;
+        break;
+      case VehicleStatus.unavailable:
         backgroundColor = Colors.grey.withOpacity(0.1);
         textColor = Colors.grey;
         break;
@@ -220,4 +216,3 @@ class VehicleCard extends StatelessWidget {
     return AppColors.error;
   }
 }
-

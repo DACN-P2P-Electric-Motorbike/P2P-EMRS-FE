@@ -33,9 +33,7 @@ class _OwnerDashboardContent extends StatelessWidget {
       appBar: AppBar(
         title: Text(
           'My Vehicles',
-          style: GoogleFonts.poppins(
-            fontWeight: FontWeight.w600,
-          ),
+          style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
         ),
         actions: [
           IconButton(
@@ -66,12 +64,10 @@ class _OwnerDashboardContent extends StatelessWidget {
           }
         },
         builder: (context, state) {
-          if (state.status == OwnerVehicleStatus.loading && state.vehicles.isEmpty) {
+          if (state.status == OwnerVehicleStatus.loading &&
+              state.vehicles.isEmpty) {
             return const Center(
-              child: SpinKitFadingCircle(
-                color: AppColors.primary,
-                size: 50,
-              ),
+              child: SpinKitFadingCircle(color: AppColors.primary, size: 50),
             );
           }
 
@@ -83,35 +79,26 @@ class _OwnerDashboardContent extends StatelessWidget {
             child: CustomScrollView(
               slivers: [
                 // Stats header
-                SliverToBoxAdapter(
-                  child: _buildStatsHeader(state),
-                ),
+                SliverToBoxAdapter(child: _buildStatsHeader(state)),
 
                 // Vehicle list
                 if (state.vehicles.isEmpty)
-                  SliverFillRemaining(
-                    child: _buildEmptyState(context),
-                  )
+                  SliverFillRemaining(child: _buildEmptyState(context))
                 else
                   SliverList(
-                    delegate: SliverChildBuilderDelegate(
-                      (context, index) {
-                        final vehicle = state.vehicles[index];
-                        return VehicleCard(
-                          vehicle: vehicle,
-                          onTap: () {
-                            context.push('/owner/vehicle/${vehicle.id}');
-                          },
-                        );
-                      },
-                      childCount: state.vehicles.length,
-                    ),
+                    delegate: SliverChildBuilderDelegate((context, index) {
+                      final vehicle = state.vehicles[index];
+                      return VehicleCard(
+                        vehicle: vehicle,
+                        onTap: () {
+                          context.push('/owner/vehicle/${vehicle.id}');
+                        },
+                      );
+                    }, childCount: state.vehicles.length),
                   ),
 
                 // Bottom padding
-                const SliverToBoxAdapter(
-                  child: SizedBox(height: 100),
-                ),
+                const SliverToBoxAdapter(child: SizedBox(height: 100)),
               ],
             ),
           );
@@ -203,11 +190,7 @@ class _OwnerDashboardContent extends StatelessWidget {
               color: Colors.white.withOpacity(0.2),
               borderRadius: BorderRadius.circular(12),
             ),
-            child: Icon(
-              icon,
-              color: Colors.white,
-              size: 24,
-            ),
+            child: Icon(icon, color: Colors.white, size: 24),
           ),
           const SizedBox(height: 8),
           Text(
@@ -281,4 +264,3 @@ class _OwnerDashboardContent extends StatelessWidget {
     );
   }
 }
-

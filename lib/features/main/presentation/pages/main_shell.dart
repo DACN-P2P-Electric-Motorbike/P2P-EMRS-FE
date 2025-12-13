@@ -1,3 +1,5 @@
+import 'package:fe_capstone_project/features/auth/domain/entities/user.dart';
+import 'package:fe_capstone_project/features/auth/presentation/pages/profile.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
@@ -10,15 +12,13 @@ import '../../../auth/presentation/bloc/auth_event.dart';
 import '../../../auth/presentation/bloc/auth_state.dart';
 import '../../../auth/presentation/pages/home_page.dart';
 import '../../../owner_vehicle/presentation/pages/owner_profile_page.dart';
+import '../../../owner_vehicle/presentation/pages/owner_dashboard_page.dart';
 
 /// Main Shell with Bottom Navigation Bar
 class MainShell extends StatefulWidget {
   final int initialIndex;
 
-  const MainShell({
-    super.key,
-    this.initialIndex = 0,
-  });
+  const MainShell({super.key, this.initialIndex = 0});
 
   @override
   State<MainShell> createState() => _MainShellState();
@@ -51,16 +51,15 @@ class _MainShellState extends State<MainShell> {
           // Build pages list dynamically based on user role
           final pages = [
             const HomePage(),
-            const _BookmarksPage(),
+            // const _BookmarksPage(),
+            if (isOwner) OwnerDashboardPage() else _BecomeOwnerPromptPage(),
             const _NotificationsPage(),
-            isOwner ? const OwnerProfilePage() : const _RenterProfilePage(),
+            // isOwner ? const OwnerProfilePage() : const _RenterProfilePage(),
+            const ProfilePage(),
           ];
 
           return Scaffold(
-            body: IndexedStack(
-              index: _currentIndex,
-              children: pages,
-            ),
+            body: IndexedStack(index: _currentIndex, children: pages),
             bottomNavigationBar: _buildBottomNavBar(isOwner),
           );
         },
@@ -93,8 +92,12 @@ class _MainShellState extends State<MainShell> {
               ),
               _buildNavItem(
                 index: 1,
-                icon: Icons.bookmark_outline,
-                activeIcon: Icons.bookmark,
+                // icon: Icons.bookmark_outline,
+                // activeIcon: Icons.bookmark,
+                icon: isOwner ? Icons.two_wheeler_outlined : Icons.add_business,
+                activeIcon: isOwner
+                    ? Icons.two_wheeler_outlined
+                    : Icons.add_business,
               ),
               _buildNavItem(
                 index: 2,
@@ -179,11 +182,7 @@ class _BookmarksPage extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
-              Icons.bookmark_outline,
-              size: 80,
-              color: AppColors.textMuted,
-            ),
+            Icon(Icons.bookmark_outline, size: 80, color: AppColors.textMuted),
             const SizedBox(height: 16),
             Text(
               'No saved items yet',
@@ -468,7 +467,9 @@ class _RenterProfilePage extends StatelessWidget {
                       // Logout button
                       OutlinedButton.icon(
                         onPressed: () {
-                          context.read<AuthBloc>().add(const AuthLogoutStarted());
+                          context.read<AuthBloc>().add(
+                            const AuthLogoutStarted(),
+                          );
                           context.go('/login');
                         },
                         icon: const Icon(Icons.logout, color: AppColors.error),
@@ -481,7 +482,9 @@ class _RenterProfilePage extends StatelessWidget {
                         ),
                         style: OutlinedButton.styleFrom(
                           padding: const EdgeInsets.symmetric(vertical: 14),
-                          side: BorderSide(color: AppColors.error.withOpacity(0.3)),
+                          side: BorderSide(
+                            color: AppColors.error.withOpacity(0.3),
+                          ),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),
                           ),
@@ -560,10 +563,7 @@ class _RenterProfilePage extends StatelessWidget {
         ),
         subtitle: Text(
           subtitle,
-          style: GoogleFonts.poppins(
-            fontSize: 12,
-            color: AppColors.textMuted,
-          ),
+          style: GoogleFonts.poppins(fontSize: 12, color: AppColors.textMuted),
         ),
         trailing: const Icon(
           Icons.arrow_forward_ios,
@@ -571,10 +571,168 @@ class _RenterProfilePage extends StatelessWidget {
           color: AppColors.textMuted,
         ),
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      ),
+    );
+  }
+}
+
+/// Prompt page for users to become owners
+class _BecomeOwnerPromptPage extends StatelessWidget {
+  const _BecomeOwnerPromptPage();
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Trở thành chủ xe'),
+        automaticallyImplyLeading: false,
+      ),
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              // Illustration
+              Container(
+                width: 200,
+                height: 200,
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withOpacity(0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: const Center(
+                  child: Icon(
+                    Icons.electric_moped,
+                    size: 100,
+                    color: AppColors.primary,
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: 40),
+
+              // Title
+              Text(
+                'Kiếm thu nhập từ xe nhàn rỗi',
+                style: Theme.of(context).textTheme.displaySmall?.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.textPrimary,
+                ),
+                textAlign: TextAlign.center,
+              ),
+
+              const SizedBox(height: 16),
+
+              // Description
+              Text(
+                'Chia sẻ xe điện của bạn và kiếm thêm thu nhập thụ động mỗi tháng',
+                style: Theme.of(
+                  context,
+                ).textTheme.bodyLarge?.copyWith(color: AppColors.textSecondary),
+                textAlign: TextAlign.center,
+              ),
+
+              const SizedBox(height: 32),
+
+              // Benefits
+              _buildBenefit(
+                icon: Icons.attach_money,
+                title: 'Thu nhập thụ động',
+                description: 'Kiếm tiền khi xe không sử dụng',
+              ),
+              const SizedBox(height: 16),
+              _buildBenefit(
+                icon: Icons.security,
+                title: 'Bảo hiểm toàn diện',
+                description: 'Xe được bảo vệ trong mọi chuyến đi',
+              ),
+              const SizedBox(height: 16),
+              _buildBenefit(
+                icon: Icons.schedule,
+                title: 'Linh hoạt thời gian',
+                description: 'Tự quyết định khi nào cho thuê',
+              ),
+
+              const Spacer(),
+
+              // CTA Button
+              SizedBox(
+                width: double.infinity,
+                height: 56,
+                child: ElevatedButton(
+                  onPressed: () {
+                    // TODO: Navigate to vehicle registration
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Tính năng đang được phát triển'),
+                        backgroundColor: AppColors.primary,
+                      ),
+                    );
+                  },
+                  child: const Text(
+                    'Đăng ký xe ngay',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: 16),
+
+              TextButton(
+                onPressed: () {
+                  // User can still browse as renter
+                },
+                child: const Text('Để sau'),
+              ),
+            ],
+          ),
         ),
       ),
+    );
+  }
+
+  Widget _buildBenefit({
+    required IconData icon,
+    required String title,
+    required String description,
+  }) {
+    return Row(
+      children: [
+        Container(
+          width: 48,
+          height: 48,
+          decoration: BoxDecoration(
+            color: AppColors.primary.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Icon(icon, color: AppColors.primary, size: 24),
+        ),
+        const SizedBox(width: 16),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.textPrimary,
+                ),
+              ),
+              Text(
+                description,
+                style: const TextStyle(
+                  fontSize: 14,
+                  color: AppColors.textSecondary,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 }
