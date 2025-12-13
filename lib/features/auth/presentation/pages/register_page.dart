@@ -59,9 +59,7 @@ class _RegisterPageContentState extends State<_RegisterPageContent> {
         role: 'RENTER',
       );
 
-      context.read<AuthBloc>().add(
-            AuthRegisterStarted(registerParams: params),
-          );
+      context.read<AuthBloc>().add(AuthRegisterStarted(registerParams: params));
     }
   }
 
@@ -73,9 +71,7 @@ class _RegisterPageContentState extends State<_RegisterPageContent> {
         listener: (context, state) {
           if (state is AuthSuccess) {
             Navigator.of(context).pushAndRemoveUntil(
-              MaterialPageRoute(
-                builder: (_) => HomePage(user: state.user),
-              ),
+              MaterialPageRoute(builder: (_) => HomePage(user: state.user)),
               (route) => false,
             );
           } else if (state is AuthFailure) {
@@ -120,9 +116,8 @@ class _RegisterPageContentState extends State<_RegisterPageContent> {
                       // Header
                       Text(
                         'Create New Account',
-                        style: Theme.of(context).textTheme.displaySmall?.copyWith(
-                              fontWeight: FontWeight.bold,
-                            ),
+                        style: Theme.of(context).textTheme.displaySmall
+                            ?.copyWith(fontWeight: FontWeight.bold),
                       ),
 
                       const SizedBox(height: 12),
@@ -130,8 +125,8 @@ class _RegisterPageContentState extends State<_RegisterPageContent> {
                       Text(
                         'Set up your username and password.\nYou can always change it later.',
                         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                              color: AppColors.textSecondary,
-                            ),
+                          color: AppColors.textSecondary,
+                        ),
                         textAlign: TextAlign.center,
                       ),
 
@@ -167,8 +162,9 @@ class _RegisterPageContentState extends State<_RegisterPageContent> {
                           if (value == null || value.isEmpty) {
                             return 'Please enter your email';
                           }
-                          if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$')
-                              .hasMatch(value)) {
+                          if (!RegExp(
+                            r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$',
+                          ).hasMatch(value)) {
                             return 'Please enter a valid email';
                           }
                           return null;
@@ -189,8 +185,9 @@ class _RegisterPageContentState extends State<_RegisterPageContent> {
                             return 'Please enter your phone number';
                           }
                           // Vietnamese phone number validation
-                          if (!RegExp(r'^(\+84|84|0)[3|5|7|8|9][0-9]{8}$')
-                              .hasMatch(value.replaceAll(' ', ''))) {
+                          if (!RegExp(
+                            r'^(\+84|84|0)[3|5|7|8|9][0-9]{8}$',
+                          ).hasMatch(value.replaceAll(' ', ''))) {
                             return 'Please enter a valid Vietnamese phone number';
                           }
                           return null;
@@ -250,7 +247,8 @@ class _RegisterPageContentState extends State<_RegisterPageContent> {
                           ),
                           onPressed: () {
                             setState(() {
-                              _obscureConfirmPassword = !_obscureConfirmPassword;
+                              _obscureConfirmPassword =
+                                  !_obscureConfirmPassword;
                             });
                           },
                         ),
@@ -410,16 +408,10 @@ class _RegisterPageContentState extends State<_RegisterPageContent> {
       keyboardType: keyboardType,
       enabled: enabled,
       validator: validator,
-      style: const TextStyle(
-        fontSize: 14,
-        color: AppColors.textPrimary,
-      ),
+      style: const TextStyle(fontSize: 14, color: AppColors.textPrimary),
       decoration: InputDecoration(
         hintText: hintText,
-        hintStyle: TextStyle(
-          color: AppColors.textMuted,
-          fontSize: 14,
-        ),
+        hintStyle: TextStyle(color: AppColors.textMuted, fontSize: 14),
         prefixIcon: Icon(
           prefixIcon,
           color: AppColors.primary.withOpacity(0.7),
@@ -444,7 +436,10 @@ class _RegisterPageContentState extends State<_RegisterPageContent> {
           borderRadius: BorderRadius.circular(14),
           borderSide: BorderSide(color: AppColors.error, width: 1),
         ),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 18,
+        ),
       ),
     );
   }
@@ -460,15 +455,13 @@ class _RegisterPageContentState extends State<_RegisterPageContent> {
       style: OutlinedButton.styleFrom(
         padding: const EdgeInsets.symmetric(vertical: 14),
         side: BorderSide(color: AppColors.border),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           if (isGoogle)
-            Container(
+            SizedBox(
               width: 24,
               height: 24,
               child: Center(

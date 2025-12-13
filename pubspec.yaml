@@ -52,3 +52,5 @@ dev_dependencies:
 flutter:
   uses-material-design: true
   # Using Google Fonts package for Poppins font (loaded from internet)
+  assets:
+    - assets/
