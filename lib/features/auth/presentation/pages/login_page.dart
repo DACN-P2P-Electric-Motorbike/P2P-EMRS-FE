@@ -1,14 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
+import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../injection_container.dart';
 import '../bloc/auth_bloc.dart';
 import '../bloc/auth_event.dart';
 import '../bloc/auth_state.dart';
-import 'register_page.dart';
-import 'forgot_password_page.dart';
-import 'home_page.dart';
 
 class LoginPage extends StatelessWidget {
   const LoginPage({super.key});
@@ -59,12 +57,8 @@ class _LoginPageContentState extends State<_LoginPageContent> {
       backgroundColor: Colors.white,
       body: BlocConsumer<AuthBloc, AuthState>(
         listener: (context, state) {
-          if (state is AuthSuccess) {
-            Navigator.of(context).pushReplacement(
-              MaterialPageRoute(
-                builder: (_) => HomePage(user: state.user),
-              ),
-            );
+          if (state is AuthSuccess || state is AuthAuthenticated) {
+            context.go('/home');
           } else if (state is AuthFailure) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
@@ -169,9 +163,10 @@ class _LoginPageContentState extends State<_LoginPageContent> {
                         alignment: Alignment.centerRight,
                         child: TextButton(
                           onPressed: () {
-                            Navigator.of(context).push(
-                              MaterialPageRoute(
-                                builder: (_) => const ForgotPasswordPage(),
+                            // TODO: Add forgot password route
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Forgot password coming soon!'),
                               ),
                             );
                           },
@@ -238,13 +233,7 @@ class _LoginPageContentState extends State<_LoginPageContent> {
                           GestureDetector(
                             onTap: isLoading
                                 ? null
-                                : () {
-                                    Navigator.of(context).push(
-                                      MaterialPageRoute(
-                                        builder: (_) => const RegisterPage(),
-                                      ),
-                                    );
-                                  },
+                                : () => context.push('/register'),
                             child: Text(
                               'Sign up',
                               style: TextStyle(
