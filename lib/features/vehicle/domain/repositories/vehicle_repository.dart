@@ -1,5 +1,5 @@
 import 'package:dartz/dartz.dart';
-import 'package:fe_capstone_project/features/owner_vehicle/domain/entities/vehicle_entity.dart';
+import 'package:fe_capstone_project/features/vehicle/domain/entities/vehicle_entity.dart';
 import '../../../../core/error/failures.dart';
 
 /// Repository interface for vehicle operations (renter side)

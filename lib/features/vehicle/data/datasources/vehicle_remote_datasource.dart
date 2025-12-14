@@ -34,8 +34,10 @@ class VehicleRemoteDataSourceImpl implements VehicleRemoteDataSource {
     try {
       final response = await _dioClient.get(ApiConstants.availableVehicles);
 
-      if (response.data is List) {
-        return (response.data as List)
+      final data = response.data;
+
+      if (data is Map<String, dynamic> && data['vehicles'] is List) {
+        return (data['vehicles'] as List)
             .map((json) => VehicleModel.fromJson(json))
             .toList();
       }

@@ -52,13 +52,13 @@ class _MainShellState extends State<MainShell> {
 
           // Build pages list dynamically based on user role
           final pages = [
+            // const HomePage(),
             const BrowseVehiclesPage(),
             // const _BookmarksPage(),
             if (isOwner) OwnerDashboardPage() else BecomeOwnerPage(),
             const _NotificationsPage(),
             // isOwner ? const OwnerProfilePage() : const _RenterProfilePage(),
-            // const ProfilePage(),
-            const HomePage(),
+            const ProfilePage(),
           ];
 
           return Scaffold(

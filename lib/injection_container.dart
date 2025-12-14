@@ -39,6 +39,18 @@ import 'features/renter/domain/repositories/become_owner_repository.dart';
 import 'features/renter/domain/usecases/become_owner.dart';
 import 'features/renter/presentation/bloc/become_owner_cubiit.dart';
 
+import 'features/vehicle/data/datasources/vehicle_remote_datasource.dart';
+import 'features/vehicle/data/repositories/vehicle_repository_impl.dart';
+
+// Vehicle Feature - Domain Layer
+import 'features/vehicle/domain/repositories/vehicle_repository.dart';
+import 'features/vehicle/domain/usecases/get_available_vehicles.dart';
+import 'features/vehicle/domain/usecases/get_vehicle_by_id.dart';
+
+// Vehicle Feature - Presentation Layer
+import 'features/vehicle/presentation/bloc/vehicles_list_cubit.dart';
+import 'features/vehicle/presentation/bloc/vehicle_detail_cubit.dart';
+
 /// Global service locator instance
 final sl = GetIt.instance;
 
@@ -116,6 +128,28 @@ Future<void> init() async {
       updateVehicleUseCase: sl(),
       getVehicleByIdUseCase: sl(),
     ),
+  );
+
+  //============================================================================
+  // FEATURES - VEHICLE
+  //============================================================================
+
+  sl.registerFactory(() => VehicleListCubit(getAvailableVehicles: sl()));
+
+  sl.registerFactory(() => VehicleDetailCubit(getVehicleById: sl()));
+
+  // Use cases
+  sl.registerLazySingleton(() => GetAvailableVehicles(sl()));
+  sl.registerLazySingleton(() => GetVehicleById(sl()));
+
+  // Repository
+  sl.registerLazySingleton<VehicleRepository>(
+    () => VehicleRepositoryImpl(remoteDataSource: sl()),
+  );
+
+  // Data sources
+  sl.registerLazySingleton<VehicleRemoteDataSource>(
+    () => VehicleRemoteDataSourceImpl(dioClient: sl()),
   );
 
   sl.registerLazySingleton<BecomeOwnerRemoteDataSource>(

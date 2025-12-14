@@ -1,5 +1,5 @@
 import 'package:dartz/dartz.dart';
-import 'package:fe_capstone_project/features/owner_vehicle/domain/entities/vehicle_entity.dart';
+import 'package:fe_capstone_project/features/vehicle/domain/entities/vehicle_entity.dart';
 import '../../../../../core/error/exceptions.dart';
 import '../../../../../core/error/failures.dart';
 import '../../domain/repositories/vehicle_repository.dart';

@@ -1,5 +1,7 @@
 import 'package:fe_capstone_project/features/owner_vehicle/presentation/pages/owner_dashboard_page.dart';
 import 'package:fe_capstone_project/features/renter/presentation/pages/become_owner_page.dart';
+import 'package:fe_capstone_project/features/vehicle/presentation/pages/vehicle_detail_page.dart';
+import 'package:fe_capstone_project/features/vehicle/presentation/pages/vehicle_list_page.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
@@ -78,6 +80,26 @@ class AppRouter {
             name: 'become-owner-register-vehicle',
             builder: (context, state) =>
                 const BikeRegistrationPage(isBecomeOwnerFlow: true),
+          ),
+        ],
+      ),
+      GoRoute(
+        path: '/vehicle',
+        name: 'list-vehicle',
+        builder: (context, state) => const VehicleListPage(),
+        routes: [
+          GoRoute(
+            path: 'available',
+            name: 'available-vehicle',
+            builder: (context, state) => const VehicleListPage(),
+          ),
+          GoRoute(
+            path: ':id',
+            name: 'view-detail-vehicle-info',
+            builder: (context, state) {
+              final vehicleId = state.pathParameters['id']!;
+              return VehicleDetailPage(vehicleId: vehicleId);
+            },
           ),
         ],
       ),
