@@ -13,8 +13,9 @@ class RegisterVehicleUseCase
   RegisterVehicleUseCase(this.repository);
 
   @override
-  Future<Either<Failure, VehicleEntity>> call(CreateVehicleParams params) async {
+  Future<Either<Failure, VehicleEntity>> call(
+    CreateVehicleParams params,
+  ) async {
     return await repository.registerVehicle(params);
   }
 }
-

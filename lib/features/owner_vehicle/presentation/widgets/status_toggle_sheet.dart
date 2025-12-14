@@ -56,19 +56,18 @@ class StatusToggleSheet extends StatelessWidget {
           const SizedBox(height: 8),
           const Text(
             'Select a new status for your vehicle',
-            style: TextStyle(
-              fontSize: 14,
-              color: AppColors.textSecondary,
-            ),
+            style: TextStyle(fontSize: 14, color: AppColors.textSecondary),
           ),
           const SizedBox(height: 24),
 
           // Status options
-          ...allowedStatuses.map((status) => _buildStatusOption(
-                context,
-                status,
-                isSelected: status == currentStatus,
-              )),
+          ...allowedStatuses.map(
+            (status) => _buildStatusOption(
+              context,
+              status,
+              isSelected: status == currentStatus,
+            ),
+          ),
 
           const SizedBox(height: 16),
 
@@ -81,19 +80,12 @@ class StatusToggleSheet extends StatelessWidget {
             ),
             child: Row(
               children: [
-                Icon(
-                  Icons.info_outline,
-                  size: 20,
-                  color: AppColors.info,
-                ),
+                Icon(Icons.info_outline, size: 20, color: AppColors.info),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Text(
                     'Only "Available" and "Maintenance" status can be set by owners.',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: AppColors.info,
-                    ),
+                    style: TextStyle(fontSize: 12, color: AppColors.info),
                   ),
                 ),
               ],
@@ -131,15 +123,19 @@ class StatusToggleSheet extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: InkWell(
-        onTap: isSelected ? null : () {
-          Navigator.pop(context);
-          onStatusSelected(status);
-        },
+        onTap: isSelected
+            ? null
+            : () {
+                Navigator.pop(context);
+                onStatusSelected(status);
+              },
         borderRadius: BorderRadius.circular(12),
         child: Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: isSelected ? accentColor.withOpacity(0.1) : AppColors.inputBackground,
+            color: isSelected
+                ? accentColor.withOpacity(0.1)
+                : AppColors.inputBackground,
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
               color: isSelected ? accentColor : Colors.transparent,
@@ -148,11 +144,7 @@ class StatusToggleSheet extends StatelessWidget {
           ),
           child: Row(
             children: [
-              Icon(
-                icon,
-                color: accentColor,
-                size: 24,
-              ),
+              Icon(icon, color: accentColor, size: 24),
               const SizedBox(width: 16),
               Expanded(
                 child: Column(
@@ -178,11 +170,7 @@ class StatusToggleSheet extends StatelessWidget {
                 ),
               ),
               if (isSelected)
-                Icon(
-                  Icons.check_circle,
-                  color: accentColor,
-                  size: 24,
-                ),
+                Icon(Icons.check_circle, color: accentColor, size: 24),
             ],
           ),
         ),
@@ -201,4 +189,3 @@ class StatusToggleSheet extends StatelessWidget {
     }
   }
 }
-

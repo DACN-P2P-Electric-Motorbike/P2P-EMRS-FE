@@ -15,4 +15,3 @@ class GetMyVehiclesUseCase implements UseCase<List<VehicleEntity>, NoParams> {
     return await repository.getMyVehicles();
   }
 }
-

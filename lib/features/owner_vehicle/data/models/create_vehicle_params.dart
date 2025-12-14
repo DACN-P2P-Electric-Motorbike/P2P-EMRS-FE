@@ -72,21 +72,21 @@ class CreateVehicleParams extends Equatable {
 
   @override
   List<Object?> get props => [
-        licensePlate,
-        model,
-        brand,
-        type,
-        features,
-        pricePerHour,
-        pricePerDay,
-        address,
-        latitude,
-        longitude,
-        description,
-        images,
-        licenseNumber,
-        licenseFront,
-        licenseBack,
-        batteryLevel,
-      ];
+    licensePlate,
+    model,
+    brand,
+    type,
+    features,
+    pricePerHour,
+    pricePerDay,
+    address,
+    latitude,
+    longitude,
+    description,
+    images,
+    licenseNumber,
+    licenseFront,
+    licenseBack,
+    batteryLevel,
+  ];
 }

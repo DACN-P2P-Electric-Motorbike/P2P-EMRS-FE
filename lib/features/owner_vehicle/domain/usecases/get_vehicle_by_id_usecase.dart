@@ -15,4 +15,3 @@ class GetVehicleByIdUseCase implements UseCase<VehicleEntity, String> {
     return await repository.getVehicleById(id);
   }
 }
-

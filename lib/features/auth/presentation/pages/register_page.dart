@@ -54,7 +54,7 @@ class _RegisterPageContentState extends State<_RegisterPageContent> {
   final _confirmPasswordController = TextEditingController();
   final _fullNameController = TextEditingController();
   final _phoneController = TextEditingController();
-  
+
   // Owner-specific fields
   final _idCardController = TextEditingController();
   final _addressController = TextEditingController();
@@ -80,11 +80,11 @@ class _RegisterPageContentState extends State<_RegisterPageContent> {
       // Get owner-specific fields safely
       String? idCardNum;
       String? address;
-      
+
       if (_selectedRole == UserRole.owner) {
         final idCardText = _idCardController.text.trim();
         final addressText = _addressController.text.trim();
-        
+
         if (idCardText.isNotEmpty) {
           idCardNum = idCardText;
         }
@@ -103,9 +103,7 @@ class _RegisterPageContentState extends State<_RegisterPageContent> {
         address: address,
       );
 
-      context.read<AuthBloc>().add(
-            AuthRegisterStarted(registerParams: params),
-          );
+      context.read<AuthBloc>().add(AuthRegisterStarted(registerParams: params));
     }
   }
 
@@ -214,8 +212,9 @@ class _RegisterPageContentState extends State<_RegisterPageContent> {
                           if (value == null || value.isEmpty) {
                             return 'Please enter your email';
                           }
-                          if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$')
-                              .hasMatch(value)) {
+                          if (!RegExp(
+                            r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$',
+                          ).hasMatch(value)) {
                             return 'Please enter a valid email';
                           }
                           return null;
@@ -236,8 +235,9 @@ class _RegisterPageContentState extends State<_RegisterPageContent> {
                             return 'Please enter your phone number';
                           }
                           // Vietnamese phone number validation
-                          if (!RegExp(r'^(\+84|84|0)[3|5|7|8|9][0-9]{8}$')
-                              .hasMatch(value.replaceAll(' ', ''))) {
+                          if (!RegExp(
+                            r'^(\+84|84|0)[3|5|7|8|9][0-9]{8}$',
+                          ).hasMatch(value.replaceAll(' ', ''))) {
                             return 'Please enter a valid Vietnamese phone number';
                           }
                           return null;
@@ -247,7 +247,7 @@ class _RegisterPageContentState extends State<_RegisterPageContent> {
                       // Owner-specific fields
                       if (_selectedRole == UserRole.owner) ...[
                         const SizedBox(height: 24),
-                        
+
                         // Owner section header
                         Row(
                           children: [
@@ -288,7 +288,7 @@ class _RegisterPageContentState extends State<_RegisterPageContent> {
                             ),
                           ],
                         ),
-                        
+
                         const SizedBox(height: 16),
 
                         // ID Card Number (CCCD/CMND)
@@ -380,7 +380,8 @@ class _RegisterPageContentState extends State<_RegisterPageContent> {
                           ),
                           onPressed: () {
                             setState(() {
-                              _obscureConfirmPassword = !_obscureConfirmPassword;
+                              _obscureConfirmPassword =
+                                  !_obscureConfirmPassword;
                             });
                           },
                         ),
@@ -628,7 +629,7 @@ class _RegisterPageContentState extends State<_RegisterPageContent> {
             );
           }).toList(),
         ),
-        
+
         // Owner benefits info
         if (_selectedRole == UserRole.owner) ...[
           const SizedBox(height: 16),
@@ -637,17 +638,11 @@ class _RegisterPageContentState extends State<_RegisterPageContent> {
             decoration: BoxDecoration(
               color: AppColors.success.withOpacity(0.1),
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(
-                color: AppColors.success.withOpacity(0.3),
-              ),
+              border: Border.all(color: AppColors.success.withOpacity(0.3)),
             ),
             child: Row(
               children: [
-                Icon(
-                  Icons.info_outline,
-                  color: AppColors.success,
-                  size: 20,
-                ),
+                Icon(Icons.info_outline, color: AppColors.success, size: 20),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Text(
@@ -686,10 +681,7 @@ class _RegisterPageContentState extends State<_RegisterPageContent> {
       validator: validator,
       maxLines: maxLines,
       inputFormatters: inputFormatters,
-      style: GoogleFonts.poppins(
-        fontSize: 14,
-        color: AppColors.textPrimary,
-      ),
+      style: GoogleFonts.poppins(fontSize: 14, color: AppColors.textPrimary),
       decoration: InputDecoration(
         hintText: hintText,
         hintStyle: GoogleFonts.poppins(
@@ -720,7 +712,10 @@ class _RegisterPageContentState extends State<_RegisterPageContent> {
           borderRadius: BorderRadius.circular(14),
           borderSide: BorderSide(color: AppColors.error, width: 1),
         ),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 18,
+        ),
       ),
     );
   }
@@ -736,9 +731,7 @@ class _RegisterPageContentState extends State<_RegisterPageContent> {
       style: OutlinedButton.styleFrom(
         padding: const EdgeInsets.symmetric(vertical: 14),
         side: BorderSide(color: AppColors.border),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,

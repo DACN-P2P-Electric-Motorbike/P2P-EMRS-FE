@@ -15,8 +15,12 @@ class UpdateVehicleUseCase
 
   @override
   Future<Either<Failure, VehicleEntity>> call(
-      UpdateVehicleUseCaseParams params) async {
-    return await repository.updateVehicle(params.vehicleId, params.updateParams);
+    UpdateVehicleUseCaseParams params,
+  ) async {
+    return await repository.updateVehicle(
+      params.vehicleId,
+      params.updateParams,
+    );
   }
 }
 
@@ -33,4 +37,3 @@ class UpdateVehicleUseCaseParams extends Equatable {
   @override
   List<Object?> get props => [vehicleId, updateParams];
 }
-

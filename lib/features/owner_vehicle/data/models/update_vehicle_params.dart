@@ -57,16 +57,15 @@ class UpdateVehicleParams extends Equatable {
 
   @override
   List<Object?> get props => [
-        model,
-        type,
-        status,
-        batteryLevel,
-        pricePerHour,
-        address,
-        latitude,
-        longitude,
-        description,
-        images,
-      ];
+    model,
+    type,
+    status,
+    batteryLevel,
+    pricePerHour,
+    address,
+    latitude,
+    longitude,
+    description,
+    images,
+  ];
 }
-

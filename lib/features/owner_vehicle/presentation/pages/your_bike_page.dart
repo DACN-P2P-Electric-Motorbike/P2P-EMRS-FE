@@ -64,12 +64,10 @@ class _YourBikeContent extends StatelessWidget {
           }
         },
         builder: (context, state) {
-          if (state.status == OwnerVehicleStatus.loading && state.vehicles.isEmpty) {
+          if (state.status == OwnerVehicleStatus.loading &&
+              state.vehicles.isEmpty) {
             return const Center(
-              child: SpinKitFadingCircle(
-                color: AppColors.primary,
-                size: 50,
-              ),
+              child: SpinKitFadingCircle(color: AppColors.primary, size: 50),
             );
           }
 
@@ -82,10 +80,12 @@ class _YourBikeContent extends StatelessWidget {
               padding: const EdgeInsets.all(20),
               children: [
                 // Vehicle Cards
-                ...state.vehicles.map((vehicle) => Padding(
-                      padding: const EdgeInsets.only(bottom: 16),
-                      child: _buildVehicleCard(context, vehicle),
-                    )),
+                ...state.vehicles.map(
+                  (vehicle) => Padding(
+                    padding: const EdgeInsets.only(bottom: 16),
+                    child: _buildVehicleCard(context, vehicle),
+                  ),
+                ),
 
                 // Add New Bike Card
                 _buildAddNewBikeCard(context),
@@ -134,9 +134,10 @@ class _YourBikeContent extends StatelessWidget {
                             if (loadingProgress == null) return child;
                             return Center(
                               child: CircularProgressIndicator(
-                                value: loadingProgress.expectedTotalBytes != null
+                                value:
+                                    loadingProgress.expectedTotalBytes != null
                                     ? loadingProgress.cumulativeBytesLoaded /
-                                        loadingProgress.expectedTotalBytes!
+                                          loadingProgress.expectedTotalBytes!
                                     : null,
                                 strokeWidth: 2,
                                 color: AppColors.primary,
@@ -256,7 +257,9 @@ class _YourBikeContent extends StatelessWidget {
                             vertical: 4,
                           ),
                           decoration: BoxDecoration(
-                            color: _getStatusColor(vehicle.status).withOpacity(0.1),
+                            color: _getStatusColor(
+                              vehicle.status,
+                            ).withOpacity(0.1),
                             borderRadius: BorderRadius.circular(12),
                             border: Border.all(
                               color: _getStatusColor(vehicle.status),
@@ -319,11 +322,7 @@ class _YourBikeContent extends StatelessWidget {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(
-                  Icons.add,
-                  size: 40,
-                  color: AppColors.textMuted,
-                ),
+                Icon(Icons.add, size: 40, color: AppColors.textMuted),
                 const SizedBox(height: 12),
                 Text(
                   'Add a new bike',
@@ -343,11 +342,7 @@ class _YourBikeContent extends StatelessWidget {
 
   Widget _buildPlaceholderImage() {
     return Center(
-      child: Icon(
-        Icons.two_wheeler,
-        size: 40,
-        color: AppColors.textMuted,
-      ),
+      child: Icon(Icons.two_wheeler, size: 40, color: AppColors.textMuted),
     );
   }
 
@@ -391,10 +386,12 @@ class DashedBorderPainter extends CustomPainter {
       ..style = PaintingStyle.stroke;
 
     final path = Path()
-      ..addRRect(RRect.fromRectAndRadius(
-        Rect.fromLTWH(0, 0, size.width, size.height),
-        const Radius.circular(16),
-      ));
+      ..addRRect(
+        RRect.fromRectAndRadius(
+          Rect.fromLTWH(0, 0, size.width, size.height),
+          const Radius.circular(16),
+        ),
+      );
 
     // Draw dashed border
     final dashPath = Path();
@@ -416,4 +413,3 @@ class DashedBorderPainter extends CustomPainter {
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
-

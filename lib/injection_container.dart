@@ -33,6 +33,12 @@ import 'features/owner_vehicle/domain/usecases/update_vehicle_usecase.dart';
 // Owner Vehicle Feature - Presentation Layer
 import 'features/owner_vehicle/presentation/bloc/owner_vehicle_bloc.dart';
 
+import 'features/renter/data/datasources/become_owner_remote_datasource.dart';
+import 'features/renter/data/repositories/become_owner_repository_impl.dart';
+import 'features/renter/domain/repositories/become_owner_repository.dart';
+import 'features/renter/domain/usecases/become_owner.dart';
+import 'features/renter/presentation/bloc/become_owner_cubiit.dart';
+
 /// Global service locator instance
 final sl = GetIt.instance;
 
@@ -43,19 +49,13 @@ Future<void> init() async {
   //============================================================================
 
   // Storage Service - Singleton
-  sl.registerLazySingleton<StorageService>(
-    () => StorageService(),
-  );
+  sl.registerLazySingleton<StorageService>(() => StorageService());
 
   // Dio Client - Singleton (depends on StorageService)
-  sl.registerLazySingleton<DioClient>(
-    () => DioClient(storageService: sl()),
-  );
+  sl.registerLazySingleton<DioClient>(() => DioClient(storageService: sl()));
 
   // Upload Service - Singleton (depends on DioClient)
-  sl.registerLazySingleton<UploadService>(
-    () => UploadService(dioClient: sl()),
-  );
+  sl.registerLazySingleton<UploadService>(() => UploadService(dioClient: sl()));
 
   //============================================================================
   // FEATURES - AUTH
@@ -68,10 +68,7 @@ Future<void> init() async {
 
   // Repository
   sl.registerLazySingleton<AuthRepository>(
-    () => AuthRepositoryImpl(
-      remoteDataSource: sl(),
-      storageService: sl(),
-    ),
+    () => AuthRepositoryImpl(remoteDataSource: sl(), storageService: sl()),
   );
 
   // Use Cases
@@ -120,4 +117,16 @@ Future<void> init() async {
       getVehicleByIdUseCase: sl(),
     ),
   );
+
+  sl.registerLazySingleton<BecomeOwnerRemoteDataSource>(
+    () => BecomeOwnerRemoteDataSourceImpl(dioClient: sl()),
+  );
+
+  sl.registerLazySingleton<BecomeOwnerRepository>(
+    () => BecomeOwnerRepositoryImpl(remoteDataSource: sl()),
+  );
+
+  sl.registerLazySingleton(() => BecomeOwner(sl()));
+
+  sl.registerFactory(() => BecomeOwnerCubit(becomeOwner: sl()));
 }

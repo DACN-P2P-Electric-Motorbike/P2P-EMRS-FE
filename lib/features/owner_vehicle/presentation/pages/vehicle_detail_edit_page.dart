@@ -13,10 +13,7 @@ import '../bloc/owner_vehicle_bloc.dart';
 class VehicleDetailEditPage extends StatelessWidget {
   final String vehicleId;
 
-  const VehicleDetailEditPage({
-    super.key,
-    required this.vehicleId,
-  });
+  const VehicleDetailEditPage({super.key, required this.vehicleId});
 
   @override
   Widget build(BuildContext context) {
@@ -67,10 +64,7 @@ class _VehicleDetailContentState extends State<_VehicleDetailContent> {
           return Scaffold(
             appBar: _buildAppBar(context, 'Loading...'),
             body: const Center(
-              child: SpinKitFadingCircle(
-                color: AppColors.primary,
-                size: 50,
-              ),
+              child: SpinKitFadingCircle(color: AppColors.primary, size: 50),
             ),
           );
         }
@@ -82,11 +76,7 @@ class _VehicleDetailContentState extends State<_VehicleDetailContent> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(
-                    Icons.error_outline,
-                    size: 64,
-                    color: AppColors.error,
-                  ),
+                  Icon(Icons.error_outline, size: 64, color: AppColors.error),
                   const SizedBox(height: 16),
                   Text(
                     'Vehicle not found',
@@ -215,11 +205,7 @@ class _VehicleDetailContentState extends State<_VehicleDetailContent> {
 
   Widget _buildPlaceholderImage() {
     return Center(
-      child: Icon(
-        Icons.two_wheeler,
-        size: 80,
-        color: AppColors.textMuted,
-      ),
+      child: Icon(Icons.two_wheeler, size: 80, color: AppColors.textMuted),
     );
   }
 
@@ -420,11 +406,8 @@ class _VehicleDetailContentState extends State<_VehicleDetailContent> {
       onTap: vehicle.canEditStatus && !isSelected
           ? () {
               context.read<OwnerVehicleBloc>().add(
-                    UpdateVehicleStatus(
-                      vehicleId: vehicle.id,
-                      newStatus: status,
-                    ),
-                  );
+                UpdateVehicleStatus(vehicleId: vehicle.id, newStatus: status),
+              );
             }
           : null,
       child: Container(
@@ -498,8 +481,9 @@ class _VehicleDetailContentState extends State<_VehicleDetailContent> {
               activeTrackColor: _getBatteryColor(_batteryLevel.toInt()),
               inactiveTrackColor: AppColors.border,
               thumbColor: _getBatteryColor(_batteryLevel.toInt()),
-              overlayColor:
-                  _getBatteryColor(_batteryLevel.toInt()).withOpacity(0.2),
+              overlayColor: _getBatteryColor(
+                _batteryLevel.toInt(),
+              ).withOpacity(0.2),
             ),
             child: Slider(
               value: _batteryLevel,
@@ -514,11 +498,11 @@ class _VehicleDetailContentState extends State<_VehicleDetailContent> {
               },
               onChangeEnd: (value) {
                 context.read<OwnerVehicleBloc>().add(
-                      UpdateVehicleBattery(
-                        vehicleId: vehicle.id,
-                        batteryLevel: value.toInt(),
-                      ),
-                    );
+                  UpdateVehicleBattery(
+                    vehicleId: vehicle.id,
+                    batteryLevel: value.toInt(),
+                  ),
+                );
                 _isEditingBattery = false;
               },
             ),
@@ -646,10 +630,7 @@ class _VehicleDetailContentState extends State<_VehicleDetailContent> {
                   color: AppColors.primary.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(10),
                 ),
-                child: Icon(
-                  Icons.location_on,
-                  color: AppColors.primary,
-                ),
+                child: Icon(Icons.location_on, color: AppColors.primary),
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -712,9 +693,7 @@ class _VehicleDetailContentState extends State<_VehicleDetailContent> {
               context.read<OwnerVehicleBloc>().add(DeleteVehicle(vehicle.id));
               context.pop();
             },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.error,
-            ),
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
             child: const Text('Delete'),
           ),
         ],

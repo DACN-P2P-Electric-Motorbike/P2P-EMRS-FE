@@ -10,11 +10,7 @@ class ResetPasswordPage extends StatefulWidget {
   final String email;
   final String otp;
 
-  const ResetPasswordPage({
-    super.key,
-    required this.email,
-    required this.otp,
-  });
+  const ResetPasswordPage({super.key, required this.email, required this.otp});
 
   @override
   State<ResetPasswordPage> createState() => _ResetPasswordPageState();
@@ -55,9 +51,7 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
 
       if (response.statusCode == 200 && mounted) {
         Navigator.of(context).pushAndRemoveUntil(
-          MaterialPageRoute(
-            builder: (_) => const PasswordResetSuccessPage(),
-          ),
+          MaterialPageRoute(builder: (_) => const PasswordResetSuccessPage()),
           (route) => false,
         );
       }
@@ -68,10 +62,7 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
           message = e.response?.data['message'] ?? message;
         }
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(message),
-            backgroundColor: AppColors.error,
-          ),
+          SnackBar(content: Text(message), backgroundColor: AppColors.error),
         );
       }
     } finally {
@@ -117,8 +108,8 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
                 Text(
                   'Create New Password',
                   style: Theme.of(context).textTheme.displaySmall?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
 
                 const SizedBox(height: 12),
@@ -126,8 +117,8 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
                 Text(
                   'Your new password must be different\nfrom previous used passwords',
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: AppColors.textSecondary,
-                      ),
+                    color: AppColors.textSecondary,
+                  ),
                   textAlign: TextAlign.center,
                 ),
 
@@ -248,16 +239,10 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
       obscureText: obscureText,
       enabled: !_isLoading,
       validator: validator,
-      style: const TextStyle(
-        fontSize: 14,
-        color: AppColors.textPrimary,
-      ),
+      style: const TextStyle(fontSize: 14, color: AppColors.textPrimary),
       decoration: InputDecoration(
         hintText: hintText,
-        hintStyle: TextStyle(
-          color: AppColors.textMuted,
-          fontSize: 14,
-        ),
+        hintStyle: TextStyle(color: AppColors.textMuted, fontSize: 14),
         prefixIcon: Icon(
           prefixIcon,
           color: AppColors.primary.withOpacity(0.7),
@@ -282,9 +267,11 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
           borderRadius: BorderRadius.circular(14),
           borderSide: BorderSide(color: AppColors.error, width: 1),
         ),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 18,
+        ),
       ),
     );
   }
 }
-

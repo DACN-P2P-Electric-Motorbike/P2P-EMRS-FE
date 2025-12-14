@@ -53,4 +53,3 @@ class AuthAuthenticated extends AuthState {
   @override
   List<Object> get props => [user];
 }
-

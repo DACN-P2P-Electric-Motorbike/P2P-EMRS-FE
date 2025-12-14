@@ -1,5 +1,9 @@
 import 'dart:typed_data';
 
+import 'package:fe_capstone_project/core/storage/storage_service.dart';
+import 'package:fe_capstone_project/features/auth/presentation/bloc/auth_bloc.dart';
+import 'package:fe_capstone_project/features/auth/presentation/bloc/auth_event.dart';
+import 'package:fe_capstone_project/features/renter/presentation/bloc/become_owner_cubiit.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -17,22 +21,29 @@ import '../bloc/owner_vehicle_bloc.dart';
 
 /// Multi-step Bike Registration Page
 class BikeRegistrationPage extends StatelessWidget {
-  const BikeRegistrationPage({super.key});
+  final bool isBecomeOwnerFlow;
+  const BikeRegistrationPage({super.key, this.isBecomeOwnerFlow = false});
 
   @override
   Widget build(BuildContext context) {
-    return BlocProvider(
-      create: (_) => sl<OwnerVehicleBloc>(),
-      child: const _BikeRegistrationContent(),
+    return MultiBlocProvider(
+      providers: [
+        BlocProvider(create: (_) => sl<OwnerVehicleBloc>()),
+        if (isBecomeOwnerFlow)
+          BlocProvider(create: (_) => sl<BecomeOwnerCubit>()),
+      ],
+      child: _BikeRegistrationContent(isBecomeOwnerFlow: isBecomeOwnerFlow),
     );
   }
 }
 
 class _BikeRegistrationContent extends StatefulWidget {
-  const _BikeRegistrationContent();
+  final bool isBecomeOwnerFlow;
+  const _BikeRegistrationContent({this.isBecomeOwnerFlow = false});
 
   @override
-  State<_BikeRegistrationContent> createState() => _BikeRegistrationContentState();
+  State<_BikeRegistrationContent> createState() =>
+      _BikeRegistrationContentState();
 }
 
 class _BikeRegistrationContentState extends State<_BikeRegistrationContent> {
@@ -135,10 +146,14 @@ class _BikeRegistrationContentState extends State<_BikeRegistrationContent> {
     }
 
     // Upload images first if there are any to upload
-    if (_vehicleImageBytes != null || _licenseFrontBytes != null || _licenseBackBytes != null) {
+    if (_vehicleImageBytes != null ||
+        _licenseFrontBytes != null ||
+        _licenseBackBytes != null) {
       final uploadSuccess = await _uploadAllImages();
       if (!uploadSuccess) {
-        _showError(_uploadError ?? 'Failed to upload images. Please try again.');
+        _showError(
+          _uploadError ?? 'Failed to upload images. Please try again.',
+        );
         return;
       }
     }
@@ -155,7 +170,7 @@ class _BikeRegistrationContentState extends State<_BikeRegistrationContent> {
           ? _addressController.text.trim()
           : 'Ho Chi Minh City',
       description: null,
-      images: _vehicleImageUrl != null 
+      images: _vehicleImageUrl != null
           ? [_vehicleImageUrl!]
           : ['https://via.placeholder.com/400x300?text=No+Image'],
       licenseNumber: _licenseNumberController.text.trim(),
@@ -164,15 +179,24 @@ class _BikeRegistrationContentState extends State<_BikeRegistrationContent> {
     );
 
     if (!mounted) return;
-    context.read<OwnerVehicleBloc>().add(RegisterVehicleSubmit(params: params));
+    if (widget.isBecomeOwnerFlow) {
+      // Become owner flow
+      context.read<BecomeOwnerCubit>().submitBecomeOwner(params);
+    } else {
+      // Normal register vehicle flow
+      context.read<OwnerVehicleBloc>().add(
+        RegisterVehicleSubmit(params: params),
+      );
+
+      context.read<OwnerVehicleBloc>().add(
+        RegisterVehicleSubmit(params: params),
+      );
+    }
   }
 
   void _showError(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: AppColors.error,
-      ),
+      SnackBar(content: Text(message), backgroundColor: AppColors.error),
     );
   }
 
@@ -181,9 +205,7 @@ class _BikeRegistrationContentState extends State<_BikeRegistrationContent> {
       context: context,
       barrierDismissible: false,
       builder: (dialogContext) => Dialog(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         child: Padding(
           padding: const EdgeInsets.all(24),
           child: Column(
@@ -254,106 +276,161 @@ class _BikeRegistrationContentState extends State<_BikeRegistrationContent> {
 
   @override
   Widget build(BuildContext context) {
-    return BlocConsumer<OwnerVehicleBloc, OwnerVehicleState>(
-      listener: (context, state) {
-        if (state.status == OwnerVehicleStatus.registered) {
-          _showSuccessDialog();
-        } else if (state.errorMessage != null) {
-          _showError(state.errorMessage!);
-        }
-      },
-      builder: (context, state) {
-        final isLoading = state.status == OwnerVehicleStatus.registering || _isUploading;
+    return MultiBlocListener(
+      listeners: [
+        // ============================================
+        // Listener 1: OwnerVehicleBloc (normal flow)
+        // ============================================
+        BlocListener<OwnerVehicleBloc, OwnerVehicleState>(
+          listener: (context, state) {
+            // Only handle if NOT become owner flow
+            if (!widget.isBecomeOwnerFlow) {
+              if (state.status == OwnerVehicleStatus.registered) {
+                _showSuccessDialog();
+              } else if (state.errorMessage != null) {
+                _showError(state.errorMessage!);
+              }
+            }
+          },
+        ),
 
-        return Scaffold(
-          backgroundColor: const Color(0xFFF8F9FD),
-          appBar: AppBar(
-            backgroundColor: Colors.white,
-            elevation: 0,
-            leading: IconButton(
-              icon: const Icon(Icons.arrow_back_ios, color: AppColors.textPrimary),
-              onPressed: _previousStep,
-            ),
-            title: Text(
-              'Bike Registration',
-              style: GoogleFonts.poppins(
-                fontSize: 18,
-                fontWeight: FontWeight.w600,
-                color: AppColors.textPrimary,
-              ),
-            ),
-            centerTitle: true,
+        // ============================================
+        // Listener 2: BecomeOwnerCubit (become owner flow)
+        // Only add this listener if isBecomeOwnerFlow = true
+        // ============================================
+        if (widget.isBecomeOwnerFlow)
+          BlocListener<BecomeOwnerCubit, BecomeOwnerState>(
+            listener: (context, state) async {
+              if (state is BecomeOwnerSuccess) {
+                try {
+                  // 1. Save new token
+                  await sl<StorageService>().saveToken(
+                    state.response.accessToken,
+                  );
+
+                  // 2. Refresh auth to update roles
+                  if (context.mounted) {
+                    context.read<AuthBloc>().add(const AuthCheckRequested());
+                  }
+
+                  // 3. Wait for auth to update
+                  await Future.delayed(const Duration(milliseconds: 500));
+
+                  // 4. Show success & navigate
+                  if (context.mounted) {
+                    _showSuccessDialog();
+                  }
+                } catch (e) {
+                  if (context.mounted) {
+                    _showError('Failed to update auth: $e');
+                  }
+                }
+              } else if (state is BecomeOwnerError) {
+                _showError(state.message);
+              }
+            },
           ),
-          body: Column(
-            children: [
-              // Step Indicator
-              _buildStepIndicator(),
+      ],
+      child: BlocBuilder<OwnerVehicleBloc, OwnerVehicleState>(
+        builder: (context, state) {
+          final isLoading =
+              state.status == OwnerVehicleStatus.registering || _isUploading;
 
-              Expanded(
-                child: PageView(
-                  controller: _pageController,
-                  physics: const NeverScrollableScrollPhysics(),
-                  children: [
-                    _buildStep1BasicInfo(),
-                    _buildStep2Documents(),
-                    _buildStep3Availability(),
-                  ],
+          return Scaffold(
+            backgroundColor: const Color(0xFFF8F9FD),
+            appBar: AppBar(
+              backgroundColor: Colors.white,
+              elevation: 0,
+              leading: IconButton(
+                icon: const Icon(
+                  Icons.arrow_back_ios,
+                  color: AppColors.textPrimary,
+                ),
+                onPressed: _previousStep,
+              ),
+              title: Text(
+                'Bike Registration',
+                style: GoogleFonts.poppins(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.textPrimary,
                 ),
               ),
+              centerTitle: true,
+            ),
+            body: Column(
+              children: [
+                // Step Indicator
+                _buildStepIndicator(),
 
-              // Next Button
-              Container(
-                padding: const EdgeInsets.all(20),
-                color: Colors.white,
-                child: SafeArea(
-                  child: SizedBox(
-                    width: double.infinity,
-                    height: 56,
-                    child: ElevatedButton(
-                      onPressed: isLoading ? null : _nextStep,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.primary,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14),
+                Expanded(
+                  child: PageView(
+                    controller: _pageController,
+                    physics: const NeverScrollableScrollPhysics(),
+                    children: [
+                      _buildStep1BasicInfo(),
+                      _buildStep2Documents(),
+                      _buildStep3Availability(),
+                    ],
+                  ),
+                ),
+
+                // Next Button
+                Container(
+                  padding: const EdgeInsets.all(20),
+                  color: Colors.white,
+                  child: SafeArea(
+                    child: SizedBox(
+                      width: double.infinity,
+                      height: 56,
+                      child: ElevatedButton(
+                        onPressed: isLoading ? null : _nextStep,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.primary,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                          elevation: 0,
                         ),
-                        elevation: 0,
-                      ),
-                      child: isLoading
-                          ? Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                const SpinKitThreeBounce(
-                                  color: Colors.white,
-                                  size: 20,
-                                ),
-                                if (_isUploading) ...[
-                                  const SizedBox(width: 8),
-                                  Text(
-                                    'Uploading...',
-                                    style: GoogleFonts.poppins(
-                                      color: Colors.white,
-                                      fontSize: 14,
-                                    ),
+                        child: isLoading
+                            ? Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  const SpinKitThreeBounce(
+                                    color: Colors.white,
+                                    size: 20,
                                   ),
+                                  if (_isUploading) ...[
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      'Uploading...',
+                                      style: GoogleFonts.poppins(
+                                        color: Colors.white,
+                                        fontSize: 14,
+                                      ),
+                                    ),
+                                  ],
                                 ],
-                              ],
-                            )
-                          : Text(
-                              _currentStep == _totalSteps - 1 ? 'Submit' : 'Next',
-                              style: GoogleFonts.poppins(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w600,
-                                color: Colors.white,
+                              )
+                            : Text(
+                                _currentStep == _totalSteps - 1
+                                    ? 'Submit'
+                                    : 'Next',
+                                style: GoogleFonts.poppins(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.white,
+                                ),
                               ),
-                            ),
+                      ),
                     ),
                   ),
                 ),
-              ),
-            ],
-          ),
-        );
-      },
+              ],
+            ),
+          );
+        },
+      ),
     );
   }
 
@@ -383,7 +460,9 @@ class _BikeRegistrationContentState extends State<_BikeRegistrationContent> {
                             style: GoogleFonts.poppins(
                               fontSize: 12,
                               fontWeight: FontWeight.w600,
-                              color: isActive ? Colors.white : AppColors.textMuted,
+                              color: isActive
+                                  ? Colors.white
+                                  : AppColors.textMuted,
                             ),
                           ),
                   ),
@@ -640,7 +719,8 @@ class _BikeRegistrationContentState extends State<_BikeRegistrationContent> {
                   onTap: () async {
                     final time = await showTimePicker(
                       context: context,
-                      initialTime: _startTime ?? const TimeOfDay(hour: 7, minute: 0),
+                      initialTime:
+                          _startTime ?? const TimeOfDay(hour: 7, minute: 0),
                     );
                     if (time != null) setState(() => _startTime = time);
                   },
@@ -663,7 +743,8 @@ class _BikeRegistrationContentState extends State<_BikeRegistrationContent> {
                   onTap: () async {
                     final time = await showTimePicker(
                       context: context,
-                      initialTime: _endTime ?? const TimeOfDay(hour: 21, minute: 0),
+                      initialTime:
+                          _endTime ?? const TimeOfDay(hour: 21, minute: 0),
                     );
                     if (time != null) setState(() => _endTime = time);
                   },
@@ -694,8 +775,16 @@ class _BikeRegistrationContentState extends State<_BikeRegistrationContent> {
                 ),
                 const SizedBox(height: 12),
                 _buildSummaryRow('Brand', _selectedBrand?.displayName ?? '-'),
-                _buildSummaryRow('Model', _modelController.text.isEmpty ? '-' : _modelController.text),
-                _buildSummaryRow('Plate', _licensePlateController.text.isEmpty ? '-' : _licensePlateController.text),
+                _buildSummaryRow(
+                  'Model',
+                  _modelController.text.isEmpty ? '-' : _modelController.text,
+                ),
+                _buildSummaryRow(
+                  'Plate',
+                  _licensePlateController.text.isEmpty
+                      ? '-'
+                      : _licensePlateController.text,
+                ),
                 _buildSummaryRow(
                   'Price',
                   _pricePerDayController.text.isEmpty
@@ -718,11 +807,17 @@ class _BikeRegistrationContentState extends State<_BikeRegistrationContent> {
         children: [
           Text(
             label,
-            style: GoogleFonts.poppins(fontSize: 13, color: AppColors.textSecondary),
+            style: GoogleFonts.poppins(
+              fontSize: 13,
+              color: AppColors.textSecondary,
+            ),
           ),
           Text(
             value,
-            style: GoogleFonts.poppins(fontSize: 13, fontWeight: FontWeight.w500),
+            style: GoogleFonts.poppins(
+              fontSize: 13,
+              fontWeight: FontWeight.w500,
+            ),
           ),
         ],
       ),
@@ -749,7 +844,9 @@ class _BikeRegistrationContentState extends State<_BikeRegistrationContent> {
               time != null ? time.format(context) : label,
               style: GoogleFonts.poppins(
                 fontSize: 14,
-                color: time != null ? AppColors.textPrimary : AppColors.textMuted,
+                color: time != null
+                    ? AppColors.textPrimary
+                    : AppColors.textMuted,
               ),
             ),
             Icon(Icons.access_time, size: 20, color: AppColors.textMuted),
@@ -765,7 +862,7 @@ class _BikeRegistrationContentState extends State<_BikeRegistrationContent> {
       allowMultiple: false,
       withData: true, // Important: get file bytes
     );
-    
+
     if (result != null && result.files.isNotEmpty) {
       final file = result.files.first;
       if (file.bytes != null) {
@@ -837,7 +934,11 @@ class _BikeRegistrationContentState extends State<_BikeRegistrationContent> {
                         color: AppColors.success,
                         shape: BoxShape.circle,
                       ),
-                      child: const Icon(Icons.check, color: Colors.white, size: 16),
+                      child: const Icon(
+                        Icons.check,
+                        color: Colors.white,
+                        size: 16,
+                      ),
                     ),
                   ),
                   Positioned(
@@ -855,7 +956,11 @@ class _BikeRegistrationContentState extends State<_BikeRegistrationContent> {
                           color: AppColors.error.withOpacity(0.9),
                           shape: BoxShape.circle,
                         ),
-                        child: const Icon(Icons.close, color: Colors.white, size: 16),
+                        child: const Icon(
+                          Icons.close,
+                          color: Colors.white,
+                          size: 16,
+                        ),
                       ),
                     ),
                   ),
@@ -864,16 +969,26 @@ class _BikeRegistrationContentState extends State<_BikeRegistrationContent> {
             : Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.add_photo_alternate_outlined, size: 48, color: AppColors.textMuted),
+                  Icon(
+                    Icons.add_photo_alternate_outlined,
+                    size: 48,
+                    color: AppColors.textMuted,
+                  ),
                   const SizedBox(height: 12),
                   Text(
                     'Tap to upload vehicle image',
-                    style: GoogleFonts.poppins(fontSize: 14, color: AppColors.textPrimary),
+                    style: GoogleFonts.poppins(
+                      fontSize: 14,
+                      color: AppColors.textPrimary,
+                    ),
                   ),
                   const SizedBox(height: 4),
                   Text(
                     'JPG, PNG (max 5MB)',
-                    style: GoogleFonts.poppins(fontSize: 11, color: AppColors.textMuted),
+                    style: GoogleFonts.poppins(
+                      fontSize: 11,
+                      color: AppColors.textMuted,
+                    ),
                   ),
                 ],
               ),
@@ -887,7 +1002,7 @@ class _BikeRegistrationContentState extends State<_BikeRegistrationContent> {
       allowMultiple: false,
       withData: true, // Important: get file bytes
     );
-    
+
     if (result != null && result.files.isNotEmpty) {
       final file = result.files.first;
       if (file.bytes != null) {
@@ -967,7 +1082,9 @@ class _BikeRegistrationContentState extends State<_BikeRegistrationContent> {
       child: Container(
         height: 120,
         decoration: BoxDecoration(
-          color: isUploaded ? AppColors.success.withOpacity(0.1) : AppColors.inputBackground,
+          color: isUploaded
+              ? AppColors.success.withOpacity(0.1)
+              : AppColors.inputBackground,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
             color: isUploaded ? AppColors.success : AppColors.border,
@@ -980,7 +1097,9 @@ class _BikeRegistrationContentState extends State<_BikeRegistrationContent> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Icon(
-                    isUploaded ? Icons.check_circle : Icons.add_a_photo_outlined,
+                    isUploaded
+                        ? Icons.check_circle
+                        : Icons.add_a_photo_outlined,
                     size: 32,
                     color: isUploaded ? AppColors.success : AppColors.textMuted,
                   ),
@@ -989,8 +1108,12 @@ class _BikeRegistrationContentState extends State<_BikeRegistrationContent> {
                     label,
                     style: GoogleFonts.poppins(
                       fontSize: 12,
-                      color: isUploaded ? AppColors.success : AppColors.textSecondary,
-                      fontWeight: isUploaded ? FontWeight.w600 : FontWeight.normal,
+                      color: isUploaded
+                          ? AppColors.success
+                          : AppColors.textSecondary,
+                      fontWeight: isUploaded
+                          ? FontWeight.w600
+                          : FontWeight.normal,
                     ),
                   ),
                   if (isUploaded) ...[
@@ -1036,7 +1159,11 @@ class _BikeRegistrationContentState extends State<_BikeRegistrationContent> {
                       color: AppColors.error.withOpacity(0.9),
                       shape: BoxShape.circle,
                     ),
-                    child: const Icon(Icons.close, color: Colors.white, size: 12),
+                    child: const Icon(
+                      Icons.close,
+                      color: Colors.white,
+                      size: 12,
+                    ),
                   ),
                 ),
               ),
@@ -1076,9 +1203,15 @@ class _BikeRegistrationContentState extends State<_BikeRegistrationContent> {
         style: GoogleFonts.poppins(fontSize: 14),
         decoration: InputDecoration(
           hintText: hintText,
-          hintStyle: GoogleFonts.poppins(color: AppColors.textMuted, fontSize: 14),
+          hintStyle: GoogleFonts.poppins(
+            color: AppColors.textMuted,
+            fontSize: 14,
+          ),
           border: InputBorder.none,
-          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 16,
+            vertical: 16,
+          ),
         ),
       ),
     );
@@ -1098,7 +1231,10 @@ class _BikeRegistrationContentState extends State<_BikeRegistrationContent> {
       ),
       child: DropdownButtonFormField<T>(
         value: value,
-        hint: Text(hint, style: GoogleFonts.poppins(color: AppColors.textMuted, fontSize: 14)),
+        hint: Text(
+          hint,
+          style: GoogleFonts.poppins(color: AppColors.textMuted, fontSize: 14),
+        ),
         decoration: const InputDecoration(
           border: InputBorder.none,
           contentPadding: EdgeInsets.symmetric(horizontal: 16),
@@ -1106,7 +1242,10 @@ class _BikeRegistrationContentState extends State<_BikeRegistrationContent> {
         items: items.map((item) {
           return DropdownMenuItem<T>(
             value: item,
-            child: Text(itemLabel(item), style: GoogleFonts.poppins(fontSize: 14)),
+            child: Text(
+              itemLabel(item),
+              style: GoogleFonts.poppins(fontSize: 14),
+            ),
           );
         }).toList(),
         onChanged: onChanged,
@@ -1139,7 +1278,9 @@ class _BikeRegistrationContentState extends State<_BikeRegistrationContent> {
               ? 'Select features (optional)'
               : _selectedFeatures.map((f) => f.displayName).join(', '),
           style: GoogleFonts.poppins(
-            color: _selectedFeatures.isEmpty ? AppColors.textMuted : AppColors.textPrimary,
+            color: _selectedFeatures.isEmpty
+                ? AppColors.textMuted
+                : AppColors.textPrimary,
             fontSize: 14,
           ),
           maxLines: 1,
@@ -1155,7 +1296,9 @@ class _BikeRegistrationContentState extends State<_BikeRegistrationContent> {
                 fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
               ),
             ),
-            trailing: isSelected ? Icon(Icons.check, color: AppColors.primary) : null,
+            trailing: isSelected
+                ? Icon(Icons.check, color: AppColors.primary)
+                : null,
             onTap: () {
               setState(() {
                 if (isSelected) {

@@ -9,11 +9,7 @@ class UploadResult {
   final String key;
   final String fileName;
 
-  UploadResult({
-    required this.url,
-    required this.key,
-    required this.fileName,
-  });
+  UploadResult({required this.url, required this.key, required this.fileName});
 
   factory UploadResult.fromJson(Map<String, dynamic> json) {
     return UploadResult(
@@ -35,20 +31,13 @@ class UploadService {
     required String fileName,
   }) async {
     final formData = FormData.fromMap({
-      'file': MultipartFile.fromBytes(
-        fileBytes,
-        filename: fileName,
-      ),
+      'file': MultipartFile.fromBytes(fileBytes, filename: fileName),
     });
 
     final response = await _dioClient.post(
       ApiConstants.uploadVehicleImage,
       data: formData,
-      options: Options(
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      ),
+      options: Options(headers: {'Content-Type': 'multipart/form-data'}),
     );
 
     return UploadResult.fromJson(response.data);
@@ -60,20 +49,13 @@ class UploadService {
     required String fileName,
   }) async {
     final formData = FormData.fromMap({
-      'file': MultipartFile.fromBytes(
-        fileBytes,
-        filename: fileName,
-      ),
+      'file': MultipartFile.fromBytes(fileBytes, filename: fileName),
     });
 
     final response = await _dioClient.post(
       ApiConstants.uploadLicense,
       data: formData,
-      options: Options(
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      ),
+      options: Options(headers: {'Content-Type': 'multipart/form-data'}),
     );
 
     return UploadResult.fromJson(response.data);
@@ -86,24 +68,15 @@ class UploadService {
   }) async {
     final files = <MultipartFile>[];
     for (var i = 0; i < filesBytes.length; i++) {
-      files.add(MultipartFile.fromBytes(
-        filesBytes[i],
-        filename: fileNames[i],
-      ));
+      files.add(MultipartFile.fromBytes(filesBytes[i], filename: fileNames[i]));
     }
 
-    final formData = FormData.fromMap({
-      'files': files,
-    });
+    final formData = FormData.fromMap({'files': files});
 
     final response = await _dioClient.post(
       ApiConstants.uploadVehicleImages,
       data: formData,
-      options: Options(
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      ),
+      options: Options(headers: {'Content-Type': 'multipart/form-data'}),
     );
 
     return (response.data as List)

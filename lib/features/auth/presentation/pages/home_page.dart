@@ -90,7 +90,10 @@ class HomePage extends StatelessWidget {
                               ),
                             ),
                             IconButton(
-                              icon: const Icon(Icons.logout, color: Colors.white),
+                              icon: const Icon(
+                                Icons.logout,
+                                color: Colors.white,
+                              ),
                               onPressed: () => _showLogoutDialog(context),
                             ),
                           ],
@@ -106,57 +109,69 @@ class HomePage extends StatelessWidget {
                   sliver: SliverList(
                     delegate: SliverChildListDelegate([
                       // User Info Card
-                      if (user != null) ...[
-                        Container(
-                          padding: const EdgeInsets.all(20),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(16),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withOpacity(0.05),
-                                blurRadius: 10,
-                                offset: const Offset(0, 4),
-                              ),
-                            ],
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                children: [
-                                  const Icon(
-                                    Icons.person_outline,
-                                    color: AppColors.primary,
-                                  ),
-                                  const SizedBox(width: 8),
-                                  Text(
-                                    'Thông tin tài khoản',
-                                    style: GoogleFonts.poppins(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.bold,
-                                      color: AppColors.textPrimary,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              const Divider(height: 24),
-                              _buildInfoRow('Email', user.email, Icons.email_outlined),
-                              const SizedBox(height: 12),
-                              _buildInfoRow('Số điện thoại', user.phone, Icons.phone_outlined),
-                              const SizedBox(height: 12),
-                              _buildInfoRow('Vai trò', user.displayRole, Icons.badge_outlined),
-                              const SizedBox(height: 12),
-                              _buildInfoRow(
-                                'Điểm tin cậy',
-                                '${user.trustScore.toStringAsFixed(1)}/100',
-                                Icons.verified_outlined,
-                              ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(height: 24),
-                      ],
+                      // if (user != null) ...[
+                      //   Container(
+                      //     padding: const EdgeInsets.all(20),
+                      //     decoration: BoxDecoration(
+                      //       color: Colors.white,
+                      //       borderRadius: BorderRadius.circular(16),
+                      //       boxShadow: [
+                      //         BoxShadow(
+                      //           color: Colors.black.withOpacity(0.05),
+                      //           blurRadius: 10,
+                      //           offset: const Offset(0, 4),
+                      //         ),
+                      //       ],
+                      //     ),
+                      //     child: Column(
+                      //       crossAxisAlignment: CrossAxisAlignment.start,
+                      //       children: [
+                      //         Row(
+                      //           children: [
+                      //             const Icon(
+                      //               Icons.person_outline,
+                      //               color: AppColors.primary,
+                      //             ),
+                      //             const SizedBox(width: 8),
+                      //             Text(
+                      //               'Thông tin tài khoản',
+                      //               style: GoogleFonts.poppins(
+                      //                 fontSize: 16,
+                      //                 fontWeight: FontWeight.bold,
+                      //                 color: AppColors.textPrimary,
+                      //               ),
+                      //             ),
+                      //           ],
+                      //         ),
+                      //         const Divider(height: 24),
+                      //         _buildInfoRow(
+                      //           'Email',
+                      //           user.email,
+                      //           Icons.email_outlined,
+                      //         ),
+                      //         const SizedBox(height: 12),
+                      //         _buildInfoRow(
+                      //           'Số điện thoại',
+                      //           user.phone,
+                      //           Icons.phone_outlined,
+                      //         ),
+                      //         const SizedBox(height: 12),
+                      //         _buildInfoRow(
+                      //           'Vai trò',
+                      //           user.displayRole,
+                      //           Icons.badge_outlined,
+                      //         ),
+                      //         const SizedBox(height: 12),
+                      //         _buildInfoRow(
+                      //           'Điểm tin cậy',
+                      //           '${user.trustScore.toStringAsFixed(1)}/100',
+                      //           Icons.verified_outlined,
+                      //         ),
+                      //       ],
+                      //     ),
+                      //   ),
+                      //   const SizedBox(height: 24),
+                      // ],
 
                       // Quick Actions Title
                       Text(
@@ -213,7 +228,9 @@ class HomePage extends StatelessWidget {
                                 color: AppColors.warning,
                                 onTap: () {
                                   ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(content: Text('Coming soon!')),
+                                    const SnackBar(
+                                      content: Text('Coming soon!'),
+                                    ),
                                   );
                                 },
                               ),
@@ -227,36 +244,39 @@ class HomePage extends StatelessWidget {
                       Row(
                         children: [
                           // Owner: Show history and earnings
-                          if (user?.isOwner == true || user?.isAdmin == true) ...[
-                            Expanded(
-                              child: _buildActionCard(
-                                context,
-                                icon: Icons.history,
-                                title: 'Lịch sử',
-                                subtitle: 'Chuyến đi',
-                                color: AppColors.warning,
-                                onTap: () {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(content: Text('Coming soon!')),
-                                  );
-                                },
-                              ),
-                            ),
-                            const SizedBox(width: 16),
-                            Expanded(
-                              child: _buildActionCard(
-                                context,
-                                icon: Icons.account_balance_wallet_outlined,
-                                title: 'Thu nhập',
-                                subtitle: 'Doanh thu',
-                                color: AppColors.success,
-                                onTap: () {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(content: Text('Coming soon!')),
-                                  );
-                                },
-                              ),
-                            ),
+                          if (user?.isOwner == true ||
+                              user?.isAdmin == true) ...[
+                            // Expanded(
+                            //   child: _buildActionCard(
+                            //     context,
+                            //     icon: Icons.history,
+                            //     title: 'Lịch sử',
+                            //     subtitle: 'Chuyến đi',
+                            //     color: AppColors.warning,
+                            //     onTap: () {
+                            //       ScaffoldMessenger.of(context).showSnackBar(
+                            //         const SnackBar(
+                            //           content: Text('Coming soon!'),
+                            //         ),
+                            //       );
+                            //     },
+                            //   ),
+                            // ),
+                            // const SizedBox(width: 16),
+                            // Expanded(
+                            //   child: _buildActionCard(
+                            //     context,
+                            //     icon: Icons.account_balance_wallet_outlined,
+                            //     title: 'Thu nhập',
+                            //     subtitle: 'Doanh thu',
+                            //     color: AppColors.success,
+                            //     onTap: () {
+                            //       ScaffoldMessenger.of(context).showSnackBar(
+                            //         const SnackBar(content: Text('Coming soon!')),
+                            //       );
+                            //     },
+                            //   ),
+                            // ),
                           ],
                           // Renter: Show wallet and support
                           if (user?.isRenter == true) ...[
@@ -269,7 +289,9 @@ class HomePage extends StatelessWidget {
                                 color: AppColors.success,
                                 onTap: () {
                                   ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(content: Text('Coming soon!')),
+                                    const SnackBar(
+                                      content: Text('Coming soon!'),
+                                    ),
                                   );
                                 },
                               ),
@@ -284,7 +306,9 @@ class HomePage extends StatelessWidget {
                                 color: AppColors.info,
                                 onTap: () {
                                   ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(content: Text('Coming soon!')),
+                                    const SnackBar(
+                                      content: Text('Coming soon!'),
+                                    ),
                                   );
                                 },
                               ),
@@ -315,8 +339,12 @@ class HomePage extends StatelessWidget {
                           child: Row(
                             children: [
                               Icon(
-                                user.isActive ? Icons.check_circle : Icons.pending,
-                                color: user.isActive ? AppColors.success : AppColors.warning,
+                                user.isActive
+                                    ? Icons.check_circle
+                                    : Icons.pending,
+                                color: user.isActive
+                                    ? AppColors.success
+                                    : AppColors.warning,
                               ),
                               const SizedBox(width: 12),
                               Expanded(

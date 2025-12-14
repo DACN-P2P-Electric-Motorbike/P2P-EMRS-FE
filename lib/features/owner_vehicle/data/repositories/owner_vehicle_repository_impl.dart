@@ -31,7 +31,8 @@ class OwnerVehicleRepositoryImpl implements OwnerVehicleRepository {
 
   @override
   Future<Either<Failure, VehicleEntity>> registerVehicle(
-      CreateVehicleParams params) async {
+    CreateVehicleParams params,
+  ) async {
     try {
       final vehicle = await _remoteDataSource.registerVehicle(params);
       return Right(vehicle.toEntity());
@@ -60,7 +61,9 @@ class OwnerVehicleRepositoryImpl implements OwnerVehicleRepository {
 
   @override
   Future<Either<Failure, VehicleEntity>> updateVehicle(
-      String id, UpdateVehicleParams params) async {
+    String id,
+    UpdateVehicleParams params,
+  ) async {
     try {
       final vehicle = await _remoteDataSource.updateVehicle(id, params);
       return Right(vehicle.toEntity());
@@ -87,4 +90,3 @@ class OwnerVehicleRepositoryImpl implements OwnerVehicleRepository {
     }
   }
 }
-

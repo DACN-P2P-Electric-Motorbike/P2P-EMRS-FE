@@ -323,13 +323,16 @@ class VehicleEntity extends Equatable {
   }
 
   /// Format price for display (per hour)
-  String get formattedPricePerHour =>
-      '${_formatNumber(pricePerHour)}đ/h';
+  String get formattedPricePerHour => '${_formatNumber(pricePerHour)}đ/h';
 
   /// Helper to format number with commas
   String _formatNumber(num number) {
-    return number.toStringAsFixed(0).replaceAllMapped(
-        RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (m) => '${m[1]},');
+    return number
+        .toStringAsFixed(0)
+        .replaceAllMapped(
+          RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
+          (m) => '${m[1]},',
+        );
   }
 
   /// Check if vehicle can be edited by owner
@@ -341,36 +344,36 @@ class VehicleEntity extends Equatable {
 
   @override
   List<Object?> get props => [
-        id,
-        name,
-        licensePlate,
-        model,
-        brand,
-        type,
-        year,
-        status,
-        features,
-        batteryCapacity,
-        batteryLevel,
-        maxSpeed,
-        range,
-        pricePerHour,
-        pricePerDay,
-        deposit,
-        isAvailable,
-        address,
-        latitude,
-        longitude,
-        description,
-        images,
-        licenseNumber,
-        licenseFront,
-        licenseBack,
-        totalTrips,
-        totalRating,
-        reviewCount,
-        ownerId,
-        createdAt,
-        updatedAt,
-      ];
+    id,
+    name,
+    licensePlate,
+    model,
+    brand,
+    type,
+    year,
+    status,
+    features,
+    batteryCapacity,
+    batteryLevel,
+    maxSpeed,
+    range,
+    pricePerHour,
+    pricePerDay,
+    deposit,
+    isAvailable,
+    address,
+    latitude,
+    longitude,
+    description,
+    images,
+    licenseNumber,
+    licenseFront,
+    licenseBack,
+    totalTrips,
+    totalRating,
+    reviewCount,
+    ownerId,
+    createdAt,
+    updatedAt,
+  ];
 }

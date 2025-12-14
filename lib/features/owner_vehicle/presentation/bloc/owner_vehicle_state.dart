@@ -49,11 +49,13 @@ class OwnerVehicleState extends Equatable {
     return OwnerVehicleState(
       status: status ?? this.status,
       vehicles: vehicles ?? this.vehicles,
-      selectedVehicle:
-          clearSelectedVehicle ? null : (selectedVehicle ?? this.selectedVehicle),
+      selectedVehicle: clearSelectedVehicle
+          ? null
+          : (selectedVehicle ?? this.selectedVehicle),
       errorMessage: clearError ? null : (errorMessage ?? this.errorMessage),
-      successMessage:
-          clearSuccess ? null : (successMessage ?? this.successMessage),
+      successMessage: clearSuccess
+          ? null
+          : (successMessage ?? this.successMessage),
     );
   }
 
@@ -80,11 +82,10 @@ class OwnerVehicleState extends Equatable {
 
   @override
   List<Object?> get props => [
-        status,
-        vehicles,
-        selectedVehicle,
-        errorMessage,
-        successMessage,
-      ];
+    status,
+    vehicles,
+    selectedVehicle,
+    errorMessage,
+    successMessage,
+  ];
 }
-

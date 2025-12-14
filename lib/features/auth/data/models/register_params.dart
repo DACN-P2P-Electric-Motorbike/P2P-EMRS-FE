@@ -61,17 +61,10 @@ class LoginParams {
   final String email;
   final String password;
 
-  const LoginParams({
-    required this.email,
-    required this.password,
-  });
+  const LoginParams({required this.email, required this.password});
 
   /// Convert to JSON for API request
   Map<String, dynamic> toJson() {
-    return {
-      'email': email,
-      'password': password,
-    };
+    return {'email': email, 'password': password};
   }
 }
-

@@ -6,10 +6,7 @@ import '../theme/app_theme.dart';
 class BottomNavBar extends StatelessWidget {
   final int currentIndex;
 
-  const BottomNavBar({
-    super.key,
-    this.currentIndex = 0,
-  });
+  const BottomNavBar({super.key, this.currentIndex = 0});
 
   @override
   Widget build(BuildContext context) {
@@ -103,4 +100,3 @@ class _NavItem extends StatelessWidget {
     );
   }
 }
-

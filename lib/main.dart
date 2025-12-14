@@ -1,8 +1,11 @@
+import 'package:fe_capstone_project/features/auth/presentation/bloc/auth_bloc.dart';
+import 'package:fe_capstone_project/features/auth/presentation/bloc/auth_event.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'core/theme/app_theme.dart';
 import 'core/router/app_router.dart';
 import 'injection_container.dart' as di;
+import 'package:flutter_bloc/flutter_bloc.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -34,11 +37,14 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp.router(
-      title: 'P2P Electric Motorbike Rental',
-      debugShowCheckedModeBanner: false,
-      theme: AppTheme.lightTheme,
-      routerConfig: AppRouter.router,
+    return BlocProvider<AuthBloc>(
+      create: (_) => di.sl<AuthBloc>()..add(const AuthCheckRequested()),
+      child: MaterialApp.router(
+        title: 'P2P Electric Motorbike Rental',
+        debugShowCheckedModeBanner: false,
+        theme: AppTheme.lightTheme,
+        routerConfig: AppRouter.router,
+      ),
     );
   }
 }

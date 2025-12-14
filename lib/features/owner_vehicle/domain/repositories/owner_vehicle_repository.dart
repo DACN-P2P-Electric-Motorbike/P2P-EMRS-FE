@@ -11,16 +11,18 @@ abstract class OwnerVehicleRepository {
 
   /// Register a new vehicle
   Future<Either<Failure, VehicleEntity>> registerVehicle(
-      CreateVehicleParams params);
+    CreateVehicleParams params,
+  );
 
   /// Get vehicle by ID
   Future<Either<Failure, VehicleEntity>> getVehicleById(String id);
 
   /// Update vehicle information
   Future<Either<Failure, VehicleEntity>> updateVehicle(
-      String id, UpdateVehicleParams params);
+    String id,
+    UpdateVehicleParams params,
+  );
 
   /// Delete a vehicle
   Future<Either<Failure, void>> deleteVehicle(String id);
 }
-

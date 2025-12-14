@@ -131,10 +131,7 @@ class OwnerProfilePage extends StatelessWidget {
           onPressed: () {
             // TODO: Navigate to edit profile
           },
-          icon: Icon(
-            Icons.edit_outlined,
-            color: AppColors.primary,
-          ),
+          icon: Icon(Icons.edit_outlined, color: AppColors.primary),
         ),
       ],
     );
@@ -147,11 +144,7 @@ class OwnerProfilePage extends StatelessWidget {
         label: 'License',
         onTap: () {},
       ),
-      _FeatureItem(
-        icon: Icons.badge_outlined,
-        label: 'Passport',
-        onTap: () {},
-      ),
+      _FeatureItem(icon: Icons.badge_outlined, label: 'Passport', onTap: () {}),
       _FeatureItem(
         icon: Icons.description_outlined,
         label: 'Contract',
@@ -207,7 +200,9 @@ class OwnerProfilePage extends StatelessWidget {
             Icon(
               feature.icon,
               size: 32,
-              color: feature.isHighlighted ? AppColors.primary : AppColors.textPrimary,
+              color: feature.isHighlighted
+                  ? AppColors.primary
+                  : AppColors.textPrimary,
             ),
             const SizedBox(height: 8),
             Text(
@@ -226,21 +221,13 @@ class OwnerProfilePage extends StatelessWidget {
 
   Widget _buildMenuList(BuildContext context) {
     final menuItems = [
-      _MenuItem(
-        icon: Icons.person_outline,
-        label: 'My Profile',
-        onTap: () {},
-      ),
+      _MenuItem(icon: Icons.person_outline, label: 'My Profile', onTap: () {}),
       _MenuItem(
         icon: Icons.calendar_today_outlined,
         label: 'My Bookings',
         onTap: () {},
       ),
-      _MenuItem(
-        icon: Icons.settings_outlined,
-        label: 'Settings',
-        onTap: () {},
-      ),
+      _MenuItem(icon: Icons.settings_outlined, label: 'Settings', onTap: () {}),
     ];
 
     return Column(
@@ -256,10 +243,7 @@ class OwnerProfilePage extends StatelessWidget {
                   color: AppColors.inputBackground,
                   borderRadius: BorderRadius.circular(10),
                 ),
-                child: Icon(
-                  item.icon,
-                  color: AppColors.textPrimary,
-                ),
+                child: Icon(item.icon, color: AppColors.textPrimary),
               ),
               title: Text(
                 item.label,
@@ -269,14 +253,10 @@ class OwnerProfilePage extends StatelessWidget {
                   color: AppColors.textPrimary,
                 ),
               ),
-              trailing: Icon(
-                Icons.chevron_right,
-                color: AppColors.textMuted,
-              ),
+              trailing: Icon(Icons.chevron_right, color: AppColors.textMuted),
               onTap: item.onTap,
             ),
-            if (item != menuItems.last)
-              const Divider(color: AppColors.border),
+            if (item != menuItems.last) const Divider(color: AppColors.border),
           ],
         );
       }).toList(),
@@ -293,10 +273,7 @@ class OwnerProfilePage extends StatelessWidget {
           color: AppColors.inputBackground,
           borderRadius: BorderRadius.circular(10),
         ),
-        child: Icon(
-          Icons.logout_outlined,
-          color: AppColors.textPrimary,
-        ),
+        child: Icon(Icons.logout_outlined, color: AppColors.textPrimary),
       ),
       title: Text(
         'Logout',

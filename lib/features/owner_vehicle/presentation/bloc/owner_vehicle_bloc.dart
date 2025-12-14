@@ -25,11 +25,11 @@ class OwnerVehicleBloc extends Bloc<OwnerVehicleEvent, OwnerVehicleState> {
     required RegisterVehicleUseCase registerVehicleUseCase,
     required UpdateVehicleUseCase updateVehicleUseCase,
     required GetVehicleByIdUseCase getVehicleByIdUseCase,
-  })  : _getMyVehiclesUseCase = getMyVehiclesUseCase,
-        _registerVehicleUseCase = registerVehicleUseCase,
-        _updateVehicleUseCase = updateVehicleUseCase,
-        _getVehicleByIdUseCase = getVehicleByIdUseCase,
-        super(OwnerVehicleState.initial()) {
+  }) : _getMyVehiclesUseCase = getMyVehiclesUseCase,
+       _registerVehicleUseCase = registerVehicleUseCase,
+       _updateVehicleUseCase = updateVehicleUseCase,
+       _getVehicleByIdUseCase = getVehicleByIdUseCase,
+       super(OwnerVehicleState.initial()) {
     on<LoadMyVehicles>(_onLoadMyVehicles);
     on<RegisterVehicleSubmit>(_onRegisterVehicle);
     on<UpdateVehicleStatus>(_onUpdateVehicleStatus);
@@ -45,23 +45,26 @@ class OwnerVehicleBloc extends Bloc<OwnerVehicleEvent, OwnerVehicleState> {
     LoadMyVehicles event,
     Emitter<OwnerVehicleState> emit,
   ) async {
-    emit(state.copyWith(
-      status: OwnerVehicleStatus.loading,
-      clearError: true,
-      clearSuccess: true,
-    ));
+    emit(
+      state.copyWith(
+        status: OwnerVehicleStatus.loading,
+        clearError: true,
+        clearSuccess: true,
+      ),
+    );
 
     final result = await _getMyVehiclesUseCase(NoParams());
 
     result.fold(
-      (failure) => emit(state.copyWith(
-        status: OwnerVehicleStatus.error,
-        errorMessage: failure.message,
-      )),
-      (vehicles) => emit(state.copyWith(
-        status: OwnerVehicleStatus.loaded,
-        vehicles: vehicles,
-      )),
+      (failure) => emit(
+        state.copyWith(
+          status: OwnerVehicleStatus.error,
+          errorMessage: failure.message,
+        ),
+      ),
+      (vehicles) => emit(
+        state.copyWith(status: OwnerVehicleStatus.loaded, vehicles: vehicles),
+      ),
     );
   }
 
@@ -70,26 +73,33 @@ class OwnerVehicleBloc extends Bloc<OwnerVehicleEvent, OwnerVehicleState> {
     RegisterVehicleSubmit event,
     Emitter<OwnerVehicleState> emit,
   ) async {
-    emit(state.copyWith(
-      status: OwnerVehicleStatus.registering,
-      clearError: true,
-      clearSuccess: true,
-    ));
+    emit(
+      state.copyWith(
+        status: OwnerVehicleStatus.registering,
+        clearError: true,
+        clearSuccess: true,
+      ),
+    );
 
     final result = await _registerVehicleUseCase(event.params);
 
     result.fold(
-      (failure) => emit(state.copyWith(
-        status: OwnerVehicleStatus.error,
-        errorMessage: failure.message,
-      )),
+      (failure) => emit(
+        state.copyWith(
+          status: OwnerVehicleStatus.error,
+          errorMessage: failure.message,
+        ),
+      ),
       (vehicle) {
         final updatedVehicles = [vehicle, ...state.vehicles];
-        emit(state.copyWith(
-          status: OwnerVehicleStatus.registered,
-          vehicles: updatedVehicles,
-          successMessage: 'Vehicle registered successfully! Pending approval.',
-        ));
+        emit(
+          state.copyWith(
+            status: OwnerVehicleStatus.registered,
+            vehicles: updatedVehicles,
+            successMessage:
+                'Vehicle registered successfully! Pending approval.',
+          ),
+        );
       },
     );
   }
@@ -99,11 +109,13 @@ class OwnerVehicleBloc extends Bloc<OwnerVehicleEvent, OwnerVehicleState> {
     UpdateVehicleStatus event,
     Emitter<OwnerVehicleState> emit,
   ) async {
-    emit(state.copyWith(
-      status: OwnerVehicleStatus.updating,
-      clearError: true,
-      clearSuccess: true,
-    ));
+    emit(
+      state.copyWith(
+        status: OwnerVehicleStatus.updating,
+        clearError: true,
+        clearSuccess: true,
+      ),
+    );
 
     final params = UpdateVehicleUseCaseParams(
       vehicleId: event.vehicleId,
@@ -113,22 +125,27 @@ class OwnerVehicleBloc extends Bloc<OwnerVehicleEvent, OwnerVehicleState> {
     final result = await _updateVehicleUseCase(params);
 
     result.fold(
-      (failure) => emit(state.copyWith(
-        status: OwnerVehicleStatus.error,
-        errorMessage: failure.message,
-      )),
+      (failure) => emit(
+        state.copyWith(
+          status: OwnerVehicleStatus.error,
+          errorMessage: failure.message,
+        ),
+      ),
       (updatedVehicle) {
         final updatedVehicles = state.vehicles.map((v) {
           return v.id == updatedVehicle.id ? updatedVehicle : v;
         }).toList();
 
-        emit(state.copyWith(
-          status: OwnerVehicleStatus.updated,
-          vehicles: updatedVehicles,
-          selectedVehicle:
-              state.selectedVehicle?.id == updatedVehicle.id ? updatedVehicle : null,
-          successMessage: 'Status updated to ${event.newStatus.displayName}',
-        ));
+        emit(
+          state.copyWith(
+            status: OwnerVehicleStatus.updated,
+            vehicles: updatedVehicles,
+            selectedVehicle: state.selectedVehicle?.id == updatedVehicle.id
+                ? updatedVehicle
+                : null,
+            successMessage: 'Status updated to ${event.newStatus.displayName}',
+          ),
+        );
       },
     );
   }
@@ -138,11 +155,13 @@ class OwnerVehicleBloc extends Bloc<OwnerVehicleEvent, OwnerVehicleState> {
     UpdateVehicleBattery event,
     Emitter<OwnerVehicleState> emit,
   ) async {
-    emit(state.copyWith(
-      status: OwnerVehicleStatus.updating,
-      clearError: true,
-      clearSuccess: true,
-    ));
+    emit(
+      state.copyWith(
+        status: OwnerVehicleStatus.updating,
+        clearError: true,
+        clearSuccess: true,
+      ),
+    );
 
     final params = UpdateVehicleUseCaseParams(
       vehicleId: event.vehicleId,
@@ -152,22 +171,27 @@ class OwnerVehicleBloc extends Bloc<OwnerVehicleEvent, OwnerVehicleState> {
     final result = await _updateVehicleUseCase(params);
 
     result.fold(
-      (failure) => emit(state.copyWith(
-        status: OwnerVehicleStatus.error,
-        errorMessage: failure.message,
-      )),
+      (failure) => emit(
+        state.copyWith(
+          status: OwnerVehicleStatus.error,
+          errorMessage: failure.message,
+        ),
+      ),
       (updatedVehicle) {
         final updatedVehicles = state.vehicles.map((v) {
           return v.id == updatedVehicle.id ? updatedVehicle : v;
         }).toList();
 
-        emit(state.copyWith(
-          status: OwnerVehicleStatus.updated,
-          vehicles: updatedVehicles,
-          selectedVehicle:
-              state.selectedVehicle?.id == updatedVehicle.id ? updatedVehicle : null,
-          successMessage: 'Battery level updated to ${event.batteryLevel}%',
-        ));
+        emit(
+          state.copyWith(
+            status: OwnerVehicleStatus.updated,
+            vehicles: updatedVehicles,
+            selectedVehicle: state.selectedVehicle?.id == updatedVehicle.id
+                ? updatedVehicle
+                : null,
+            successMessage: 'Battery level updated to ${event.batteryLevel}%',
+          ),
+        );
       },
     );
   }
@@ -177,11 +201,13 @@ class OwnerVehicleBloc extends Bloc<OwnerVehicleEvent, OwnerVehicleState> {
     UpdateVehicleDetails event,
     Emitter<OwnerVehicleState> emit,
   ) async {
-    emit(state.copyWith(
-      status: OwnerVehicleStatus.updating,
-      clearError: true,
-      clearSuccess: true,
-    ));
+    emit(
+      state.copyWith(
+        status: OwnerVehicleStatus.updating,
+        clearError: true,
+        clearSuccess: true,
+      ),
+    );
 
     final params = UpdateVehicleUseCaseParams(
       vehicleId: event.vehicleId,
@@ -191,21 +217,25 @@ class OwnerVehicleBloc extends Bloc<OwnerVehicleEvent, OwnerVehicleState> {
     final result = await _updateVehicleUseCase(params);
 
     result.fold(
-      (failure) => emit(state.copyWith(
-        status: OwnerVehicleStatus.error,
-        errorMessage: failure.message,
-      )),
+      (failure) => emit(
+        state.copyWith(
+          status: OwnerVehicleStatus.error,
+          errorMessage: failure.message,
+        ),
+      ),
       (updatedVehicle) {
         final updatedVehicles = state.vehicles.map((v) {
           return v.id == updatedVehicle.id ? updatedVehicle : v;
         }).toList();
 
-        emit(state.copyWith(
-          status: OwnerVehicleStatus.updated,
-          vehicles: updatedVehicles,
-          selectedVehicle: updatedVehicle,
-          successMessage: 'Vehicle updated successfully',
-        ));
+        emit(
+          state.copyWith(
+            status: OwnerVehicleStatus.updated,
+            vehicles: updatedVehicles,
+            selectedVehicle: updatedVehicle,
+            successMessage: 'Vehicle updated successfully',
+          ),
+        );
       },
     );
   }
@@ -215,22 +245,23 @@ class OwnerVehicleBloc extends Bloc<OwnerVehicleEvent, OwnerVehicleState> {
     LoadVehicleById event,
     Emitter<OwnerVehicleState> emit,
   ) async {
-    emit(state.copyWith(
-      status: OwnerVehicleStatus.loading,
-      clearError: true,
-    ));
+    emit(state.copyWith(status: OwnerVehicleStatus.loading, clearError: true));
 
     final result = await _getVehicleByIdUseCase(event.vehicleId);
 
     result.fold(
-      (failure) => emit(state.copyWith(
-        status: OwnerVehicleStatus.error,
-        errorMessage: failure.message,
-      )),
-      (vehicle) => emit(state.copyWith(
-        status: OwnerVehicleStatus.loaded,
-        selectedVehicle: vehicle,
-      )),
+      (failure) => emit(
+        state.copyWith(
+          status: OwnerVehicleStatus.error,
+          errorMessage: failure.message,
+        ),
+      ),
+      (vehicle) => emit(
+        state.copyWith(
+          status: OwnerVehicleStatus.loaded,
+          selectedVehicle: vehicle,
+        ),
+      ),
     );
   }
 
@@ -239,24 +270,29 @@ class OwnerVehicleBloc extends Bloc<OwnerVehicleEvent, OwnerVehicleState> {
     DeleteVehicle event,
     Emitter<OwnerVehicleState> emit,
   ) async {
-    emit(state.copyWith(
-      status: OwnerVehicleStatus.deleting,
-      clearError: true,
-      clearSuccess: true,
-    ));
+    emit(
+      state.copyWith(
+        status: OwnerVehicleStatus.deleting,
+        clearError: true,
+        clearSuccess: true,
+      ),
+    );
 
     // Note: Delete use case not implemented yet, using update as placeholder
     // In real implementation, you would call a delete use case here
 
-    final updatedVehicles =
-        state.vehicles.where((v) => v.id != event.vehicleId).toList();
+    final updatedVehicles = state.vehicles
+        .where((v) => v.id != event.vehicleId)
+        .toList();
 
-    emit(state.copyWith(
-      status: OwnerVehicleStatus.deleted,
-      vehicles: updatedVehicles,
-      clearSelectedVehicle: true,
-      successMessage: 'Vehicle deleted successfully',
-    ));
+    emit(
+      state.copyWith(
+        status: OwnerVehicleStatus.deleted,
+        vehicles: updatedVehicles,
+        clearSelectedVehicle: true,
+        successMessage: 'Vehicle deleted successfully',
+      ),
+    );
   }
 
   /// Handle resetting state
@@ -264,11 +300,12 @@ class OwnerVehicleBloc extends Bloc<OwnerVehicleEvent, OwnerVehicleState> {
     ResetOwnerVehicleState event,
     Emitter<OwnerVehicleState> emit,
   ) {
-    emit(state.copyWith(
-      status: OwnerVehicleStatus.loaded,
-      clearError: true,
-      clearSuccess: true,
-    ));
+    emit(
+      state.copyWith(
+        status: OwnerVehicleStatus.loaded,
+        clearError: true,
+        clearSuccess: true,
+      ),
+    );
   }
 }
-

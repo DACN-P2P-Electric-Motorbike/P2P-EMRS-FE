@@ -28,10 +28,7 @@ class UpdateVehicleStatus extends OwnerVehicleEvent {
   final String vehicleId;
   final VehicleStatus newStatus;
 
-  const UpdateVehicleStatus({
-    required this.vehicleId,
-    required this.newStatus,
-  });
+  const UpdateVehicleStatus({required this.vehicleId, required this.newStatus});
 
   @override
   List<Object?> get props => [vehicleId, newStatus];
@@ -56,10 +53,7 @@ class UpdateVehicleDetails extends OwnerVehicleEvent {
   final String vehicleId;
   final UpdateVehicleParams params;
 
-  const UpdateVehicleDetails({
-    required this.vehicleId,
-    required this.params,
-  });
+  const UpdateVehicleDetails({required this.vehicleId, required this.params});
 
   @override
   List<Object?> get props => [vehicleId, params];
@@ -89,4 +83,3 @@ class DeleteVehicle extends OwnerVehicleEvent {
 class ResetOwnerVehicleState extends OwnerVehicleEvent {
   const ResetOwnerVehicleState();
 }
-

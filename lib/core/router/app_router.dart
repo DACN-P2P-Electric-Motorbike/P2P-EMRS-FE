@@ -1,3 +1,6 @@
+import 'package:fe_capstone_project/features/owner_vehicle/presentation/pages/owner_dashboard_page.dart';
+import 'package:fe_capstone_project/features/owner_vehicle/presentation/pages/register_vehicle_page.dart';
+import 'package:fe_capstone_project/features/renter/presentation/pages/become_owner_page.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
@@ -49,7 +52,8 @@ class AppRouter {
       GoRoute(
         path: '/owner',
         name: 'owner-dashboard',
-        builder: (context, state) => const YourBikePage(),
+        // builder: (context, state) => const YourBikePage(),
+        builder: (context, state) => const OwnerDashboardPage(),
         routes: [
           GoRoute(
             path: 'register-vehicle',
@@ -66,17 +70,26 @@ class AppRouter {
           ),
         ],
       ),
+      GoRoute(
+        path: '/become-owner',
+        name: 'become-owner',
+        builder: (context, state) => const BecomeOwnerPage(),
+        routes: [
+          GoRoute(
+            path: 'register-vehicle',
+            name: 'become-owner-register-vehicle',
+            builder: (context, state) =>
+                const BikeRegistrationPage(isBecomeOwnerFlow: true),
+          ),
+        ],
+      ),
     ],
     errorBuilder: (context, state) => Scaffold(
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(
-              Icons.error_outline,
-              size: 64,
-              color: Colors.red,
-            ),
+            const Icon(Icons.error_outline, size: 64, color: Colors.red),
             const SizedBox(height: 16),
             Text(
               'Page not found',

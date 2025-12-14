@@ -28,6 +28,8 @@ class ApiConstants {
   static const String uploadVehicleImage = '/upload/vehicle-image';
   static const String uploadVehicleImages = '/upload/vehicle-images';
   static const String uploadLicense = '/upload/license';
+
+  static const String authBecomeOwner = '/auth/become-owner';
 }
 
 /// Storage keys
@@ -38,4 +40,3 @@ class StorageKeys {
   static const String refreshToken = 'refresh_token';
   static const String userId = 'user_id';
 }
-

@@ -22,12 +22,12 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     required LogoutUseCase logoutUseCase,
     required CheckAuthUseCase checkAuthUseCase,
     required AuthRepository authRepository,
-  })  : _loginUseCase = loginUseCase,
-        _registerUseCase = registerUseCase,
-        _logoutUseCase = logoutUseCase,
-        _checkAuthUseCase = checkAuthUseCase,
-        _authRepository = authRepository,
-        super(const AuthInitial()) {
+  }) : _loginUseCase = loginUseCase,
+       _registerUseCase = registerUseCase,
+       _logoutUseCase = logoutUseCase,
+       _checkAuthUseCase = checkAuthUseCase,
+       _authRepository = authRepository,
+       super(const AuthInitial()) {
     on<AuthLoginStarted>(_onLoginStarted);
     on<AuthRegisterStarted>(_onRegisterStarted);
     on<AuthLogoutStarted>(_onLogoutStarted);
@@ -42,10 +42,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   ) async {
     emit(const AuthLoading());
 
-    final params = LoginParams(
-      email: event.email,
-      password: event.password,
-    );
+    final params = LoginParams(email: event.email, password: event.password);
 
     final result = await _loginUseCase(params);
 
@@ -94,29 +91,24 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
 
     final result = await _checkAuthUseCase(const NoParams());
 
-    await result.fold(
-      (failure) async => emit(const AuthUnauthenticated()),
-      (isLoggedIn) async {
-        if (isLoggedIn) {
-          // Try to get user profile
-          final profileResult = await _authRepository.getProfile();
-          profileResult.fold(
-            (failure) => emit(const AuthUnauthenticated()),
-            (user) => emit(AuthAuthenticated(user: user)),
-          );
-        } else {
-          emit(const AuthUnauthenticated());
-        }
-      },
-    );
+    await result.fold((failure) async => emit(const AuthUnauthenticated()), (
+      isLoggedIn,
+    ) async {
+      if (isLoggedIn) {
+        // Try to get user profile
+        final profileResult = await _authRepository.getProfile();
+        profileResult.fold(
+          (failure) => emit(const AuthUnauthenticated()),
+          (user) => emit(AuthAuthenticated(user: user)),
+        );
+      } else {
+        emit(const AuthUnauthenticated());
+      }
+    });
   }
 
   /// Handle reset event
-  void _onResetRequested(
-    AuthResetRequested event,
-    Emitter<AuthState> emit,
-  ) {
+  void _onResetRequested(AuthResetRequested event, Emitter<AuthState> emit) {
     emit(const AuthInitial());
   }
 }
-

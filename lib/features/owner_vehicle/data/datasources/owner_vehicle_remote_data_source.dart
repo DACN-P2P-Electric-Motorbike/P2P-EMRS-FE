@@ -29,7 +29,7 @@ class OwnerVehicleRemoteDataSourceImpl implements OwnerVehicleRemoteDataSource {
   final DioClient _dioClient;
 
   OwnerVehicleRemoteDataSourceImpl({required DioClient dioClient})
-      : _dioClient = dioClient;
+    : _dioClient = dioClient;
 
   @override
   Future<List<VehicleModel>> getMyVehicles() async {
@@ -75,7 +75,9 @@ class OwnerVehicleRemoteDataSourceImpl implements OwnerVehicleRemoteDataSource {
 
   @override
   Future<VehicleModel> updateVehicle(
-      String id, UpdateVehicleParams params) async {
+    String id,
+    UpdateVehicleParams params,
+  ) async {
     try {
       final response = await _dioClient.patch(
         ApiConstants.vehicleById(id),
@@ -97,4 +99,3 @@ class OwnerVehicleRemoteDataSourceImpl implements OwnerVehicleRemoteDataSource {
     }
   }
 }
-

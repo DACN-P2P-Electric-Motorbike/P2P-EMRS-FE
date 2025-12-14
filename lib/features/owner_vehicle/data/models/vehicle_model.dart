@@ -47,7 +47,8 @@ class VehicleModel extends VehicleEntity {
       type: VehicleType.fromString(json['type'] as String),
       year: json['year'] as int?,
       status: VehicleStatus.fromString(json['status'] as String),
-      features: (json['features'] as List<dynamic>?)
+      features:
+          (json['features'] as List<dynamic>?)
               ?.map((e) => VehicleFeature.fromString(e as String))
               .toList() ??
           [],
@@ -58,9 +59,7 @@ class VehicleModel extends VehicleEntity {
       maxSpeed: json['maxSpeed'] != null
           ? (json['maxSpeed'] as num).toDouble()
           : null,
-      range: json['range'] != null
-          ? (json['range'] as num).toDouble()
-          : null,
+      range: json['range'] != null ? (json['range'] as num).toDouble() : null,
       pricePerHour: _parsePrice(json['pricePerHour']),
       pricePerDay: json['pricePerDay'] != null
           ? _parsePrice(json['pricePerDay'])
@@ -77,7 +76,8 @@ class VehicleModel extends VehicleEntity {
           ? (json['longitude'] as num).toDouble()
           : null,
       description: json['description'] as String?,
-      images: (json['images'] as List<dynamic>?)
+      images:
+          (json['images'] as List<dynamic>?)
               ?.map((e) => e as String)
               .toList() ??
           [],
