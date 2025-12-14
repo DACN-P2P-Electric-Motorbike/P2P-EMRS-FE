@@ -26,4 +26,3 @@ abstract class AuthRepository {
   /// Returns Either<Failure, UserEntity>
   Future<Either<Failure, UserEntity>> getProfile();
 }
-

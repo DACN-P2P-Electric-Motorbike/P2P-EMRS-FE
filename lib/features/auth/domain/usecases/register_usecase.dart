@@ -16,4 +16,3 @@ class RegisterUseCase implements UseCase<UserEntity, RegisterParams> {
     return await _repository.register(params);
   }
 }
-

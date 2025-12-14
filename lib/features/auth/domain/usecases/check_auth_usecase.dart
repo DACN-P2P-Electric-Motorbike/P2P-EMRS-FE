@@ -14,4 +14,3 @@ class CheckAuthUseCase implements UseCase<bool, NoParams> {
     return await _repository.isLoggedIn();
   }
 }
-

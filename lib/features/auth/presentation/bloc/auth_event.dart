@@ -14,10 +14,7 @@ class AuthLoginStarted extends AuthEvent {
   final String email;
   final String password;
 
-  const AuthLoginStarted({
-    required this.email,
-    required this.password,
-  });
+  const AuthLoginStarted({required this.email, required this.password});
 
   @override
   List<Object> get props => [email, password];
@@ -47,4 +44,3 @@ class AuthCheckRequested extends AuthEvent {
 class AuthResetRequested extends AuthEvent {
   const AuthResetRequested();
 }
-

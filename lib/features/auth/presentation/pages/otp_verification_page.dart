@@ -60,19 +60,13 @@ class _OtpVerificationPageState extends State<OtpVerificationPage> {
       final dioClient = sl<DioClient>();
       final response = await dioClient.post(
         '/auth/verify-otp',
-        data: {
-          'email': widget.email,
-          'otp': _otp,
-        },
+        data: {'email': widget.email, 'otp': _otp},
       );
 
       if (response.statusCode == 200 && mounted) {
         Navigator.of(context).pushReplacement(
           MaterialPageRoute(
-            builder: (_) => ResetPasswordPage(
-              email: widget.email,
-              otp: _otp,
-            ),
+            builder: (_) => ResetPasswordPage(email: widget.email, otp: _otp),
           ),
         );
       }
@@ -83,10 +77,7 @@ class _OtpVerificationPageState extends State<OtpVerificationPage> {
           message = e.response?.data['message'] ?? message;
         }
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(message),
-            backgroundColor: AppColors.error,
-          ),
+          SnackBar(content: Text(message), backgroundColor: AppColors.error),
         );
       }
     } finally {
@@ -129,9 +120,9 @@ class _OtpVerificationPageState extends State<OtpVerificationPage> {
               // Header
               Text(
                 'Enter Verification Code',
-                style: Theme.of(context).textTheme.displaySmall?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
+                style: Theme.of(
+                  context,
+                ).textTheme.displaySmall?.copyWith(fontWeight: FontWeight.bold),
               ),
 
               const SizedBox(height: 12),
@@ -139,8 +130,8 @@ class _OtpVerificationPageState extends State<OtpVerificationPage> {
               Text(
                 'We have sent the code verification\nto your Email Address',
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: AppColors.textSecondary,
-                    ),
+                  color: AppColors.textSecondary,
+                ),
                 textAlign: TextAlign.center,
               ),
 
@@ -171,7 +162,9 @@ class _OtpVerificationPageState extends State<OtpVerificationPage> {
                           counterText: '',
                           filled: true,
                           fillColor: AppColors.inputBackground,
-                          contentPadding: const EdgeInsets.symmetric(vertical: 16),
+                          contentPadding: const EdgeInsets.symmetric(
+                            vertical: 16,
+                          ),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
                             borderSide: BorderSide.none,
@@ -215,10 +208,7 @@ class _OtpVerificationPageState extends State<OtpVerificationPage> {
                     elevation: 0,
                   ),
                   child: _isLoading
-                      ? const SpinKitThreeBounce(
-                          color: Colors.white,
-                          size: 20,
-                        )
+                      ? const SpinKitThreeBounce(color: Colors.white, size: 20)
                       : const Text(
                           'Verify',
                           style: TextStyle(
@@ -273,4 +263,3 @@ class _OtpVerificationPageState extends State<OtpVerificationPage> {
     );
   }
 }
-

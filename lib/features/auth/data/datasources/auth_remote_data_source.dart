@@ -22,7 +22,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   final DioClient _dioClient;
 
   AuthRemoteDataSourceImpl({required DioClient dioClient})
-      : _dioClient = dioClient;
+    : _dioClient = dioClient;
 
   @override
   Future<AuthResponseModel> register(RegisterParams params) async {
@@ -33,7 +33,9 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
       );
 
       if (response.statusCode == 201 || response.statusCode == 200) {
-        return AuthResponseModel.fromJson(response.data as Map<String, dynamic>);
+        return AuthResponseModel.fromJson(
+          response.data as Map<String, dynamic>,
+        );
       }
 
       throw ServerException(
@@ -54,7 +56,9 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
       );
 
       if (response.statusCode == 200) {
-        return AuthResponseModel.fromJson(response.data as Map<String, dynamic>);
+        return AuthResponseModel.fromJson(
+          response.data as Map<String, dynamic>,
+        );
       }
 
       throw ServerException(
@@ -135,4 +139,3 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
     );
   }
 }
-
