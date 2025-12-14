@@ -1,5 +1,4 @@
 import 'package:fe_capstone_project/features/owner_vehicle/presentation/pages/owner_dashboard_page.dart';
-import 'package:fe_capstone_project/features/owner_vehicle/presentation/pages/register_vehicle_page.dart';
 import 'package:fe_capstone_project/features/renter/presentation/pages/become_owner_page.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
@@ -7,7 +6,6 @@ import 'package:go_router/go_router.dart';
 import '../../features/auth/presentation/pages/login_page.dart';
 import '../../features/auth/presentation/pages/register_page.dart';
 import '../../features/main/presentation/pages/main_shell.dart';
-import '../../features/owner_vehicle/presentation/pages/your_bike_page.dart';
 import '../../features/owner_vehicle/presentation/pages/bike_registration_page.dart';
 import '../../features/owner_vehicle/presentation/pages/vehicle_detail_edit_page.dart';
 

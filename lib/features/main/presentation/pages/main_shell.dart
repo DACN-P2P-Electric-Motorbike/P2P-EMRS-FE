@@ -1,6 +1,7 @@
 import 'package:fe_capstone_project/features/auth/domain/entities/user.dart';
 import 'package:fe_capstone_project/features/auth/presentation/pages/profile.dart';
 import 'package:fe_capstone_project/features/renter/presentation/pages/become_owner_page.dart';
+import 'package:fe_capstone_project/features/vehicle/presentation/pages/browse_vehices_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
@@ -51,12 +52,13 @@ class _MainShellState extends State<MainShell> {
 
           // Build pages list dynamically based on user role
           final pages = [
-            const HomePage(),
+            const BrowseVehiclesPage(),
             // const _BookmarksPage(),
             if (isOwner) OwnerDashboardPage() else BecomeOwnerPage(),
             const _NotificationsPage(),
             // isOwner ? const OwnerProfilePage() : const _RenterProfilePage(),
-            const ProfilePage(),
+            // const ProfilePage(),
+            const HomePage(),
           ];
 
           return Scaffold(
