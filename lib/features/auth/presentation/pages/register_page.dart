@@ -98,7 +98,7 @@ class _RegisterPageContentState extends State<_RegisterPageContent> {
         password: _passwordController.text,
         fullName: _fullNameController.text.trim(),
         phone: _phoneController.text.trim(),
-        role: _selectedRole.apiValue,
+        // role: _selectedRole.apiValue,
         idCardNum: idCardNum,
         address: address,
       );
