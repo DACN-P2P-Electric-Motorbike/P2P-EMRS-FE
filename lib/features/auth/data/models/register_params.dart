@@ -5,7 +5,7 @@ class RegisterParams {
   final String password;
   final String fullName;
   final String phone;
-  final String? role; // 'RENTER' or 'OWNER'
+  final List<String>? roles; // default ["RENTER"]
   final String? idCardNum;
   final String? address;
 
@@ -14,7 +14,7 @@ class RegisterParams {
     required this.password,
     required this.fullName,
     required this.phone,
-    this.role,
+    this.roles,
     this.idCardNum,
     this.address,
   });
@@ -28,7 +28,7 @@ class RegisterParams {
       'phone': phone,
     };
 
-    if (role != null) json['role'] = role;
+    // if (role != null) json['role'] = role;
     if (idCardNum != null) json['idCardNum'] = idCardNum;
     if (address != null) json['address'] = address;
 
@@ -40,7 +40,7 @@ class RegisterParams {
     String? password,
     String? fullName,
     String? phone,
-    String? role,
+    // String? role,
     String? idCardNum,
     String? address,
   }) {
@@ -49,7 +49,7 @@ class RegisterParams {
       password: password ?? this.password,
       fullName: fullName ?? this.fullName,
       phone: phone ?? this.phone,
-      role: role ?? this.role,
+      // role: role ?? this.role,
       idCardNum: idCardNum ?? this.idCardNum,
       address: address ?? this.address,
     );
