@@ -10,6 +10,7 @@ import '../../data/models/register_params.dart';
 import '../bloc/auth_bloc.dart';
 import '../bloc/auth_event.dart';
 import '../bloc/auth_state.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 /// User role enum for registration
 enum UserRole {
@@ -112,9 +113,16 @@ class _RegisterPageContentState extends State<_RegisterPageContent> {
     return Scaffold(
       backgroundColor: Colors.white,
       body: BlocConsumer<AuthBloc, AuthState>(
-        listener: (context, state) {
+        listener: (context, state) async {
           if (state is AuthSuccess || state is AuthAuthenticated) {
-            context.go('/home');
+            // --- Kiểm tra onboarding status ---
+            final prefs = await SharedPreferences.getInstance();
+            await prefs.setBool('isFirstTime', false);
+            // ---------------------
+
+            if (context.mounted) {
+              context.go('/home');
+            }
           } else if (state is AuthFailure) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(

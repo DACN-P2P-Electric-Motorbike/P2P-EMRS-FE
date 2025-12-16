@@ -7,6 +7,7 @@ import '../../domain/usecases/logout_usecase.dart';
 import '../../domain/usecases/register_usecase.dart';
 import 'auth_event.dart';
 import 'auth_state.dart';
+import '../../data/models/update_profile_params.dart';
 
 /// Authentication BLoC - handles authentication state management
 class AuthBloc extends Bloc<AuthEvent, AuthState> {
@@ -33,6 +34,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     on<AuthLogoutStarted>(_onLogoutStarted);
     on<AuthCheckRequested>(_onCheckRequested);
     on<AuthResetRequested>(_onResetRequested);
+    on<AuthUpdateProfileStarted>(_onUpdateProfileStarted);
   }
 
   /// Handle login event
@@ -111,4 +113,59 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   void _onResetRequested(AuthResetRequested event, Emitter<AuthState> emit) {
     emit(const AuthInitial());
   }
+
+  // --- Update User Profile ---
+  Future<void> _onUpdateProfileStarted(
+    AuthUpdateProfileStarted event,
+    Emitter<AuthState> emit,
+  ) async {
+    // 1. Lấy thông tin user hiện tại (nếu đang đăng nhập)
+    final currentUser = (state is AuthAuthenticated)
+        ? (state as AuthAuthenticated).user
+        : (state is AuthSuccess ? (state as AuthSuccess).user : null);
+
+    if (currentUser == null) {
+      emit(const AuthFailure(message: "User not found"));
+      return;
+    }
+
+    // 2. Emit trạng thái Loading
+    emit(const AuthLoading());
+
+    try {
+      // 3. GIẢ LẬP GỌI API (Vì bạn chưa có API thật cho update)
+      // Sau này bạn sẽ thay đoạn này bằng: await _updateProfileUseCase(event.params);
+      await Future.delayed(const Duration(seconds: 2));
+
+      // 4. Tạo user mới với thông tin đã cập nhật
+      // Lưu ý: Logic này chỉ cập nhật ở Client để hiển thị ngay.
+      // Thực tế server sẽ trả về user mới nhất.
+      final updatedUser = currentUser.copyWith(
+        fullName: event.params.fullName?.isNotEmpty == true
+            ? event.params.fullName
+            : currentUser.fullName,
+        phone: event.params.phone?.isNotEmpty == true
+            ? event.params.phone
+            : currentUser.phone,
+        address: event.params.address?.isNotEmpty == true
+            ? event.params.address
+            : currentUser.address,
+        // avatarUrl: ... xử lý logic ảnh nếu server trả về link ảnh mới
+      );
+
+      // 5. Báo thành công và cập nhật lại State
+      emit(
+        AuthSuccess(user: updatedUser),
+      ); // Để UI hiển thị SnackBar thành công
+
+      // Quan trọng: Phải emit lại AuthAuthenticated để app giữ trạng thái đăng nhập
+      emit(AuthAuthenticated(user: updatedUser));
+    } catch (e) {
+      emit(AuthFailure(message: e.toString()));
+      // Nếu lỗi, quay lại trạng thái đăng nhập cũ để không bị văng ra ngoài
+      emit(AuthAuthenticated(user: currentUser));
+    }
+  }
+
+  // ----------------------------------------
 }

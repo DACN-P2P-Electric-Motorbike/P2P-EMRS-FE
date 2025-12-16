@@ -8,6 +8,7 @@ import '../../../../injection_container.dart';
 import '../bloc/auth_bloc.dart';
 import '../bloc/auth_event.dart';
 import '../bloc/auth_state.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class LoginPage extends StatelessWidget {
   const LoginPage({super.key});
@@ -57,9 +58,16 @@ class _LoginPageContentState extends State<_LoginPageContent> {
     return Scaffold(
       backgroundColor: Colors.white,
       body: BlocConsumer<AuthBloc, AuthState>(
-        listener: (context, state) {
+        listener: (context, state) async {
           if (state is AuthSuccess || state is AuthAuthenticated) {
-            context.go('/home');
+            // --- Kiểm tra onboarding status ---
+            final prefs = await SharedPreferences.getInstance();
+            await prefs.setBool('isFirstTime', false);
+            // ---------------------
+
+            if (context.mounted) {
+              context.go('/home');
+            }
           } else if (state is AuthFailure) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(

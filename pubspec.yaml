@@ -45,6 +45,8 @@ dependencies:
 
   # File Picker
   file_picker: ^8.1.6
+  shared_preferences: ^2.5.4
+  image_picker: ^1.2.1
 
 dev_dependencies:
   flutter_test:
@@ -57,3 +59,5 @@ dev_dependencies:
 flutter:
   uses-material-design: true
   # Using Google Fonts package for Poppins font (loaded from internet)
+  assets:
+    - assets/images/

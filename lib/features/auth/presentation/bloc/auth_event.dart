@@ -1,5 +1,6 @@
 import 'package:equatable/equatable.dart';
 import '../../data/models/register_params.dart';
+import '../../data/models/update_profile_params.dart';
 
 /// Base class for auth events
 abstract class AuthEvent extends Equatable {
@@ -43,4 +44,12 @@ class AuthCheckRequested extends AuthEvent {
 /// Event triggered to reset auth state (after error handling)
 class AuthResetRequested extends AuthEvent {
   const AuthResetRequested();
+}
+
+// Thêm class này vào cuối file
+class AuthUpdateProfileStarted extends AuthEvent {
+  final UpdateProfileParams params;
+  const AuthUpdateProfileStarted({required this.params});
+  @override
+  List<Object> get props => [params];
 }

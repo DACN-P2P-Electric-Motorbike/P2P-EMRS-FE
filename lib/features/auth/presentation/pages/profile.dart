@@ -7,6 +7,7 @@ import '../../../../core/theme/app_theme.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
 import '../../../auth/presentation/bloc/auth_event.dart';
 import '../../../auth/presentation/bloc/auth_state.dart';
+import '../../../auth/presentation/pages/edit_profile_page.dart';
 
 /// Profile page - redesigned similar to OwnerProfilePage
 class ProfilePage extends StatelessWidget {
@@ -128,11 +129,19 @@ class ProfilePage extends StatelessWidget {
                 ),
               const SizedBox(height: 8),
               GestureDetector(
+                // onTap: () {
+                //   ScaffoldMessenger.of(context).showSnackBar(
+                //     const SnackBar(
+                //       content: Text('Tính năng đang được phát triển'),
+                //       backgroundColor: AppColors.primary,
+                //     ),
+                //   );
+                // },
                 onTap: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Tính năng đang được phát triển'),
-                      backgroundColor: AppColors.primary,
+                  // Chuyển sang trang EditProfilePage
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => EditProfilePage(user: user),
                     ),
                   );
                 },

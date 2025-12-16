@@ -10,6 +10,8 @@ import '../../features/auth/presentation/pages/register_page.dart';
 import '../../features/main/presentation/pages/main_shell.dart';
 import '../../features/owner_vehicle/presentation/pages/bike_registration_page.dart';
 import '../../features/owner_vehicle/presentation/pages/vehicle_detail_edit_page.dart';
+import '../../features/auth/presentation/pages/splash_page.dart';
+import '../../features/onboarding/presentation/pages/onboarding_page.dart';
 
 /// App Router configuration using GoRouter
 class AppRouter {
@@ -19,9 +21,18 @@ class AppRouter {
 
   static final GoRouter router = GoRouter(
     navigatorKey: _rootNavigatorKey,
-    initialLocation: '/login',
+    initialLocation: '/',
     debugLogDiagnostics: true,
     routes: [
+      // 1. Màn hình chờ (Logic điều hướng nằm ở đây)
+      GoRoute(path: '/', builder: (context, state) => const SplashPage()),
+
+      // 2. Màn hình giới thiệu (Onboarding)
+      GoRoute(
+        path: '/onboarding',
+        builder: (context, state) => const OnboardingPage(),
+      ),
+
       // Auth routes
       GoRoute(
         path: '/login',
