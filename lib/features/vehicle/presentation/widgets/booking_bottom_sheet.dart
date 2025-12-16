@@ -129,11 +129,15 @@ class _EnhancedBookingContentState extends State<_EnhancedBookingContent> {
     return BlocListener<BookingBloc, BookingState>(
       listener: (context, state) {
         if (state is BookingCreated) {
-          // Success - navigate to booking detail
-          Navigator.pop(context); // Close bottom sheet
+          // Save booking ID and router/navigator before closing
+          final bookingId = state.booking.id;
+          final router = GoRouter.of(context);
+          final navigator = Navigator.of(context);
+          final scaffoldMessenger = ScaffoldMessenger.of(context);
 
-          // Show success message
-          ScaffoldMessenger.of(context).showSnackBar(
+          // Close bottom sheet
+          navigator.pop();
+          final controller = scaffoldMessenger.showSnackBar(
             SnackBar(
               content: Row(
                 children: [
@@ -160,43 +164,20 @@ class _EnhancedBookingContentState extends State<_EnhancedBookingContent> {
                 ],
               ),
               backgroundColor: AppColors.success,
-              duration: const Duration(seconds: 3),
+              duration: const Duration(seconds: 4),
               behavior: SnackBarBehavior.floating,
               action: SnackBarAction(
                 label: 'Xem',
                 textColor: Colors.white,
                 onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => BlocProvider(
-                        create: (_) =>
-                            sl<BookingBloc>()
-                              ..add(LoadBookingByIdEvent(state.booking.id)),
-                        child: BookingDetailPage(bookingId: state.booking.id),
-                      ),
-                    ),
-                  );
+                  scaffoldMessenger.hideCurrentSnackBar();
                 },
               ),
             ),
           );
 
-          // Navigate to booking detail after a short delay
-          Future.delayed(const Duration(milliseconds: 500), () {
-            if (context.mounted) {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => BlocProvider(
-                    create: (_) =>
-                        sl<BookingBloc>()
-                          ..add(LoadBookingByIdEvent(state.booking.id)),
-                    child: BookingDetailPage(bookingId: state.booking.id),
-                  ),
-                ),
-              );
-            }
+          controller.closed.then((_) {
+            router.go('/bookings/$bookingId');
           });
         } else if (state is BookingFailure) {
           // Show error message

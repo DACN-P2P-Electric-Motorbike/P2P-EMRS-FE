@@ -49,8 +49,12 @@ class NotificationRemoteDataSourceImpl implements NotificationRemoteDataSource {
       );
 
       if (response.statusCode == 200) {
-        final List<dynamic> data = response.data as List<dynamic>;
-        return data
+        final data = response.data as Map<String, dynamic>;
+
+        final List<dynamic> notifications =
+            data['notifications'] as List<dynamic>? ?? [];
+
+        return notifications
             .map(
               (json) =>
                   NotificationModel.fromJson(json as Map<String, dynamic>),

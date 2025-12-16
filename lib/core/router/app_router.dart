@@ -1,8 +1,10 @@
 import 'package:fe_capstone_project/features/booking/presentation/pages/booking_detail_page.dart';
 import 'package:fe_capstone_project/features/booking/presentation/pages/owner_booking_page.dart';
 import 'package:fe_capstone_project/features/booking/presentation/pages/renter_booking_page.dart';
+import 'package:fe_capstone_project/features/notification/presentation/pages/notification_pages.dart';
 import 'package:fe_capstone_project/features/owner_vehicle/presentation/pages/owner_dashboard_page.dart';
 import 'package:fe_capstone_project/features/renter/presentation/pages/become_owner_page.dart';
+import 'package:fe_capstone_project/features/vehicle/presentation/pages/browse_vehices_page.dart';
 import 'package:fe_capstone_project/features/vehicle/presentation/pages/vehicle_detail_page.dart';
 import 'package:fe_capstone_project/features/vehicle/presentation/pages/vehicle_list_page.dart';
 import 'package:flutter/material.dart';
@@ -10,22 +12,24 @@ import 'package:go_router/go_router.dart';
 
 import '../../features/auth/presentation/pages/login_page.dart';
 import '../../features/auth/presentation/pages/register_page.dart';
+import '../../features/auth/presentation/pages/profile.dart';
 import '../../features/main/presentation/pages/main_shell.dart';
 import '../../features/owner_vehicle/presentation/pages/bike_registration_page.dart';
 import '../../features/owner_vehicle/presentation/pages/vehicle_detail_edit_page.dart';
 
-/// App Router configuration using GoRouter
+/// App Router with ShellRoute for persistent BottomNavigationBar
 class AppRouter {
   AppRouter._();
 
   static final _rootNavigatorKey = GlobalKey<NavigatorState>();
+  static final _shellNavigatorKey = GlobalKey<NavigatorState>();
 
   static final GoRouter router = GoRouter(
     navigatorKey: _rootNavigatorKey,
     initialLocation: '/login',
     debugLogDiagnostics: true,
     routes: [
-      // Auth routes
+      // ==================== AUTH ROUTES (No navbar) ====================
       GoRoute(
         path: '/login',
         name: 'login',
@@ -37,55 +41,144 @@ class AppRouter {
         builder: (context, state) => const RegisterPage(),
       ),
 
-      // Main app with bottom navigation (Home tab = index 0)
-      GoRoute(
-        path: '/home',
-        name: 'home',
-        builder: (context, state) => const MainShell(initialIndex: 0),
-      ),
+      // ==================== MAIN APP WITH BOTTOM NAV ====================
+      ShellRoute(
+        navigatorKey: _shellNavigatorKey,
+        builder: (context, state, child) {
+          // Determine tab index based on route
+          int selectedIndex = 0;
+          final path = state.uri.path;
 
-      // Profile tab (index 3)
-      GoRoute(
-        path: '/profile',
-        name: 'profile',
-        builder: (context, state) => const MainShell(initialIndex: 3),
-      ),
+          if (path.startsWith('/home') || path == '/') {
+            selectedIndex = 0;
+          } else if (path.startsWith('/owner') ||
+              path.startsWith('/become-owner')) {
+            selectedIndex = 1;
+          } else if (path.startsWith('/bookings')) {
+            selectedIndex = 2;
+          } else if (path.startsWith('/notifications')) {
+            selectedIndex = 3;
+          } else if (path.startsWith('/profile')) {
+            selectedIndex = 4;
+          }
 
-      // Owner routes (outside main shell for full-screen experience)
-      GoRoute(
-        path: '/owner',
-        name: 'owner-dashboard',
-        // builder: (context, state) => const YourBikePage(),
-        builder: (context, state) => const OwnerDashboardPage(),
+          return MainShell(initialIndex: selectedIndex, child: child);
+        },
         routes: [
+          // HOME TAB - Browse Vehicles
           GoRoute(
-            path: 'register-vehicle',
-            name: 'register-vehicle',
-            builder: (context, state) => const BikeRegistrationPage(),
+            path: '/home',
+            name: 'home',
+            pageBuilder: (context, state) => NoTransitionPage(
+              key: state.pageKey,
+              child: const BrowseVehiclesPage(),
+            ),
+            routes: [
+              // Vehicle detail (with navbar)
+              GoRoute(
+                path: 'vehicle/:id',
+                name: 'home-vehicle-detail',
+                builder: (context, state) {
+                  final vehicleId = state.pathParameters['id']!;
+                  return VehicleDetailPage(vehicleId: vehicleId);
+                },
+              ),
+            ],
           ),
+
+          // OWNER/BECOME OWNER TAB
           GoRoute(
-            path: 'vehicle/:id',
-            name: 'vehicle-detail',
-            builder: (context, state) {
-              final vehicleId = state.pathParameters['id']!;
-              return VehicleDetailEditPage(vehicleId: vehicleId);
-            },
+            path: '/owner',
+            name: 'owner-dashboard-tab',
+            pageBuilder: (context, state) => NoTransitionPage(
+              key: state.pageKey,
+              child: const OwnerDashboardPage(),
+            ),
+            routes: [
+              GoRoute(
+                path: 'register-vehicle',
+                name: 'owner-register-vehicle',
+                builder: (context, state) => const BikeRegistrationPage(),
+              ),
+              GoRoute(
+                path: 'vehicle/:id',
+                name: 'owner-vehicle-detail',
+                builder: (context, state) {
+                  final vehicleId = state.pathParameters['id']!;
+                  return VehicleDetailEditPage(vehicleId: vehicleId);
+                },
+              ),
+              GoRoute(
+                path: 'bookings',
+                name: 'owner-bookings',
+                builder: (context, state) => const OwnerBookingsPage(),
+              ),
+            ],
+          ),
+
+          GoRoute(
+            path: '/become-owner',
+            name: 'become-owner-tab',
+            pageBuilder: (context, state) => NoTransitionPage(
+              key: state.pageKey,
+              child: const BecomeOwnerPage(),
+            ),
+            routes: [
+              GoRoute(
+                path: 'register-vehicle',
+                name: 'become-owner-register-vehicle',
+                builder: (context, state) =>
+                    const BikeRegistrationPage(isBecomeOwnerFlow: true),
+              ),
+            ],
+          ),
+
+          // BOOKINGS TAB
+          GoRoute(
+            path: '/bookings',
+            name: 'bookings-page',
+            pageBuilder: (context, state) => NoTransitionPage(
+              key: state.pageKey,
+              child: const RenterBookingsPage(),
+            ),
+            routes: [
+              // Booking detail (with navbar) - THIS IS THE FIX!
+              GoRoute(
+                path: ':id',
+                name: 'booking-detail',
+                builder: (context, state) {
+                  final bookingId = state.pathParameters['id']!;
+                  return BookingDetailPage(bookingId: bookingId);
+                },
+              ),
+            ],
+          ),
+
+          // NOTIFICATIONS TAB
+          GoRoute(
+            path: '/notifications',
+            name: 'notifications',
+            pageBuilder: (context, state) => NoTransitionPage(
+              key: state.pageKey,
+              child: const NotificationsPage(),
+            ),
+          ),
+
+          // PROFILE TAB
+          GoRoute(
+            path: '/profile',
+            name: 'profile',
+            pageBuilder: (context, state) => NoTransitionPage(
+              key: state.pageKey,
+              child: const ProfilePage(),
+            ),
           ),
         ],
       ),
-      GoRoute(
-        path: '/become-owner',
-        name: 'become-owner',
-        builder: (context, state) => const BecomeOwnerPage(),
-        routes: [
-          GoRoute(
-            path: 'register-vehicle',
-            name: 'become-owner-register-vehicle',
-            builder: (context, state) =>
-                const BikeRegistrationPage(isBecomeOwnerFlow: true),
-          ),
-        ],
-      ),
+
+      // ==================== FULL SCREEN ROUTES (No navbar) ====================
+
+      // Public vehicle listing (fullscreen)
       GoRoute(
         path: '/vehicle',
         name: 'list-vehicle',
@@ -106,22 +199,8 @@ class AppRouter {
           ),
         ],
       ),
-      GoRoute(
-        path: '/bookings',
-        name: 'bookings page',
-        builder: (context, state) => const RenterBookingsPage(),
-        routes: [
-          GoRoute(
-            path: '/bookings/:id',
-            name: 'booking detail',
-            builder: (context, state) {
-              final bookingId = state.pathParameters['id']!;
-              return BookingDetailPage(bookingId: bookingId);
-            },
-          ),
-        ],
-      ),
     ],
+
     errorBuilder: (context, state) => Scaffold(
       body: Center(
         child: Column(
