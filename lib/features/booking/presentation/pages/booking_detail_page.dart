@@ -36,6 +36,10 @@ class _BookingDetailPageState extends State<BookingDetailPage> {
   void initState() {
     super.initState();
     _setupRealtimeUpdates();
+    // ✅ Load booking data when page opens
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<BookingBloc>().add(LoadBookingByIdEvent(widget.bookingId));
+    });
   }
 
   void _setupRealtimeUpdates() {
@@ -62,58 +66,54 @@ class _BookingDetailPageState extends State<BookingDetailPage> {
 
   @override
   Widget build(BuildContext context) {
-    return BlocProvider(
-      create: (_) =>
-          sl<BookingBloc>()..add(LoadBookingByIdEvent(widget.bookingId)),
-      child: Scaffold(
-        backgroundColor: const Color(0xFFF8F9FD),
-        appBar: AppBar(
-          backgroundColor: Colors.white,
-          elevation: 0,
-          title: Text(
-            'Chi tiết booking',
-            style: GoogleFonts.poppins(
-              fontSize: 18,
-              fontWeight: FontWeight.w600,
-              color: AppColors.textPrimary,
-            ),
+    return Scaffold(
+      backgroundColor: const Color(0xFFF8F9FD),
+      appBar: AppBar(
+        backgroundColor: Colors.white,
+        elevation: 0,
+        title: Text(
+          'Chi tiết booking',
+          style: GoogleFonts.poppins(
+            fontSize: 18,
+            fontWeight: FontWeight.w600,
+            color: AppColors.textPrimary,
           ),
-          centerTitle: true,
         ),
-        body: BlocConsumer<BookingBloc, BookingState>(
-          listener: (context, state) {
-            if (state is BookingActionSuccess) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(state.message),
-                  backgroundColor: AppColors.success,
-                ),
-              );
-              // Reload booking
-              context.read<BookingBloc>().add(
-                LoadBookingByIdEvent(widget.bookingId),
-              );
-            } else if (state is BookingFailure) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(state.message),
-                  backgroundColor: AppColors.error,
-                ),
-              );
-            }
-          },
-          builder: (context, state) {
-            if (state is BookingLoading) {
-              return const Center(child: CircularProgressIndicator());
-            }
+        centerTitle: true,
+      ),
+      body: BlocConsumer<BookingBloc, BookingState>(
+        listener: (context, state) {
+          if (state is BookingActionSuccess) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(state.message),
+                backgroundColor: AppColors.success,
+              ),
+            );
+            // Reload booking
+            context.read<BookingBloc>().add(
+              LoadBookingByIdEvent(widget.bookingId),
+            );
+          } else if (state is BookingFailure) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(state.message),
+                backgroundColor: AppColors.error,
+              ),
+            );
+          }
+        },
+        builder: (context, state) {
+          if (state is BookingLoading) {
+            return const Center(child: CircularProgressIndicator());
+          }
 
-            if (state is BookingLoaded) {
-              return _buildContent(context, state.booking);
-            }
+          if (state is BookingLoaded) {
+            return _buildContent(context, state.booking);
+          }
 
-            return const Center(child: Text('Không tìm thấy booking'));
-          },
-        ),
+          return const Center(child: Text('Không tìm thấy booking'));
+        },
       ),
     );
   }

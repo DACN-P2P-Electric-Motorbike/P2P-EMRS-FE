@@ -53,6 +53,8 @@ dependencies:
   # File Picker
   file_picker: ^8.1.6
 
+  logger: ^2.0.2+1
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

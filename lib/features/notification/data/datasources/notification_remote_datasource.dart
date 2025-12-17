@@ -101,7 +101,7 @@ class NotificationRemoteDataSourceImpl implements NotificationRemoteDataSource {
   Future<void> markAsRead(List<String> notificationIds) async {
     try {
       final response = await _dioClient.patch(
-        '/notifications/mark-read',
+        '/notifications/read',
         data: {'notificationIds': notificationIds},
       );
 
@@ -119,7 +119,7 @@ class NotificationRemoteDataSourceImpl implements NotificationRemoteDataSource {
   @override
   Future<void> markAllAsRead() async {
     try {
-      final response = await _dioClient.patch('/notifications/mark-all-read');
+      final response = await _dioClient.patch('/notifications/read-all');
 
       if (response.statusCode != 200 && response.statusCode != 204) {
         throw ServerException(
@@ -154,7 +154,7 @@ class NotificationRemoteDataSourceImpl implements NotificationRemoteDataSource {
   Future<void> registerFcmToken(String token, String platform) async {
     try {
       final response = await _dioClient.post(
-        '/fcm/register',
+        '/fcm-token',
         data: {
           'token': token,
           'platform': platform, // 'ios' or 'android'
@@ -176,8 +176,8 @@ class NotificationRemoteDataSourceImpl implements NotificationRemoteDataSource {
   Future<void> unregisterFcmToken(String token) async {
     try {
       final response = await _dioClient.delete(
-        '/fcm/unregister',
-        data: {'token': token},
+        '/fcm-token/$token',
+        // data: {'token': token},
       );
 
       if (response.statusCode != 200 && response.statusCode != 204) {

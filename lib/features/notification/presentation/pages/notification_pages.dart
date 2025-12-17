@@ -10,6 +10,8 @@ import '../bloc/notification_bloc.dart';
 import '../bloc/notification_event.dart';
 import '../bloc/notification_state.dart';
 import '../widgets/notification_card.dart';
+import '../../../booking/presentation/bloc/booking_bloc.dart';
+import '../../../booking/presentation/bloc/booking_event.dart';
 import '../../../booking/presentation/pages/booking_detail_page.dart';
 
 /// Notifications Page
@@ -216,12 +218,68 @@ class _NotificationsContentState extends State<_NotificationsContent> {
 
     // Navigate to booking detail if it's a booking notification
     if (notification.bookingId != null) {
+      // Determine if this is owner view based on notification type
+      final isOwnerView = _isOwnerNotification(notification.type);
+
       Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (_) => BookingDetailPage(bookingId: notification.bookingId!),
+          builder: (_) => BookingDetailPage(
+            bookingId: notification.bookingId!,
+            isOwnerView: isOwnerView,
+          ),
         ),
       );
+    }
+  }
+
+  /// Determine if notification is for owner based on notification type
+  ///
+  /// Owner notifications:
+  /// - BOOKING_REQUEST: Owner receives new booking request
+  ///
+  /// Renter notifications:
+  /// - BOOKING_CONFIRMED: Renter receives booking confirmation
+  /// - BOOKING_REJECTED: Renter receives booking rejection
+  /// - BOOKING_CANCELLED: Could be either, default to renter
+  /// - TRIP_STARTED/COMPLETED: Both can see
+  /// - PAYMENT_*: Both can see
+  bool _isOwnerNotification(NotificationType type) {
+    switch (type) {
+      case NotificationType.BOOKING_REQUEST:
+        // Owner receives booking requests from renters
+        return true;
+
+      case NotificationType.BOOKING_CONFIRMED:
+        // Renter receives confirmation from owner
+        return false;
+
+      case NotificationType.BOOKING_REJECTED:
+        // Renter receives rejection from owner
+        return false;
+
+      case NotificationType.BOOKING_CANCELLED:
+        // Could be either:
+        // - If renter cancelled → owner receives notification
+        // - If owner cancelled → renter receives notification
+        // Default to renter view (safer, as renters can't approve/reject)
+        return false;
+
+      case NotificationType.TRIP_STARTED:
+      case NotificationType.TRIP_COMPLETED:
+        // Both owner and renter can see these
+        // Default to renter view (they're the ones using the vehicle)
+        return false;
+
+      case NotificationType.PAYMENT_SUCCESS:
+      case NotificationType.PAYMENT_FAILED:
+        // Both can see payment status
+        // Default to renter view (they're making the payment)
+        return false;
+
+      case NotificationType.SYSTEM_ALERT:
+        // System alerts are general, no specific view needed
+        return false;
     }
   }
 

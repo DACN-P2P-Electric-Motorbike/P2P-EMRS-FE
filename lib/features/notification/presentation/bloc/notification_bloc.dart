@@ -45,20 +45,27 @@ class NotificationBloc extends Bloc<NotificationEvent, NotificationState> {
 
     final result = await _getNotificationsUseCase(params);
 
-    result.fold((failure) => emit(NotificationFailure(failure.message)), (
-      notifications,
-    ) async {
-      // Also get unread count
-      final countResult = await _getUnreadCountUseCase(const NoParams());
-      final unreadCount = countResult.fold((_) => 0, (count) => count);
+    // FIX: Use await with fold to ensure proper async handling
+    await result.fold(
+      (failure) async {
+        emit(NotificationFailure(failure.message));
+      },
+      (notifications) async {
+        // Also get unread count
+        final countResult = await _getUnreadCountUseCase(const NoParams());
+        final unreadCount = countResult.fold((_) => 0, (count) => count);
 
-      emit(
-        NotificationsLoaded(
-          notifications: notifications,
-          unreadCount: unreadCount,
-        ),
-      );
-    });
+        // Check if emitter is still valid before emitting
+        if (!emit.isDone) {
+          emit(
+            NotificationsLoaded(
+              notifications: notifications,
+              unreadCount: unreadCount,
+            ),
+          );
+        }
+      },
+    );
   }
 
   Future<void> _onGetUnreadCount(
