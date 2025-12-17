@@ -3,6 +3,7 @@ import 'package:fe_capstone_project/core/services/notification_toast._service.da
 import 'package:fe_capstone_project/features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:fe_capstone_project/features/auth/presentation/bloc/auth_event.dart';
 import 'package:fe_capstone_project/features/auth/presentation/bloc/auth_state.dart';
+import 'package:fe_capstone_project/features/booking/presentation/bloc/booking_bloc.dart';
 import 'package:fe_capstone_project/features/notification/presentation/bloc/notification_bloc.dart';
 import 'package:fe_capstone_project/features/notification/presentation/bloc/notification_event.dart';
 import 'package:fe_capstone_project/features/notification/presentation/widgets/notification_listener.dart';
@@ -195,6 +196,13 @@ class _MyAppState extends State<MyApp> {
           create: (_) {
             _logger.d('🏗️ Creating NotificationBloc instance');
             return di.sl<NotificationBloc>();
+          },
+        ),
+
+        BlocProvider<BookingBloc>(
+          create: (_) {
+            _logger.d('🏗️ Creating BookingBloc instance');
+            return di.sl<BookingBloc>();
           },
         ),
       ],
