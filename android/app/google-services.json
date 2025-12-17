@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "1079743670160",
+    "project_id": "dacn-71027",
+    "storage_bucket": "dacn-71027.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1079743670160:android:2e86dfd5797543f2deb515",
+        "android_client_info": {
+          "package_name": "com.example.fe_capstone_project"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": ""
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

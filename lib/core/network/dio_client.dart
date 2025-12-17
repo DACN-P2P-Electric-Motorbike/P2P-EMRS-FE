@@ -8,12 +8,16 @@ class DioClient {
   final StorageService _storageService;
 
   DioClient({required StorageService storageService})
-      : _storageService = storageService {
+    : _storageService = storageService {
     _dio = Dio(
       BaseOptions(
         baseUrl: ApiConstants.baseUrl,
-        connectTimeout: const Duration(milliseconds: ApiConstants.connectTimeout),
-        receiveTimeout: const Duration(milliseconds: ApiConstants.receiveTimeout),
+        connectTimeout: const Duration(
+          milliseconds: ApiConstants.connectTimeout,
+        ),
+        receiveTimeout: const Duration(
+          milliseconds: ApiConstants.receiveTimeout,
+        ),
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
@@ -119,10 +123,7 @@ class _AuthInterceptor extends Interceptor {
     RequestInterceptorHandler handler,
   ) async {
     // Skip auth header for login and register endpoints
-    final skipAuthPaths = [
-      ApiConstants.authLogin,
-      ApiConstants.authRegister,
-    ];
+    final skipAuthPaths = [ApiConstants.authLogin, ApiConstants.authRegister];
 
     if (!skipAuthPaths.contains(options.path)) {
       final token = await _storageService.getToken();
@@ -144,4 +145,3 @@ class _AuthInterceptor extends Interceptor {
     handler.next(err);
   }
 }
-

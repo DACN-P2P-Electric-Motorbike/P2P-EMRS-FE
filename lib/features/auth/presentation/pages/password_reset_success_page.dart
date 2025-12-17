@@ -60,14 +60,11 @@ class PasswordResetSuccessPage extends StatelessWidget {
                   Text(
                     'Great ',
                     style: Theme.of(context).textTheme.displaySmall?.copyWith(
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.primary,
-                        ),
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.primary,
+                    ),
                   ),
-                  const Text(
-                    '🎉',
-                    style: TextStyle(fontSize: 28),
-                  ),
+                  const Text('🎉', style: TextStyle(fontSize: 28)),
                 ],
               ),
 
@@ -76,9 +73,9 @@ class PasswordResetSuccessPage extends StatelessWidget {
               Text(
                 'your password has changed',
                 style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.textPrimary,
-                    ),
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.textPrimary,
+                ),
               ),
 
               const SizedBox(height: 12),
@@ -86,8 +83,8 @@ class PasswordResetSuccessPage extends StatelessWidget {
               Text(
                 "Don't worry, we'll let you know if there's a\nproblem with your account",
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: AppColors.textSecondary,
-                    ),
+                  color: AppColors.textSecondary,
+                ),
                 textAlign: TextAlign.center,
               ),
 
@@ -100,9 +97,7 @@ class PasswordResetSuccessPage extends StatelessWidget {
                 child: ElevatedButton(
                   onPressed: () {
                     Navigator.of(context).pushAndRemoveUntil(
-                      MaterialPageRoute(
-                        builder: (_) => const LoginPage(),
-                      ),
+                      MaterialPageRoute(builder: (_) => const LoginPage()),
                       (route) => false,
                     );
                   },
@@ -132,4 +127,3 @@ class PasswordResetSuccessPage extends StatelessWidget {
     );
   }
 }
-

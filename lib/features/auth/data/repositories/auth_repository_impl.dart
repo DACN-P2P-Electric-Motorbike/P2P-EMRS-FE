@@ -15,11 +15,14 @@ class AuthRepositoryImpl implements AuthRepository {
   AuthRepositoryImpl({
     required AuthRemoteDataSource remoteDataSource,
     required StorageService storageService,
-  })  : _remoteDataSource = remoteDataSource,
-        _storageService = storageService;
+  }) : _remoteDataSource = remoteDataSource,
+       _storageService = storageService;
 
   @override
-  Future<Either<Failure, UserEntity>> login(String email, String password) async {
+  Future<Either<Failure, UserEntity>> login(
+    String email,
+    String password,
+  ) async {
     try {
       final params = LoginParams(email: email, password: password);
       final response = await _remoteDataSource.login(params);
@@ -99,4 +102,3 @@ class AuthRepositoryImpl implements AuthRepository {
     }
   }
 }
-

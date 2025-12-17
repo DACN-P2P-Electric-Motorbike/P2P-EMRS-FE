@@ -10,10 +10,7 @@ class LoginParams extends Equatable {
   final String email;
   final String password;
 
-  const LoginParams({
-    required this.email,
-    required this.password,
-  });
+  const LoginParams({required this.email, required this.password});
 
   @override
   List<Object> get props => [email, password];
@@ -30,4 +27,3 @@ class LoginUseCase implements UseCase<UserEntity, LoginParams> {
     return await _repository.login(params.email, params.password);
   }
 }
-

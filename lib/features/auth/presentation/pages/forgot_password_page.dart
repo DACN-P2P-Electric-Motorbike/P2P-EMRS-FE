@@ -35,9 +35,7 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
       final dioClient = sl<DioClient>();
       final response = await dioClient.post(
         '/auth/forgot-password',
-        data: {
-          'email': _emailController.text.trim(),
-        },
+        data: {'email': _emailController.text.trim()},
       );
 
       if (response.statusCode == 200 && mounted) {
@@ -52,9 +50,8 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
         // Navigate to OTP verification page
         Navigator.of(context).push(
           MaterialPageRoute(
-            builder: (_) => OtpVerificationPage(
-              email: _emailController.text.trim(),
-            ),
+            builder: (_) =>
+                OtpVerificationPage(email: _emailController.text.trim()),
           ),
         );
       }
@@ -65,10 +62,7 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
           message = e.response?.data['message'] ?? message;
         }
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(message),
-            backgroundColor: AppColors.error,
-          ),
+          SnackBar(content: Text(message), backgroundColor: AppColors.error),
         );
       }
     } finally {
@@ -113,8 +107,8 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
                   child: Text(
                     'Forgot Password',
                     style: Theme.of(context).textTheme.displaySmall?.copyWith(
-                          fontWeight: FontWeight.bold,
-                        ),
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ),
 
@@ -124,8 +118,8 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
                   child: Text(
                     "Please enter your email address. So we'll send\nyou link to get back into your account.",
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: AppColors.textSecondary,
-                        ),
+                      color: AppColors.textSecondary,
+                    ),
                     textAlign: TextAlign.center,
                   ),
                 ),
@@ -141,8 +135,9 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
                     if (value == null || value.isEmpty) {
                       return 'Please enter your email';
                     }
-                    if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$')
-                        .hasMatch(value)) {
+                    if (!RegExp(
+                      r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$',
+                    ).hasMatch(value)) {
                       return 'Please enter a valid email';
                     }
                     return null;
@@ -174,14 +169,19 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(14),
-                      borderSide: BorderSide(color: AppColors.primary, width: 1.5),
+                      borderSide: BorderSide(
+                        color: AppColors.primary,
+                        width: 1.5,
+                      ),
                     ),
                     errorBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(14),
                       borderSide: BorderSide(color: AppColors.error, width: 1),
                     ),
-                    contentPadding:
-                        const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 18,
+                    ),
                   ),
                 ),
 
