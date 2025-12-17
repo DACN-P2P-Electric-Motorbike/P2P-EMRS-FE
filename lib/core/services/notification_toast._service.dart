@@ -8,11 +8,18 @@ class NotificationToastService {
   factory NotificationToastService() => _instance;
   NotificationToastService._internal();
 
-  // ✅ FIX: Store navigatorKey to access overlay context
-  GlobalKey<NavigatorState>? _navigatorKey;
+  // ✅ Store overlay state
+  OverlayState? _overlayState;
 
-  void setNavigatorKey(GlobalKey<NavigatorState> key) {
-    _navigatorKey = key;
+  // ✅ Queue for pending toasts that arrive before Overlay is ready
+  final List<_PendingToast> _pendingToasts = [];
+
+  void setOverlayState(OverlayState overlayState) {
+    _overlayState = overlayState;
+    print('✅ [NotificationToast] Overlay state set');
+
+    // ✅ Flush any pending toasts
+    _flushPendingToasts();
   }
 
   void showNotificationToast({
@@ -21,14 +28,54 @@ class NotificationToastService {
     required String type,
     VoidCallback? onTap,
   }) {
-    // ✅ FIX: Get context from navigatorKey instead of parameter
-    final context = _navigatorKey?.currentContext;
-    if (context == null) {
-      print('⚠️ [NotificationToast] No navigator context available');
+    print('🔔 [NotificationToast] Attempting to show toast');
+    print(
+      '   Overlay state: ${_overlayState != null && _overlayState!.mounted ? "Available" : "NULL"}',
+    );
+
+    // ✅ If overlay not ready, queue the toast
+    if (_overlayState == null || !_overlayState!.mounted) {
+      print('⚠️ [NotificationToast] Overlay not ready, queuing toast');
+      _pendingToasts.add(
+        _PendingToast(title: title, message: message, type: type, onTap: onTap),
+      );
       return;
     }
 
-    final overlay = Overlay.of(context);
+    // ✅ Show immediately if overlay is ready
+    _showToastNow(title, message, type, onTap);
+  }
+
+  void _flushPendingToasts() {
+    if (_pendingToasts.isEmpty) return;
+
+    print(
+      '🔁 [NotificationToast] Flushing ${_pendingToasts.length} pending toasts',
+    );
+
+    // Copy list to avoid concurrent modification
+    final toasts = List<_PendingToast>.from(_pendingToasts);
+    _pendingToasts.clear();
+
+    // Show all queued toasts
+    for (final toast in toasts) {
+      _showToastNow(toast.title, toast.message, toast.type, toast.onTap);
+    }
+  }
+
+  void _showToastNow(
+    String title,
+    String message,
+    String type,
+    VoidCallback? onTap,
+  ) {
+    if (_overlayState == null || !_overlayState!.mounted) {
+      print('⚠️ [NotificationToast] Cannot show toast - overlay not available');
+      return;
+    }
+
+    print('✅ [NotificationToast] Showing toast: $title');
+
     late OverlayEntry overlayEntry;
 
     overlayEntry = OverlayEntry(
@@ -51,7 +98,7 @@ class NotificationToastService {
       ),
     );
 
-    overlay.insert(overlayEntry);
+    _overlayState!.insert(overlayEntry);
 
     // Auto dismiss after 5 seconds
     Future.delayed(const Duration(seconds: 5), () {
@@ -60,6 +107,21 @@ class NotificationToastService {
       }
     });
   }
+}
+
+// ✅ Data class for pending toasts
+class _PendingToast {
+  final String title;
+  final String message;
+  final String type;
+  final VoidCallback? onTap;
+
+  _PendingToast({
+    required this.title,
+    required this.message,
+    required this.type,
+    this.onTap,
+  });
 }
 
 class _NotificationToast extends StatefulWidget {

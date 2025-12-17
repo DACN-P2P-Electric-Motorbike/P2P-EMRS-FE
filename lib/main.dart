@@ -70,11 +70,6 @@ void main() async {
     await di.init();
     _logger.i('✅ Dependency injection initialized');
 
-    // ✅ FIX: Initialize NotificationToastService with navigatorKey
-    _logger.d('Setting up NotificationToastService');
-    NotificationToastService().setNavigatorKey(rootNavigatorKey);
-    _logger.i('✅ NotificationToastService configured');
-
     // Initialize FCM (mobile only)
     if (!kIsWeb) {
       await di.sl<FcmService>().initialize();
@@ -248,8 +243,14 @@ class _MyAppState extends State<MyApp> {
           theme: AppTheme.lightTheme,
           routerConfig: AppRouter.router,
           builder: (context, child) {
-            // ✅ Wrap with NotificationListenerWidget
-            // Now it has access to MaterialApp's Overlay via navigatorKey
+            // ✅ NEW: Capture overlay state from MaterialApp context
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              final overlayState = Overlay.of(context, rootOverlay: true);
+              NotificationToastService().setOverlayState(overlayState);
+              _logger.d('📍 Overlay state captured and set');
+            });
+
+            // Wrap with NotificationListenerWidget
             return NotificationListenerWidget(child: child ?? const SizedBox());
           },
         ),
