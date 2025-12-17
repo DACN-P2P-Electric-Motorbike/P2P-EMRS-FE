@@ -1,5 +1,5 @@
 import 'dart:io';
-import 'package:fe_capstone_project/core/services/notification_toast._service.dart';
+import 'package:bot_toast/bot_toast.dart';
 import 'package:fe_capstone_project/features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:fe_capstone_project/features/auth/presentation/bloc/auth_event.dart';
 import 'package:fe_capstone_project/features/auth/presentation/bloc/auth_state.dart';
@@ -184,13 +184,14 @@ class _MyAppState extends State<MyApp> {
   Widget build(BuildContext context) {
     return MultiBlocProvider(
       providers: [
-        // Auth Bloc - Global (SINGLE INSTANCE)
+        // Auth Bloc - Global
         BlocProvider<AuthBloc>(
           create: (_) {
             _logger.d('🏗️ Creating AuthBloc instance');
             return di.sl<AuthBloc>()..add(const AuthCheckRequested());
           },
         ),
+
         // Notification Bloc - Global
         BlocProvider<NotificationBloc>(
           create: (_) {
@@ -199,6 +200,7 @@ class _MyAppState extends State<MyApp> {
           },
         ),
 
+        // Booking Bloc - Global
         BlocProvider<BookingBloc>(
           create: (_) {
             _logger.d('🏗️ Creating BookingBloc instance');
@@ -250,17 +252,21 @@ class _MyAppState extends State<MyApp> {
           debugShowCheckedModeBanner: false,
           theme: AppTheme.lightTheme,
           routerConfig: AppRouter.router,
-          builder: (context, child) {
-            // ✅ NEW: Capture overlay state from MaterialApp context
-            WidgetsBinding.instance.addPostFrameCallback((_) {
-              final overlayState = Overlay.of(context, rootOverlay: true);
-              NotificationToastService().setOverlayState(overlayState);
-              _logger.d('📍 Overlay state captured and set');
-            });
 
-            // Wrap with NotificationListenerWidget
-            return NotificationListenerWidget(child: child ?? const SizedBox());
+          // ✅ bot_toast integration
+          builder: (context, child) {
+            // Wrap with NotificationListenerWidget first
+            child = NotificationListenerWidget(
+              child: child ?? const SizedBox(),
+            );
+
+            // ✅ Initialize bot_toast
+            return BotToastInit()(context, child);
           },
+
+          // ✅ Add bot_toast navigator observer
+          // Note: GoRouter handles this internally, but if using Navigator directly:
+          // navigatorObservers: [BotToastNavigatorObserver()],
         ),
       ),
     );
