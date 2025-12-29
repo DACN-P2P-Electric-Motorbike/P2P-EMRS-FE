@@ -35,18 +35,25 @@ class _NotificationListenerWidgetState
     _notificationSubscription = _socketService.notificationStream.listen((
       data,
     ) {
-      print('🔔 New notification received: $data');
-
-      // Extract notification data based on your backend structure
       final type = data['type'] as String? ?? 'notification';
       final notificationData = data['data'] as Map<String, dynamic>?;
 
-      if (notificationData == null) return;
+      if (notificationData == null) {
+        return;
+      }
 
-      final title = notificationData['title'] as String? ?? 'New Notification';
-      final message = notificationData['message'] as String? ?? '';
-      final bookingId = notificationData['bookingId'] as String?;
+      // Extract notification object
+      final notification =
+          notificationData['notification'] as Map<String, dynamic>?;
+      if (notification == null) {
+        return;
+      }
 
+      final title = notification['title'] as String? ?? 'New Notification';
+      final message = notification['message'] as String? ?? '';
+
+      // ✅ Extract bookingId from notificatHandler: "onTap"ion object
+      final bookingId = notification['bookingId'] as String?;
       // Show toast
       _toastService.showNotificationToast(
         title: title,
