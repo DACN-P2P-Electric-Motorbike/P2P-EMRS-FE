@@ -77,6 +77,20 @@ class OwnerVehicleRepositoryImpl implements OwnerVehicleRepository {
   }
 
   @override
+  Future<Either<Failure, VehicleEntity>> toggleAvailability(String id) async {
+    try {
+      final vehicle = await _remoteDataSource.toggleAvailability(id);
+      return Right(vehicle.toEntity());
+    } on ServerException catch (e) {
+      return Left(ServerFailure(message: e.message));
+    } on ConnectionException {
+      return const Left(ConnectionFailure());
+    } catch (e) {
+      return Left(ServerFailure(message: e.toString()));
+    }
+  }
+
+  @override
   Future<Either<Failure, void>> deleteVehicle(String id) async {
     try {
       await _remoteDataSource.deleteVehicle(id);

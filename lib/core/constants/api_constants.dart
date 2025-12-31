@@ -23,6 +23,13 @@ class ApiConstants {
   static const String myVehicles = '/vehicles/my-vehicles';
   static const String availableVehicles = '/vehicles/available';
   static String vehicleById(String id) => '/vehicles/$id';
+  static String toggleVehicleAvailability(String id) =>
+      '/vehicles/$id/toggle-availability';
+
+  /// Booking endpoints
+  static const String bookings = '/bookings';
+  static String vehicleSchedule(String vehicleId) =>
+      '/bookings/vehicle/$vehicleId/schedule';
 
   /// Upload endpoints
   static const String uploadVehicleImage = '/upload/vehicle-image';

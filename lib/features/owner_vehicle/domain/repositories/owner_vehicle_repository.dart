@@ -23,6 +23,9 @@ abstract class OwnerVehicleRepository {
     UpdateVehicleParams params,
   );
 
+  /// Toggle vehicle availability (on/off for rent)
+  Future<Either<Failure, VehicleEntity>> toggleAvailability(String id);
+
   /// Delete a vehicle
   Future<Either<Failure, void>> deleteVehicle(String id);
 }

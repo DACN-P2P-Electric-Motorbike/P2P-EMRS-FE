@@ -5,9 +5,11 @@ import '../../../../core/usecases/usecase.dart';
 import '../../data/models/create_vehicle_params.dart';
 import '../../data/models/update_vehicle_params.dart';
 import '../../domain/entities/vehicle_entity.dart';
+import '../../domain/usecases/delete_vehicle_usecase.dart';
 import '../../domain/usecases/get_my_vehicles_usecase.dart';
 import '../../domain/usecases/get_vehicle_by_id_usecase.dart';
 import '../../domain/usecases/register_vehicle_usecase.dart';
+import '../../domain/usecases/toggle_availability_usecase.dart';
 import '../../domain/usecases/update_vehicle_usecase.dart';
 
 part 'owner_vehicle_event.dart';
@@ -19,16 +21,22 @@ class OwnerVehicleBloc extends Bloc<OwnerVehicleEvent, OwnerVehicleState> {
   final RegisterVehicleUseCase _registerVehicleUseCase;
   final UpdateVehicleUseCase _updateVehicleUseCase;
   final GetVehicleByIdUseCase _getVehicleByIdUseCase;
+  final ToggleAvailabilityUseCase _toggleAvailabilityUseCase;
+  final DeleteVehicleUseCase _deleteVehicleUseCase;
 
   OwnerVehicleBloc({
     required GetMyVehiclesUseCase getMyVehiclesUseCase,
     required RegisterVehicleUseCase registerVehicleUseCase,
     required UpdateVehicleUseCase updateVehicleUseCase,
     required GetVehicleByIdUseCase getVehicleByIdUseCase,
+    required ToggleAvailabilityUseCase toggleAvailabilityUseCase,
+    required DeleteVehicleUseCase deleteVehicleUseCase,
   }) : _getMyVehiclesUseCase = getMyVehiclesUseCase,
        _registerVehicleUseCase = registerVehicleUseCase,
        _updateVehicleUseCase = updateVehicleUseCase,
        _getVehicleByIdUseCase = getVehicleByIdUseCase,
+       _toggleAvailabilityUseCase = toggleAvailabilityUseCase,
+       _deleteVehicleUseCase = deleteVehicleUseCase,
        super(OwnerVehicleState.initial()) {
     on<LoadMyVehicles>(_onLoadMyVehicles);
     on<RegisterVehicleSubmit>(_onRegisterVehicle);
@@ -37,6 +45,7 @@ class OwnerVehicleBloc extends Bloc<OwnerVehicleEvent, OwnerVehicleState> {
     on<UpdateVehicleDetails>(_onUpdateVehicleDetails);
     on<LoadVehicleById>(_onLoadVehicleById);
     on<DeleteVehicle>(_onDeleteVehicle);
+    on<ToggleVehicleAvailability>(_onToggleAvailability);
     on<ResetOwnerVehicleState>(_onResetState);
   }
 
@@ -278,20 +287,74 @@ class OwnerVehicleBloc extends Bloc<OwnerVehicleEvent, OwnerVehicleState> {
       ),
     );
 
-    // Note: Delete use case not implemented yet, using update as placeholder
-    // In real implementation, you would call a delete use case here
+    final result = await _deleteVehicleUseCase(event.vehicleId);
 
-    final updatedVehicles = state.vehicles
-        .where((v) => v.id != event.vehicleId)
-        .toList();
+    result.fold(
+      (failure) => emit(
+        state.copyWith(
+          status: OwnerVehicleStatus.error,
+          errorMessage: failure.message,
+        ),
+      ),
+      (_) {
+        final updatedVehicles = state.vehicles
+            .where((v) => v.id != event.vehicleId)
+            .toList();
 
+        emit(
+          state.copyWith(
+            status: OwnerVehicleStatus.deleted,
+            vehicles: updatedVehicles,
+            clearSelectedVehicle: true,
+            successMessage: 'Vehicle deleted successfully',
+          ),
+        );
+      },
+    );
+  }
+
+  /// Handle toggling vehicle availability
+  Future<void> _onToggleAvailability(
+    ToggleVehicleAvailability event,
+    Emitter<OwnerVehicleState> emit,
+  ) async {
     emit(
       state.copyWith(
-        status: OwnerVehicleStatus.deleted,
-        vehicles: updatedVehicles,
-        clearSelectedVehicle: true,
-        successMessage: 'Vehicle deleted successfully',
+        status: OwnerVehicleStatus.updating,
+        clearError: true,
+        clearSuccess: true,
       ),
+    );
+
+    final result = await _toggleAvailabilityUseCase(event.vehicleId);
+
+    result.fold(
+      (failure) => emit(
+        state.copyWith(
+          status: OwnerVehicleStatus.error,
+          errorMessage: failure.message,
+        ),
+      ),
+      (updatedVehicle) {
+        final updatedVehicles = state.vehicles.map((v) {
+          return v.id == updatedVehicle.id ? updatedVehicle : v;
+        }).toList();
+
+        final statusText = updatedVehicle.isAvailable
+            ? 'Xe đã sẵn sàng cho thuê'
+            : 'Đã tắt cho thuê xe';
+
+        emit(
+          state.copyWith(
+            status: OwnerVehicleStatus.updated,
+            vehicles: updatedVehicles,
+            selectedVehicle: state.selectedVehicle?.id == updatedVehicle.id
+                ? updatedVehicle
+                : null,
+            successMessage: statusText,
+          ),
+        );
+      },
     );
   }
 

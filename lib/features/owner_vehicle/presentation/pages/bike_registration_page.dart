@@ -73,11 +73,7 @@ class _BikeRegistrationContentState extends State<_BikeRegistrationContent> {
   bool _isUploading = false;
   String? _uploadError;
 
-  // Step 3: Availability & Pricing
-  DateTime _selectedMonth = DateTime.now();
-  final Set<DateTime> _selectedDates = {};
-  TimeOfDay? _startTime;
-  TimeOfDay? _endTime;
+  // Step 3: Pricing & Location
   final _pricePerDayController = TextEditingController();
   final _addressController = TextEditingController();
 
@@ -184,10 +180,6 @@ class _BikeRegistrationContentState extends State<_BikeRegistrationContent> {
       context.read<BecomeOwnerCubit>().submitBecomeOwner(params);
     } else {
       // Normal register vehicle flow
-      context.read<OwnerVehicleBloc>().add(
-        RegisterVehicleSubmit(params: params),
-      );
-
       context.read<OwnerVehicleBloc>().add(
         RegisterVehicleSubmit(params: params),
       );
@@ -623,7 +615,7 @@ class _BikeRegistrationContentState extends State<_BikeRegistrationContent> {
     );
   }
 
-  /// Step 3: Availability & Pricing
+  /// Step 3: Pricing & Location (removed available time - availability controlled by toggle)
   Widget _buildStep3Availability() {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(20),
@@ -631,17 +623,25 @@ class _BikeRegistrationContentState extends State<_BikeRegistrationContent> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Pricing & Location',
+            'Giá thuê & Địa điểm',
             style: GoogleFonts.poppins(
               fontSize: 20,
               fontWeight: FontWeight.bold,
               color: AppColors.textPrimary,
             ),
           ),
+          const SizedBox(height: 8),
+          Text(
+            'Sau khi đăng ký, bạn có thể bật/tắt cho thuê xe bất cứ lúc nào từ trang quản lý.',
+            style: GoogleFonts.poppins(
+              fontSize: 13,
+              color: AppColors.textSecondary,
+            ),
+          ),
           const SizedBox(height: 24),
 
           // Rental Fee
-          _buildLabel('Rental fee (VND/day) *'),
+          _buildLabel('Giá thuê (VND/ngày) *'),
           Container(
             decoration: BoxDecoration(
               color: AppColors.inputBackground,
@@ -667,7 +667,7 @@ class _BikeRegistrationContentState extends State<_BikeRegistrationContent> {
                     inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                     style: GoogleFonts.poppins(fontSize: 16),
                     decoration: InputDecoration(
-                      hintText: 'e.g., 150000',
+                      hintText: 'VD: 150000',
                       hintStyle: GoogleFonts.poppins(
                         color: AppColors.textMuted,
                         fontSize: 14,
@@ -680,7 +680,7 @@ class _BikeRegistrationContentState extends State<_BikeRegistrationContent> {
                 Padding(
                   padding: const EdgeInsets.only(right: 16),
                   child: Text(
-                    '/day',
+                    '/ngày',
                     style: GoogleFonts.poppins(
                       color: AppColors.textSecondary,
                       fontSize: 14,
@@ -692,7 +692,7 @@ class _BikeRegistrationContentState extends State<_BikeRegistrationContent> {
           ),
           const SizedBox(height: 8),
           Text(
-            'Suggested: 100,000 - 300,000 VND/day',
+            'Gợi ý: 100,000 - 300,000 VND/ngày',
             style: GoogleFonts.poppins(
               fontSize: 12,
               color: AppColors.textMuted,
@@ -701,56 +701,52 @@ class _BikeRegistrationContentState extends State<_BikeRegistrationContent> {
           const SizedBox(height: 24),
 
           // Pickup Address
-          _buildLabel('Pickup Address *'),
+          _buildLabel('Địa chỉ nhận xe *'),
           _buildTextField(
             controller: _addressController,
-            hintText: 'e.g., 123 Nguyen Hue, District 1, HCMC',
+            hintText: 'VD: 123 Nguyễn Huệ, Quận 1, TP.HCM',
           ),
           const SizedBox(height: 24),
 
-          // Available Time
-          _buildLabel('Available Hours'),
-          Row(
-            children: [
-              Expanded(
-                child: _buildTimePicker(
-                  label: 'From',
-                  time: _startTime,
-                  onTap: () async {
-                    final time = await showTimePicker(
-                      context: context,
-                      initialTime:
-                          _startTime ?? const TimeOfDay(hour: 7, minute: 0),
-                    );
-                    if (time != null) setState(() => _startTime = time);
-                  },
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 12),
-                child: Text(
-                  '→',
-                  style: GoogleFonts.poppins(
-                    fontSize: 20,
-                    color: AppColors.textMuted,
+          // Info box about availability toggle
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: AppColors.info.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: AppColors.info.withOpacity(0.3)),
+            ),
+            child: Row(
+              children: [
+                Icon(Icons.lightbulb_outline, color: AppColors.info, size: 24),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Cách quản lý cho thuê xe',
+                        style: GoogleFonts.poppins(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.info,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        '• Bật "Sẵn sàng cho thuê" = xe hiển thị cho người thuê\n'
+                        '• Tắt khi bạn không muốn cho thuê nữa',
+                        style: GoogleFonts.poppins(
+                          fontSize: 11,
+                          color: AppColors.info,
+                          height: 1.4,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-              ),
-              Expanded(
-                child: _buildTimePicker(
-                  label: 'To',
-                  time: _endTime,
-                  onTap: () async {
-                    final time = await showTimePicker(
-                      context: context,
-                      initialTime:
-                          _endTime ?? const TimeOfDay(hour: 21, minute: 0),
-                    );
-                    if (time != null) setState(() => _endTime = time);
-                  },
-                ),
-              ),
-            ],
+              ],
+            ),
           ),
           const SizedBox(height: 24),
 
@@ -766,7 +762,7 @@ class _BikeRegistrationContentState extends State<_BikeRegistrationContent> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Summary',
+                  'Tóm tắt',
                   style: GoogleFonts.poppins(
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
@@ -774,22 +770,22 @@ class _BikeRegistrationContentState extends State<_BikeRegistrationContent> {
                   ),
                 ),
                 const SizedBox(height: 12),
-                _buildSummaryRow('Brand', _selectedBrand?.displayName ?? '-'),
+                _buildSummaryRow('Hãng xe', _selectedBrand?.displayName ?? '-'),
                 _buildSummaryRow(
                   'Model',
                   _modelController.text.isEmpty ? '-' : _modelController.text,
                 ),
                 _buildSummaryRow(
-                  'Plate',
+                  'Biển số',
                   _licensePlateController.text.isEmpty
                       ? '-'
                       : _licensePlateController.text,
                 ),
                 _buildSummaryRow(
-                  'Price',
+                  'Giá thuê',
                   _pricePerDayController.text.isEmpty
                       ? '-'
-                      : '${_formatNumber(int.tryParse(_pricePerDayController.text) ?? 0)} VND/day',
+                      : '${_formatNumber(int.tryParse(_pricePerDayController.text) ?? 0)} VND/ngày',
                 ),
               ],
             ),
@@ -820,38 +816,6 @@ class _BikeRegistrationContentState extends State<_BikeRegistrationContent> {
             ),
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildTimePicker({
-    required String label,
-    required TimeOfDay? time,
-    required VoidCallback onTap,
-  }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-        decoration: BoxDecoration(
-          color: AppColors.inputBackground,
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(
-              time != null ? time.format(context) : label,
-              style: GoogleFonts.poppins(
-                fontSize: 14,
-                color: time != null
-                    ? AppColors.textPrimary
-                    : AppColors.textMuted,
-              ),
-            ),
-            Icon(Icons.access_time, size: 20, color: AppColors.textMuted),
-          ],
-        ),
       ),
     );
   }

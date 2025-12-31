@@ -79,6 +79,16 @@ class DeleteVehicle extends OwnerVehicleEvent {
   List<Object?> get props => [vehicleId];
 }
 
+/// Event to toggle vehicle availability (on/off for rent)
+class ToggleVehicleAvailability extends OwnerVehicleEvent {
+  final String vehicleId;
+
+  const ToggleVehicleAvailability(this.vehicleId);
+
+  @override
+  List<Object?> get props => [vehicleId];
+}
+
 /// Event to reset state (clear messages)
 class ResetOwnerVehicleState extends OwnerVehicleEvent {
   const ResetOwnerVehicleState();

@@ -20,6 +20,9 @@ abstract class OwnerVehicleRemoteDataSource {
   /// Update vehicle information
   Future<VehicleModel> updateVehicle(String id, UpdateVehicleParams params);
 
+  /// Toggle vehicle availability (on/off for rent)
+  Future<VehicleModel> toggleAvailability(String id);
+
   /// Delete a vehicle
   Future<void> deleteVehicle(String id);
 }
@@ -82,6 +85,19 @@ class OwnerVehicleRemoteDataSourceImpl implements OwnerVehicleRemoteDataSource {
       final response = await _dioClient.patch(
         ApiConstants.vehicleById(id),
         data: params.toJson(),
+      );
+
+      return VehicleModel.fromJson(response.data as Map<String, dynamic>);
+    } on DioException catch (e) {
+      throw ServerException.fromDioException(e);
+    }
+  }
+
+  @override
+  Future<VehicleModel> toggleAvailability(String id) async {
+    try {
+      final response = await _dioClient.patch(
+        ApiConstants.toggleVehicleAvailability(id),
       );
 
       return VehicleModel.fromJson(response.data as Map<String, dynamic>);
