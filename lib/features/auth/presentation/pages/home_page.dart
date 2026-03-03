@@ -226,13 +226,7 @@ class HomePage extends StatelessWidget {
                                 title: 'Lịch sử',
                                 subtitle: 'Chuyến đi',
                                 color: AppColors.warning,
-                                onTap: () {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
-                                      content: Text('Coming soon!'),
-                                    ),
-                                  );
-                                },
+                                onTap: () => context.push('/trip-history'),
                               ),
                             ),
                           ],

@@ -2,12 +2,19 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 
 import '../../../../core/services/socket_service.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../injection_container.dart';
+import '../../../payment/presentation/pages/payment_page.dart';
+import '../../../review/presentation/pages/create_review_page.dart';
+import '../../../trip/presentation/bloc/trip_bloc.dart';
+import '../../../trip/presentation/bloc/trip_event.dart';
+import '../../../trip/presentation/bloc/trip_state.dart';
+import '../../../trip/presentation/pages/active_trip_page.dart';
 import '../../domain/entities/booking.dart';
 import '../bloc/booking_bloc.dart';
 import '../bloc/booking_event.dart';
@@ -542,8 +549,66 @@ class _BookingDetailPageState extends State<BookingDetailPage> {
       );
     }
 
-    // Renter actions
-    if (!widget.isOwnerView && booking.canBeCancelled) {
+    // Renter actions for CONFIRMED bookings
+    if (!widget.isOwnerView && booking.isConfirmed) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        child: Column(
+          children: [
+            // Payment button
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: () => _navigateToPayment(context, booking),
+                icon: const Icon(Icons.payment),
+                label: Text(
+                  'Thanh toán',
+                  style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+            // Start trip button
+            BlocProvider(
+              create: (_) => sl<TripBloc>(),
+              child: _StartTripButton(booking: booking),
+            ),
+            const SizedBox(height: 12),
+            // Cancel button
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton(
+                onPressed: () => _showCancelDialog(context, booking),
+                style: OutlinedButton.styleFrom(
+                  side: BorderSide(color: AppColors.error),
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                child: Text(
+                  'Hủy booking',
+                  style: GoogleFonts.poppins(
+                    color: AppColors.error,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    // Renter actions for PENDING bookings (cancel only)
+    if (!widget.isOwnerView && booking.isPending) {
       return Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16),
         child: SizedBox(
@@ -553,6 +618,9 @@ class _BookingDetailPageState extends State<BookingDetailPage> {
             style: OutlinedButton.styleFrom(
               side: BorderSide(color: AppColors.error),
               padding: const EdgeInsets.symmetric(vertical: 16),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
             ),
             child: Text(
               'Hủy booking',
@@ -566,7 +634,58 @@ class _BookingDetailPageState extends State<BookingDetailPage> {
       );
     }
 
+    // Completed booking - show review button
+    if (!widget.isOwnerView && booking.isCompleted) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        child: SizedBox(
+          width: double.infinity,
+          child: ElevatedButton.icon(
+            onPressed: () => _navigateToReview(context, booking),
+            icon: const Icon(Icons.star_outline),
+            label: Text(
+              'Đánh giá chuyến đi',
+              style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
+            ),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFFFB300),
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(vertical: 16),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
     return const SizedBox.shrink();
+  }
+
+  void _navigateToPayment(BuildContext context, BookingEntity booking) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => PaymentPage(
+          bookingId: booking.id,
+          totalAmount: booking.totalPrice,
+          deposit: booking.deposit,
+        ),
+      ),
+    );
+  }
+
+  void _navigateToReview(BuildContext context, BookingEntity booking) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => CreateReviewPage(
+          vehicleId: booking.vehicleId,
+          vehicleName: 'Xe #${booking.vehicleId.substring(0, 8)}',
+        ),
+      ),
+    );
   }
 
   void _showApproveDialog(BuildContext context, BookingEntity booking) {
@@ -676,7 +795,7 @@ class _BookingDetailPageState extends State<BookingDetailPage> {
     );
   }
 
-  void _showCancelDialog(BuildContext context, BookingEntity booking) {
+  void _showCancelDialog(BuildContext dialogBookingContext, BookingEntity booking) {
     final reasonController = TextEditingController();
     final formKey = GlobalKey<FormState>();
 
@@ -739,6 +858,73 @@ class _BookingDetailPageState extends State<BookingDetailPage> {
           ),
         ],
       ),
+    );
+  }
+}
+
+/// Start Trip button with its own BLoC listener
+class _StartTripButton extends StatelessWidget {
+  final BookingEntity booking;
+
+  const _StartTripButton({required this.booking});
+
+  @override
+  Widget build(BuildContext context) {
+    return BlocConsumer<TripBloc, TripState>(
+      listener: (context, state) {
+        if (state is TripStarted) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => ActiveTripPage(
+                tripId: state.trip.id,
+                bookingId: booking.id,
+              ),
+            ),
+          );
+        } else if (state is TripFailure) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(state.message),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      },
+      builder: (context, state) {
+        return SizedBox(
+          width: double.infinity,
+          child: ElevatedButton.icon(
+            onPressed: state is TripLoading
+                ? null
+                : () => context.read<TripBloc>().add(
+                    StartTripEvent(bookingId: booking.id),
+                  ),
+            icon: state is TripLoading
+                ? const SizedBox(
+                    height: 18,
+                    width: 18,
+                    child: CircularProgressIndicator(
+                      color: Colors.white,
+                      strokeWidth: 2,
+                    ),
+                  )
+                : const Icon(Icons.play_circle_outline),
+            label: Text(
+              'Bắt đầu chuyến đi',
+              style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
+            ),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.success,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(vertical: 16),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 }

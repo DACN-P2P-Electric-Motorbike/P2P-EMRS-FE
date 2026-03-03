@@ -7,6 +7,27 @@ import 'core/services/upload_service.dart';
 import 'core/services/socket_service.dart';
 import 'core/services/fcm_service.dart';
 
+// Trip Feature
+import 'features/trip/data/datasources/trip_remote_datasource.dart';
+import 'features/trip/data/repositories/trip_repository_impl.dart';
+import 'features/trip/domain/repositories/trip_repository.dart';
+import 'features/trip/domain/usecases/trip_usecases.dart';
+import 'features/trip/presentation/bloc/trip_bloc.dart';
+
+// Payment Feature
+import 'features/payment/data/datasources/payment_remote_datasource.dart';
+import 'features/payment/data/repositories/payment_repository_impl.dart';
+import 'features/payment/domain/repositories/payment_repository.dart';
+import 'features/payment/domain/usecases/payment_usecases.dart';
+import 'features/payment/presentation/bloc/payment_bloc.dart';
+
+// Review Feature
+import 'features/review/data/datasources/review_remote_datasource.dart';
+import 'features/review/data/repositories/review_repository_impl.dart';
+import 'features/review/domain/repositories/review_repository.dart';
+import 'features/review/domain/usecases/review_usecases.dart';
+import 'features/review/presentation/bloc/review_bloc.dart';
+
 // Auth Feature - Data Layer
 import 'features/auth/data/datasources/auth_remote_data_source.dart';
 import 'features/auth/data/repositories/auth_repository_impl.dart';
@@ -246,6 +267,96 @@ Future<void> init() async {
       getPendingBookingsUseCase: sl(),
       approveBookingUseCase: sl(),
       rejectBookingUseCase: sl(),
+    ),
+  );
+
+  //============================================================================
+  // FEATURES - TRIP
+  //============================================================================
+
+  // Data Sources
+  sl.registerLazySingleton<TripRemoteDataSource>(
+    () => TripRemoteDataSourceImpl(dioClient: sl()),
+  );
+
+  // Repository
+  sl.registerLazySingleton<TripRepository>(
+    () => TripRepositoryImpl(remoteDataSource: sl()),
+  );
+
+  // Use Cases
+  sl.registerLazySingleton(() => StartTripUseCase(sl()));
+  sl.registerLazySingleton(() => EndTripUseCase(sl()));
+  sl.registerLazySingleton(() => GetActiveTripUseCase(sl()));
+  sl.registerLazySingleton(() => GetTripHistoryUseCase(sl()));
+  sl.registerLazySingleton(() => GetTripByIdUseCase(sl()));
+
+  // BLoC - Factory
+  sl.registerFactory(
+    () => TripBloc(
+      startTrip: sl(),
+      endTrip: sl(),
+      getActiveTrip: sl(),
+      getTripHistory: sl(),
+      getTripById: sl(),
+    ),
+  );
+
+  //============================================================================
+  // FEATURES - PAYMENT
+  //============================================================================
+
+  // Data Sources
+  sl.registerLazySingleton<PaymentRemoteDataSource>(
+    () => PaymentRemoteDataSourceImpl(dioClient: sl()),
+  );
+
+  // Repository
+  sl.registerLazySingleton<PaymentRepository>(
+    () => PaymentRepositoryImpl(remoteDataSource: sl()),
+  );
+
+  // Use Cases
+  sl.registerLazySingleton(() => CreatePaymentUseCase(sl()));
+  sl.registerLazySingleton(() => GetPaymentByBookingUseCase(sl()));
+  sl.registerLazySingleton(() => SimulatePaymentSuccessUseCase(sl()));
+  sl.registerLazySingleton(() => InitiatePayOSUseCase(sl()));
+  sl.registerLazySingleton(() => InitiateMoMoUseCase(sl()));
+
+  // BLoC - Factory
+  sl.registerFactory(
+    () => PaymentBloc(
+      createPayment: sl(),
+      getPaymentByBooking: sl(),
+      simulateSuccess: sl(),
+      initiatePayOS: sl(),
+      initiateMoMo: sl(),
+    ),
+  );
+
+  //============================================================================
+  // FEATURES - REVIEW
+  //============================================================================
+
+  // Data Sources
+  sl.registerLazySingleton<ReviewRemoteDataSource>(
+    () => ReviewRemoteDataSourceImpl(dioClient: sl()),
+  );
+
+  // Repository
+  sl.registerLazySingleton<ReviewRepository>(
+    () => ReviewRepositoryImpl(remoteDataSource: sl()),
+  );
+
+  // Use Cases
+  sl.registerLazySingleton(() => CreateReviewUseCase(sl()));
+  sl.registerLazySingleton(() => GetVehicleReviewsUseCase(sl()));
+
+  // BLoC - Factory
+  sl.registerFactory(
+    () => ReviewBloc(
+      createReview: sl(),
+      getVehicleReviews: sl(),
     ),
   );
 
