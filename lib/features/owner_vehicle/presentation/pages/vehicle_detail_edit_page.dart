@@ -47,6 +47,16 @@ class _VehicleDetailContentState extends State<_VehicleDetailContent> {
             ),
           );
         }
+        if (state.status == OwnerVehicleStatus.deleted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(state.successMessage ?? 'Vehicle deleted successfully'),
+              backgroundColor: AppColors.success,
+            ),
+          );
+          // Navigate back after successful deletion
+          context.pop();
+        }
         if (state.errorMessage != null) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
@@ -59,6 +69,23 @@ class _VehicleDetailContentState extends State<_VehicleDetailContent> {
       builder: (context, state) {
         final vehicle = state.selectedVehicle;
         final isLoading = state.status == OwnerVehicleStatus.loading;
+        final isDeleting = state.status == OwnerVehicleStatus.deleting;
+
+        if (isDeleting) {
+          return Scaffold(
+            appBar: _buildAppBar(context, 'Deleting...'),
+            body: const Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  SpinKitFadingCircle(color: AppColors.error, size: 50),
+                  SizedBox(height: 16),
+                  Text('Deleting vehicle...'),
+                ],
+              ),
+            ),
+          );
+        }
 
         if (isLoading && vehicle == null) {
           return Scaffold(
@@ -318,6 +345,9 @@ class _VehicleDetailContentState extends State<_VehicleDetailContent> {
   }
 
   Widget _buildStatusSection(VehicleEntity vehicle) {
+    final canToggle = vehicle.canEditStatus;
+    final isAvailable = vehicle.isAvailable;
+
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -334,18 +364,52 @@ class _VehicleDetailContentState extends State<_VehicleDetailContent> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            'Vehicle Status',
-            style: GoogleFonts.poppins(
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
-              color: AppColors.textPrimary,
-            ),
+          // Availability Toggle - Main feature
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Sẵn sàng cho thuê',
+                      style: GoogleFonts.poppins(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.textPrimary,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      isAvailable
+                          ? 'Xe đang hiển thị cho người thuê'
+                          : 'Xe đang ẩn khỏi danh sách',
+                      style: GoogleFonts.poppins(
+                        fontSize: 12,
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Switch.adaptive(
+                value: isAvailable,
+                onChanged: canToggle
+                    ? (_) {
+                        context.read<OwnerVehicleBloc>().add(
+                          ToggleVehicleAvailability(vehicle.id),
+                        );
+                      }
+                    : null,
+                activeColor: AppColors.success,
+                inactiveThumbColor: AppColors.textMuted,
+              ),
+            ],
           ),
 
-          const SizedBox(height: 16),
-
-          if (!vehicle.canEditStatus)
+          if (!canToggle) ...[
+            const SizedBox(height: 12),
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
@@ -358,7 +422,7 @@ class _VehicleDetailContentState extends State<_VehicleDetailContent> {
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      'Status cannot be changed while ${vehicle.status.displayName.toLowerCase()}',
+                      'Không thể thay đổi khi xe đang ${vehicle.status.displayName.toLowerCase()}',
                       style: GoogleFonts.poppins(
                         fontSize: 12,
                         color: AppColors.warning,
@@ -367,68 +431,25 @@ class _VehicleDetailContentState extends State<_VehicleDetailContent> {
                   ),
                 ],
               ),
-            )
-          else
-            Row(
-              children: [
-                Expanded(
-                  child: _buildStatusOption(
-                    label: 'Available',
-                    status: VehicleStatus.available,
-                    currentStatus: vehicle.status,
-                    vehicle: vehicle,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: _buildStatusOption(
-                    label: 'Maintenance',
-                    status: VehicleStatus.maintenance,
-                    currentStatus: vehicle.status,
-                    vehicle: vehicle,
-                  ),
-                ),
-              ],
             ),
-        ],
-      ),
-    );
-  }
+          ],
 
-  Widget _buildStatusOption({
-    required String label,
-    required VehicleStatus status,
-    required VehicleStatus currentStatus,
-    required VehicleEntity vehicle,
-  }) {
-    final isSelected = status == currentStatus;
-    return GestureDetector(
-      onTap: vehicle.canEditStatus && !isSelected
-          ? () {
-              context.read<OwnerVehicleBloc>().add(
-                UpdateVehicleStatus(vehicleId: vehicle.id, newStatus: status),
-              );
-            }
-          : null,
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 14),
-        decoration: BoxDecoration(
-          color: isSelected ? AppColors.primary : Colors.transparent,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: isSelected ? AppColors.primary : AppColors.border,
-          ),
-        ),
-        child: Center(
-          child: Text(
-            label,
+          const SizedBox(height: 16),
+          const Divider(),
+          const SizedBox(height: 16),
+
+          // Current Status Badge
+          Text(
+            'Trạng thái hiện tại',
             style: GoogleFonts.poppins(
               fontSize: 14,
-              fontWeight: FontWeight.w600,
-              color: isSelected ? Colors.white : AppColors.textPrimary,
+              fontWeight: FontWeight.w500,
+              color: AppColors.textSecondary,
             ),
           ),
-        ),
+          const SizedBox(height: 8),
+          _buildStatusBadge(vehicle.status),
+        ],
       ),
     );
   }
@@ -691,7 +712,7 @@ class _VehicleDetailContentState extends State<_VehicleDetailContent> {
             onPressed: () {
               Navigator.of(dialogContext).pop();
               context.read<OwnerVehicleBloc>().add(DeleteVehicle(vehicle.id));
-              context.pop();
+              // Don't pop here - the listener will pop after successful deletion
             },
             style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
             child: const Text('Delete'),

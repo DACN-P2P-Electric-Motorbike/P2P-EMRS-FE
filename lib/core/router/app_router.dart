@@ -4,6 +4,7 @@ import 'package:fe_capstone_project/features/notification/presentation/pages/not
 import 'package:fe_capstone_project/features/owner_vehicle/presentation/pages/owner_dashboard_page.dart';
 import 'package:fe_capstone_project/features/owner_vehicle/presentation/pages/owner_entry_page.dart';
 import 'package:fe_capstone_project/features/renter/presentation/pages/become_owner_page.dart';
+import 'package:fe_capstone_project/features/trip/presentation/pages/trip_history_page.dart';
 import 'package:fe_capstone_project/features/vehicle/presentation/pages/browse_vehices_page.dart';
 import 'package:fe_capstone_project/features/vehicle/presentation/pages/vehicle_detail_page.dart';
 import 'package:fe_capstone_project/features/vehicle/presentation/pages/vehicle_list_page.dart';
@@ -202,6 +203,13 @@ class AppRouter {
             },
           ),
         ],
+      ),
+
+      // Trip history (fullscreen)
+      GoRoute(
+        path: '/trip-history',
+        name: 'trip-history',
+        builder: (context, state) => const TripHistoryPage(),
       ),
     ],
 

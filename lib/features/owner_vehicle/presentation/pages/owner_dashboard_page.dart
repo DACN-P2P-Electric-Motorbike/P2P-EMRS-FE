@@ -23,8 +23,35 @@ class OwnerDashboardPage extends StatelessWidget {
   }
 }
 
-class _OwnerDashboardContent extends StatelessWidget {
+class _OwnerDashboardContent extends StatefulWidget {
   const _OwnerDashboardContent();
+
+  @override
+  State<_OwnerDashboardContent> createState() => _OwnerDashboardContentState();
+}
+
+class _OwnerDashboardContentState extends State<_OwnerDashboardContent> {
+  void _navigateToDetail(String vehicleId) async {
+    await context.push('/owner/vehicle/$vehicleId');
+    // Refresh after returning from detail page
+    if (mounted) {
+      await Future.delayed(const Duration(milliseconds: 100));
+      if (mounted) {
+        context.read<OwnerVehicleBloc>().add(const LoadMyVehicles());
+      }
+    }
+  }
+
+  void _navigateToRegister() async {
+    await context.push('/owner/register-vehicle');
+    // Refresh after returning from register page
+    if (mounted) {
+      await Future.delayed(const Duration(milliseconds: 100));
+      if (mounted) {
+        context.read<OwnerVehicleBloc>().add(const LoadMyVehicles());
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -83,16 +110,14 @@ class _OwnerDashboardContent extends StatelessWidget {
 
                 // Vehicle list
                 if (state.vehicles.isEmpty)
-                  SliverFillRemaining(child: _buildEmptyState(context))
+                  SliverFillRemaining(child: _buildEmptyState())
                 else
                   SliverList(
                     delegate: SliverChildBuilderDelegate((context, index) {
                       final vehicle = state.vehicles[index];
                       return VehicleCard(
                         vehicle: vehicle,
-                        onTap: () {
-                          context.push('/owner/vehicle/${vehicle.id}');
-                        },
+                        onTap: () => _navigateToDetail(vehicle.id),
                       );
                     }, childCount: state.vehicles.length),
                   ),
@@ -105,9 +130,7 @@ class _OwnerDashboardContent extends StatelessWidget {
         },
       ),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: () {
-          context.push('/owner/register-vehicle');
-        },
+        onPressed: _navigateToRegister,
         backgroundColor: AppColors.primary,
         foregroundColor: Colors.white,
         icon: const Icon(Icons.add),
@@ -213,7 +236,7 @@ class _OwnerDashboardContent extends StatelessWidget {
     );
   }
 
-  Widget _buildEmptyState(BuildContext context) {
+  Widget _buildEmptyState() {
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(32),
@@ -252,9 +275,7 @@ class _OwnerDashboardContent extends StatelessWidget {
             ),
             const SizedBox(height: 24),
             ElevatedButton.icon(
-              onPressed: () {
-                context.push('/owner/register-vehicle');
-              },
+              onPressed: _navigateToRegister,
               icon: const Icon(Icons.add),
               label: const Text('Register Your First Vehicle'),
             ),

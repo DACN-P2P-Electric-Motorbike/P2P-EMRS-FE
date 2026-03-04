@@ -23,6 +23,36 @@ class ApiConstants {
   static const String myVehicles = '/vehicles/my-vehicles';
   static const String availableVehicles = '/vehicles/available';
   static String vehicleById(String id) => '/vehicles/$id';
+  static String toggleVehicleAvailability(String id) =>
+      '/vehicles/$id/toggle-availability';
+
+  /// Booking endpoints
+  static const String bookings = '/bookings';
+  static String vehicleSchedule(String vehicleId) =>
+      '/bookings/vehicle/$vehicleId/schedule';
+
+  /// Trip endpoints
+  static const String trips = '/trips';
+  static const String startTrip = '/trips/start';
+  static const String activeTrip = '/trips/active';
+  static const String tripHistory = '/trips/history';
+  static String endTrip(String id) => '/trips/$id/end';
+  static String tripById(String id) => '/trips/$id';
+
+  /// Payment endpoints
+  static const String payments = '/payments';
+  static const String paymentByBooking = '/payments/by-booking';
+  static String paymentById(String id) => '/payments/$id';
+  static String simulatePaymentSuccess(String id) =>
+      '/payments/$id/simulate-success';
+  static String initiatePayOS(String id) => '/payments/$id/initiate-payos';
+  static String initiateMoMo(String id) => '/payments/$id/initiate-momo';
+  static String refundPayment(String id) => '/payments/$id/refund';
+
+  /// Review endpoints
+  static const String reviews = '/reviews';
+  static String vehicleReviews(String vehicleId) =>
+      '/reviews/vehicle/$vehicleId';
 
   /// Upload endpoints
   static const String uploadVehicleImage = '/upload/vehicle-image';
