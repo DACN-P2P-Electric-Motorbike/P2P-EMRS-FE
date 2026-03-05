@@ -8,7 +8,10 @@ import 'package:fe_capstone_project/features/trip/presentation/pages/trip_histor
 import 'package:fe_capstone_project/features/vehicle/presentation/pages/browse_vehices_page.dart';
 import 'package:fe_capstone_project/features/vehicle/presentation/pages/vehicle_detail_page.dart';
 import 'package:fe_capstone_project/features/vehicle/presentation/pages/vehicle_list_page.dart';
+import 'package:fe_capstone_project/features/vehicle/presentation/pages/vehicle_map_page.dart';
+import 'package:fe_capstone_project/features/vehicle/presentation/bloc/vehicles_list_cubit.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../features/auth/presentation/pages/login_page.dart';
@@ -17,6 +20,7 @@ import '../../features/auth/presentation/pages/profile.dart';
 import '../../features/main/presentation/pages/main_shell.dart';
 import '../../features/owner_vehicle/presentation/pages/bike_registration_page.dart';
 import '../../features/owner_vehicle/presentation/pages/vehicle_detail_edit_page.dart';
+import '../../injection_container.dart';
 
 final GlobalKey<NavigatorState> rootNavigatorKey = GlobalKey<NavigatorState>();
 
@@ -189,6 +193,14 @@ class AppRouter {
         name: 'list-vehicle',
         builder: (context, state) => const VehicleListPage(),
         routes: [
+          GoRoute(
+            path: 'map',
+            name: 'vehicleMap',
+            builder: (context, state) => BlocProvider(
+              create: (_) => sl<VehicleListCubit>(),
+              child: const VehicleMapPage(),
+            ),
+          ),
           GoRoute(
             path: 'available',
             name: 'available-vehicle',

@@ -6,6 +6,7 @@ import 'core/storage/storage_service.dart';
 import 'core/services/upload_service.dart';
 import 'core/services/socket_service.dart';
 import 'core/services/fcm_service.dart';
+import 'core/services/location_service.dart';
 
 // Trip Feature
 import 'features/trip/data/datasources/trip_remote_datasource.dart';
@@ -124,6 +125,9 @@ Future<void> init() async {
 
   // FCM Service - Singleton
   sl.registerLazySingleton<FcmService>(() => FcmService());
+
+  // Location Service - Singleton
+  sl.registerLazySingleton<LocationService>(() => LocationService());
 
   //============================================================================
   // FEATURES - AUTH

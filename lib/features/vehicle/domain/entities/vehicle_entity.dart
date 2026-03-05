@@ -285,7 +285,10 @@ class VehicleEntity extends Equatable {
   final DateTime createdAt;
   final DateTime updatedAt;
 
-  const VehicleEntity({
+  /// Distance from user's current location in km (computed, not persisted)
+  double? distanceFromUser;
+
+  VehicleEntity({
     required this.id,
     this.name,
     required this.licensePlate,

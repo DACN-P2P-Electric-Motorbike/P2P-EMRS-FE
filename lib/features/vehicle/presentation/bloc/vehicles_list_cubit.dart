@@ -1,5 +1,6 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:equatable/equatable.dart';
+import 'package:geolocator/geolocator.dart';
 import '../../../../../core/usecases/usecase.dart';
 import '../../domain/entities/vehicle_entity.dart';
 import '../../domain/usecases/get_available_vehicles.dart';
@@ -156,5 +157,68 @@ class VehicleListCubit extends Cubit<VehicleListState> {
     }
 
     emit(VehicleListLoaded(filtered));
+  }
+
+  /// Load vehicles near a given user position within a radius.
+  Future<void> loadNearbyVehicles({
+    required double userLat,
+    required double userLng,
+    double radiusKm = 5.0,
+  }) async {
+    emit(VehicleListLoading());
+
+    final result = await _getAvailableVehicles(const NoParams());
+
+    result.fold(
+      (failure) => emit(VehicleListError(failure.message)),
+      (vehicles) {
+        final nearby = _filterByRadius(vehicles, userLat, userLng, radiusKm);
+        emit(VehicleListLoaded(nearby));
+      },
+    );
+  }
+
+  /// Re-filter an existing list of vehicles with a new radius.
+  void updateRadius(
+    List<VehicleEntity> allVehicles,
+    double newRadiusKm,
+    double userLat,
+    double userLng,
+  ) {
+    final nearby = _filterByRadius(allVehicles, userLat, userLng, newRadiusKm);
+    emit(VehicleListLoaded(nearby));
+  }
+
+  /// Internal helper to filter vehicles by distance and sort ascending.
+  List<VehicleEntity> _filterByRadius(
+    List<VehicleEntity> vehicles,
+    double userLat,
+    double userLng,
+    double radiusKm,
+  ) {
+    final withLocation = vehicles.where(
+      (v) => v.latitude != null && v.longitude != null,
+    );
+
+    final nearby = <VehicleEntity>[];
+    for (final vehicle in withLocation) {
+      final distanceMeters = Geolocator.distanceBetween(
+        userLat,
+        userLng,
+        vehicle.latitude!,
+        vehicle.longitude!,
+      );
+      final distanceKm = distanceMeters / 1000.0;
+      if (distanceKm <= radiusKm) {
+        vehicle.distanceFromUser = distanceKm;
+        nearby.add(vehicle);
+      }
+    }
+
+    nearby.sort((a, b) =>
+        (a.distanceFromUser ?? double.infinity)
+            .compareTo(b.distanceFromUser ?? double.infinity));
+
+    return nearby;
   }
 }

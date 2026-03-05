@@ -2,7 +2,7 @@ import '../../domain/entities/vehicle_entity.dart';
 
 /// Vehicle data model for API serialization
 class VehicleModel extends VehicleEntity {
-  const VehicleModel({
+  VehicleModel({
     required super.id,
     super.name,
     required super.licensePlate,

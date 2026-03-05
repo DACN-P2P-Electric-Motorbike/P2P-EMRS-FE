@@ -142,13 +142,27 @@ class _BrowseVehiclesViewState extends State<_BrowseVehiclesView> {
             ],
           ),
         ),
-        floatingActionButton: FloatingActionButton.extended(
-          onPressed: () {
-            context.push('/vehicle');
-          },
-          icon: const Icon(Icons.arrow_forward),
-          label: const Text('Xem thêm'),
-          backgroundColor: AppColors.primary,
+        floatingActionButton: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            FloatingActionButton.extended(
+              heroTag: 'nearby_fab',
+              onPressed: () => context.push('/vehicle/map'),
+              icon: const Icon(Icons.near_me),
+              label: const Text('Xe gần tôi'),
+              backgroundColor: AppColors.success,
+            ),
+            const SizedBox(height: 12),
+            FloatingActionButton.extended(
+              heroTag: 'all_fab',
+              onPressed: () {
+                context.push('/vehicle');
+              },
+              icon: const Icon(Icons.arrow_forward),
+              label: const Text('Xem thêm'),
+              backgroundColor: AppColors.primary,
+            ),
+          ],
         ),
       ),
     );
