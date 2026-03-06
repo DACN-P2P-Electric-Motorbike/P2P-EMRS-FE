@@ -63,6 +63,7 @@ dependencies:
   google_maps_flutter: ^2.9.0
   geocoding: ^3.0.0
   google_maps_flutter_web: ^0.5.10
+  image_picker: ^1.2.1
 
 dev_dependencies:
   flutter_test:
