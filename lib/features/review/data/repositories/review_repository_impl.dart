@@ -16,12 +16,14 @@ class ReviewRepositoryImpl implements ReviewRepository {
     required String vehicleId,
     required int rating,
     String? comment,
+    String? bookingId,
   }) async {
     try {
       final review = await _remoteDataSource.createReview(
         vehicleId: vehicleId,
         rating: rating,
         comment: comment,
+        bookingId: bookingId,
       );
       return Right(review.toEntity());
     } on ServerException catch (e) {
@@ -40,6 +42,34 @@ class ReviewRepositoryImpl implements ReviewRepository {
     try {
       final reviews = await _remoteDataSource.getVehicleReviews(vehicleId);
       return Right(reviews.map((r) => r.toEntity()).toList());
+    } on ServerException catch (e) {
+      return Left(ServerFailure(message: e.message));
+    } on ConnectionException {
+      return const Left(ConnectionFailure());
+    } catch (e) {
+      return Left(ServerFailure(message: e.toString()));
+    }
+  }
+
+  @override
+  Future<Either<Failure, List<ReviewEntity>>> getMyReviews() async {
+    try {
+      final reviews = await _remoteDataSource.getMyReviews();
+      return Right(reviews.map((r) => r.toEntity()).toList());
+    } on ServerException catch (e) {
+      return Left(ServerFailure(message: e.message));
+    } on ConnectionException {
+      return const Left(ConnectionFailure());
+    } catch (e) {
+      return Left(ServerFailure(message: e.toString()));
+    }
+  }
+
+  @override
+  Future<Either<Failure, TrustScoreBreakdown>> getTrustScoreBreakdown() async {
+    try {
+      final model = await _remoteDataSource.getTrustScoreBreakdown();
+      return Right(model.entity);
     } on ServerException catch (e) {
       return Left(ServerFailure(message: e.message));
     } on ConnectionException {

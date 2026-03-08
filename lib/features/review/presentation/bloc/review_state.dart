@@ -24,6 +24,22 @@ class ReviewsLoaded extends ReviewState {
   List<Object?> get props => [reviews];
 }
 
+class MyReviewsLoaded extends ReviewState {
+  final List<ReviewEntity> reviews;
+  const MyReviewsLoaded(this.reviews);
+
+  @override
+  List<Object?> get props => [reviews];
+}
+
+class TrustScoreLoaded extends ReviewState {
+  final TrustScoreBreakdown breakdown;
+  const TrustScoreLoaded(this.breakdown);
+
+  @override
+  List<Object?> get props => [breakdown];
+}
+
 class ReviewCreated extends ReviewState {
   final ReviewEntity review;
   const ReviewCreated(this.review);

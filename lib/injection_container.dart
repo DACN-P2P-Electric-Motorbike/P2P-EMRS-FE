@@ -355,12 +355,16 @@ Future<void> init() async {
   // Use Cases
   sl.registerLazySingleton(() => CreateReviewUseCase(sl()));
   sl.registerLazySingleton(() => GetVehicleReviewsUseCase(sl()));
+  sl.registerLazySingleton(() => GetMyReviewsUseCase(sl()));
+  sl.registerLazySingleton(() => GetTrustScoreBreakdownUseCase(sl()));
 
   // BLoC - Factory
   sl.registerFactory(
     () => ReviewBloc(
       createReview: sl(),
       getVehicleReviews: sl(),
+      getMyReviews: sl(),
+      getTrustScore: sl(),
     ),
   );
 

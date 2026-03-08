@@ -8,11 +8,13 @@ class CreateReviewParams {
   final String vehicleId;
   final int rating;
   final String? comment;
+  final String? bookingId;
 
   const CreateReviewParams({
     required this.vehicleId,
     required this.rating,
     this.comment,
+    this.bookingId,
   });
 }
 
@@ -26,6 +28,7 @@ class CreateReviewUseCase implements UseCase<ReviewEntity, CreateReviewParams> {
       vehicleId: params.vehicleId,
       rating: params.rating,
       comment: params.comment,
+      bookingId: params.bookingId,
     );
   }
 }
@@ -45,5 +48,26 @@ class GetVehicleReviewsUseCase
     GetVehicleReviewsParams params,
   ) {
     return repository.getVehicleReviews(params.vehicleId);
+  }
+}
+
+class GetMyReviewsUseCase implements UseCase<List<ReviewEntity>, NoParams> {
+  final ReviewRepository repository;
+  GetMyReviewsUseCase(this.repository);
+
+  @override
+  Future<Either<Failure, List<ReviewEntity>>> call(NoParams params) {
+    return repository.getMyReviews();
+  }
+}
+
+class GetTrustScoreBreakdownUseCase
+    implements UseCase<TrustScoreBreakdown, NoParams> {
+  final ReviewRepository repository;
+  GetTrustScoreBreakdownUseCase(this.repository);
+
+  @override
+  Future<Either<Failure, TrustScoreBreakdown>> call(NoParams params) {
+    return repository.getTrustScoreBreakdown();
   }
 }

@@ -7,9 +7,14 @@ abstract class ReviewRepository {
     required String vehicleId,
     required int rating,
     String? comment,
+    String? bookingId,
   });
 
   Future<Either<Failure, List<ReviewEntity>>> getVehicleReviews(
     String vehicleId,
   );
+
+  Future<Either<Failure, List<ReviewEntity>>> getMyReviews();
+
+  Future<Either<Failure, TrustScoreBreakdown>> getTrustScoreBreakdown();
 }

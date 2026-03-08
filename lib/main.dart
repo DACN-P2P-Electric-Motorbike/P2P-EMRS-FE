@@ -80,7 +80,7 @@ void main() async {
     }
 
     _logger.i('🎉 Application initialization complete');
-    runApp(const MyApp());
+  runApp(const MyApp());
   } catch (e, stackTrace) {
     _logger.e(
       '❌ Fatal error during app initialization',

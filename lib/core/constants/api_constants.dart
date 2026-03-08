@@ -51,6 +51,10 @@ class ApiConstants {
 
   /// Review endpoints
   static const String reviews = '/reviews';
+  static const String myReviews = '/reviews/my-reviews';
+  static const String trustScore = '/reviews/trust-score';
+  static String userTrustScore(String userId) =>
+      '/reviews/trust-score/$userId';
   static String vehicleReviews(String vehicleId) =>
       '/reviews/vehicle/$vehicleId';
 
