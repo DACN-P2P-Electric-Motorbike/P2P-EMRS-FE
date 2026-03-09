@@ -49,7 +49,7 @@ class ProfilePage extends StatelessWidget {
                   const Divider(height: 32, color: AppColors.border),
 
                   // Trust Score Card
-                  _buildTrustScoreCard(user),
+                  _buildTrustScoreCard(context, user),
 
                   const SizedBox(height: 24),
 
@@ -181,54 +181,71 @@ class ProfilePage extends StatelessWidget {
     );
   }
 
-  Widget _buildTrustScoreCard(dynamic user) {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: AppColors.primary.withOpacity(0.05),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.primary.withOpacity(0.2)),
-      ),
-      child: Column(
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Icon(
-                Icons.verified_outlined,
-                color: AppColors.primary,
-                size: 20,
-              ),
-              const SizedBox(width: 8),
-              Text(
-                'Điểm tin cậy',
-                style: GoogleFonts.poppins(
-                  fontSize: 14,
-                  color: AppColors.textPrimary,
+  Widget _buildTrustScoreCard(BuildContext context, dynamic user) {
+    return GestureDetector(
+      onTap: () => context.push('/trust-score'),
+      child: Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: AppColors.primary.withOpacity(0.05),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: AppColors.primary.withOpacity(0.2)),
+        ),
+        child: Column(
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(
+                  Icons.verified_outlined,
+                  color: AppColors.primary,
+                  size: 20,
                 ),
+                const SizedBox(width: 8),
+                Text(
+                  'Điểm tin cậy',
+                  style: GoogleFonts.poppins(
+                    fontSize: 14,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+                const SizedBox(width: 4),
+                const Icon(
+                  Icons.chevron_right,
+                  color: AppColors.textMuted,
+                  size: 18,
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Text(
+              '${user?.trustScore?.toStringAsFixed(0) ?? '0'}/100',
+              style: GoogleFonts.poppins(
+                fontSize: 36,
+                fontWeight: FontWeight.bold,
+                color: AppColors.primary,
               ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Text(
-            '${user?.trustScore?.toStringAsFixed(0) ?? '0'}/100',
-            style: GoogleFonts.poppins(
-              fontSize: 36,
-              fontWeight: FontWeight.bold,
-              color: AppColors.primary,
             ),
-          ),
-          const SizedBox(height: 12),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(8),
-            child: LinearProgressIndicator(
-              value: (user?.trustScore ?? 0) / 100,
-              backgroundColor: AppColors.border,
-              valueColor: const AlwaysStoppedAnimation(AppColors.primary),
-              minHeight: 10,
+            const SizedBox(height: 12),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(8),
+              child: LinearProgressIndicator(
+                value: (user?.trustScore ?? 0) / 100,
+                backgroundColor: AppColors.border,
+                valueColor: const AlwaysStoppedAnimation(AppColors.primary),
+                minHeight: 10,
+              ),
             ),
-          ),
-        ],
+            const SizedBox(height: 8),
+            Text(
+              'Nhấn để xem chi tiết',
+              style: GoogleFonts.poppins(
+                fontSize: 12,
+                color: AppColors.textMuted,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
