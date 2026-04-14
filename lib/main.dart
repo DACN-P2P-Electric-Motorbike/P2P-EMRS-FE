@@ -156,10 +156,10 @@ class _MyAppState extends State<MyApp> {
       _logger.i('📱 Notification tapped');
       _logger.d('Message data: ${message.data}');
 
-      final bookingId = message.data['bookingId'];
+      final bookingId = message.data['bookingId'] as String?;
       if (bookingId != null) {
         _logger.i('Navigating to booking: $bookingId');
-        // TODO: Navigate to booking detail
+        AppRouter.router.push('/booking/$bookingId');
       }
     };
 
@@ -222,7 +222,7 @@ class _MyAppState extends State<MyApp> {
               _logger.d('Socket already connected');
             }
 
-            // Setup FCM callbacks (mobile only)
+            // Setup FCM callbacks and register token (mobile only)
             if (!kIsWeb && _fcmService != null) {
               _setupFcmCallbacks();
               await _registerFcmToken();
@@ -233,6 +233,14 @@ class _MyAppState extends State<MyApp> {
             context.read<NotificationBloc>().add(
               const LoadNotificationsEvent(),
             );
+          } else if (state is AuthSuccess) {
+            // Register FCM token immediately after login without waiting for
+            // the AuthCheckRequested → AuthAuthenticated round-trip.
+            _logger.i('✅ Login succeeded: ${state.user.email}');
+            if (!kIsWeb && _fcmService != null) {
+              _setupFcmCallbacks();
+              await _registerFcmToken();
+            }
           } else if (state is AuthUnauthenticated) {
             _logger.i('User unauthenticated, disconnecting socket');
             _socketService.disconnect();
