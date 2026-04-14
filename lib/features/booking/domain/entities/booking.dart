@@ -34,6 +34,8 @@ class BookingEntity extends Equatable {
   final DateTime updatedAt;
   final DateTime? confirmedAt;
   final DateTime? cancelledAt;
+  final String? vehicleName;
+  final String? paymentStatus;
 
   const BookingEntity({
     required this.id,
@@ -51,6 +53,8 @@ class BookingEntity extends Equatable {
     required this.updatedAt,
     this.confirmedAt,
     this.cancelledAt,
+    this.vehicleName,
+    this.paymentStatus,
   });
 
   /// Check if booking is pending
@@ -114,6 +118,8 @@ class BookingEntity extends Equatable {
     updatedAt,
     confirmedAt,
     cancelledAt,
+    vehicleName,
+    paymentStatus,
   ];
 
   BookingEntity copyWith({
@@ -132,6 +138,8 @@ class BookingEntity extends Equatable {
     DateTime? updatedAt,
     DateTime? confirmedAt,
     DateTime? cancelledAt,
+    String? vehicleName,
+    String? paymentStatus,
   }) {
     return BookingEntity(
       id: id ?? this.id,
@@ -149,6 +157,8 @@ class BookingEntity extends Equatable {
       updatedAt: updatedAt ?? this.updatedAt,
       confirmedAt: confirmedAt ?? this.confirmedAt,
       cancelledAt: cancelledAt ?? this.cancelledAt,
+      vehicleName: vehicleName ?? this.vehicleName,
+      paymentStatus: paymentStatus ?? this.paymentStatus,
     );
   }
 }

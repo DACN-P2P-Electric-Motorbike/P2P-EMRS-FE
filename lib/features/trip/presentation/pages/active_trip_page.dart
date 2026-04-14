@@ -5,8 +5,10 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 
+import '../../../../core/services/location_service.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../injection_container.dart';
+import '../../../review/presentation/pages/create_review_page.dart';
 import '../../domain/entities/trip_entity.dart';
 import '../bloc/trip_bloc.dart';
 import '../bloc/trip_event.dart';
@@ -44,8 +46,14 @@ class _ActiveTripView extends StatefulWidget {
 
 class _ActiveTripViewState extends State<_ActiveTripView> {
   Timer? _timer;
+  Timer? _gpsTimer;
   Duration _elapsed = Duration.zero;
   DateTime? _startedAt;
+
+  /// Live distance in km computed from start coords → current GPS position.
+  double _liveDistanceKm = 0.0;
+  double? _startLat;
+  double? _startLng;
 
   @override
   void initState() {
@@ -63,9 +71,39 @@ class _ActiveTripViewState extends State<_ActiveTripView> {
     });
   }
 
+  /// Start polling GPS every 30 seconds to update live distance.
+  void _startGpsPolling() {
+    if (_gpsTimer != null) return; // already running
+    _updateLiveDistance(); // immediate first poll
+    _gpsTimer = Timer.periodic(const Duration(seconds: 30), (_) {
+      _updateLiveDistance();
+    });
+  }
+
+  Future<void> _updateLiveDistance() async {
+    if (_startLat == null || _startLng == null) return;
+    try {
+      final position = await sl<LocationService>().getCurrentPosition();
+      if (position != null && mounted) {
+        final distanceMeters = sl<LocationService>().distanceBetween(
+          _startLat!,
+          _startLng!,
+          position.latitude,
+          position.longitude,
+        );
+        setState(() {
+          _liveDistanceKm = distanceMeters / 1000.0;
+        });
+      }
+    } catch (_) {
+      // GPS unavailable — keep last known distance
+    }
+  }
+
   @override
   void dispose() {
     _timer?.cancel();
+    _gpsTimer?.cancel();
     super.dispose();
   }
 
@@ -102,17 +140,13 @@ class _ActiveTripViewState extends State<_ActiveTripView> {
             setState(() {
               _startedAt = state.trip.startedAt;
               _elapsed = DateTime.now().difference(_startedAt!);
+              _startLat = state.trip.startLatitude;
+              _startLng = state.trip.startLongitude;
             });
+            // Begin GPS polling for live distance once we know the start coords
+            _startGpsPolling();
           }
-          if (state is TripEnded) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: const Text('Chuyến đi đã kết thúc!'),
-                backgroundColor: AppColors.success,
-              ),
-            );
-            Navigator.pop(context, true);
-          }
+          // TripEnded: stay on page to show the summary (builder handles it)
           if (state is TripFailure) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
@@ -133,6 +167,14 @@ class _ActiveTripViewState extends State<_ActiveTripView> {
           }
           if (state is TripEnded) {
             return _buildCompletedView(context, state.trip);
+          }
+          if (state is TripFailure) {
+            return Center(
+              child: Text(
+                state.message,
+                style: GoogleFonts.poppins(color: Colors.white70),
+              ),
+            );
           }
           return const Center(
             child: CircularProgressIndicator(color: Colors.white),
@@ -244,7 +286,9 @@ class _ActiveTripViewState extends State<_ActiveTripView> {
           child: _buildStatCard(
             icon: Icons.route,
             label: 'Quãng đường',
-            value: trip.formattedDistance,
+            value: _liveDistanceKm > 0
+                ? '${_liveDistanceKm.toStringAsFixed(1)} km'
+                : trip.formattedDistance,
             color: const Color(0xFF00D2FF),
           ),
         ),
@@ -492,15 +536,39 @@ class _ActiveTripViewState extends State<_ActiveTripView> {
               child: const Text('Quay lại'),
             ),
             ElevatedButton(
-              onPressed: () {
+              onPressed: () async {
                 Navigator.pop(dialogContext);
+
+                // Collect end-point GPS for distance calculation
+                double? endLat;
+                double? endLng;
+                String? endAddress;
+                try {
+                  final position =
+                      await sl<LocationService>().getCurrentPosition();
+                  if (position != null) {
+                    endLat = position.latitude;
+                    endLng = position.longitude;
+                    endAddress =
+                        '${position.latitude.toStringAsFixed(5)}, '
+                        '${position.longitude.toStringAsFixed(5)}';
+                  }
+                } catch (_) {
+                  // GPS unavailable — backend will handle null gracefully
+                }
+
+                if (!context.mounted) return;
                 context.read<TripBloc>().add(
                   EndTripEvent(
                     tripId: trip.id,
+                    endLatitude: endLat,
+                    endLongitude: endLng,
+                    endAddress: endAddress,
                     hasIssues: hasIssues,
-                    issueDescription: hasIssues && issueController.text.isNotEmpty
-                        ? issueController.text.trim()
-                        : null,
+                    issueDescription:
+                        hasIssues && issueController.text.isNotEmpty
+                            ? issueController.text.trim()
+                            : null,
                   ),
                 );
               },
@@ -516,43 +584,211 @@ class _ActiveTripViewState extends State<_ActiveTripView> {
   }
 
   Widget _buildCompletedView(BuildContext context, TripEntity trip) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(32),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        children: [
+          const SizedBox(height: 16),
+
+          // Success icon
+          Container(
+            width: 96,
+            height: 96,
+            decoration: BoxDecoration(
+              color: AppColors.success.withOpacity(0.15),
+              shape: BoxShape.circle,
+              border: Border.all(color: AppColors.success.withOpacity(0.4), width: 2),
+            ),
+            child: Icon(Icons.check_circle_rounded, color: AppColors.success, size: 56),
+          ),
+          const SizedBox(height: 20),
+
+          Text(
+            'Chuyến đi hoàn thành!',
+            style: GoogleFonts.poppins(
+              fontSize: 26,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            'Cảm ơn bạn đã sử dụng dịch vụ',
+            style: GoogleFonts.poppins(color: Colors.white54, fontSize: 14),
+          ),
+
+          const SizedBox(height: 28),
+
+          // Trip metrics card
+          Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: const Color(0xFF16213E),
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Column(
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: _buildMetric(
+                        icon: Icons.route_rounded,
+                        label: 'Quãng đường',
+                        value: trip.formattedDistance,
+                        color: const Color(0xFF00D2FF),
+                      ),
+                    ),
+                    Container(width: 1, height: 56, color: Colors.white12),
+                    Expanded(
+                      child: _buildMetric(
+                        icon: Icons.timer_rounded,
+                        label: 'Thời gian',
+                        value: _formatElapsed(_elapsed),
+                        color: const Color(0xFF9C27B0),
+                      ),
+                    ),
+                  ],
+                ),
+                if (trip.startBattery != null && trip.endBattery != null) ...[
+                  const Divider(color: Colors.white12, height: 24),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _buildMetric(
+                          icon: Icons.battery_charging_full_rounded,
+                          label: 'Pin ban đầu',
+                          value: '${trip.startBattery!.toStringAsFixed(0)}%',
+                          color: AppColors.success,
+                        ),
+                      ),
+                      Container(width: 1, height: 56, color: Colors.white12),
+                      Expanded(
+                        child: _buildMetric(
+                          icon: Icons.battery_1_bar_rounded,
+                          label: 'Pin còn lại',
+                          value: '${trip.endBattery!.toStringAsFixed(0)}%',
+                          color: AppColors.warning,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ],
+            ),
+          ),
+
+          if (trip.hasIssues) ...[
+            const SizedBox(height: 16),
             Container(
-              width: 100,
-              height: 100,
+              padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
-                color: AppColors.success.withOpacity(0.1),
-                shape: BoxShape.circle,
+                color: AppColors.error.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: AppColors.error.withOpacity(0.3)),
               ),
-              child: Icon(
-                Icons.check_circle,
-                color: AppColors.success,
-                size: 64,
+              child: Row(
+                children: [
+                  Icon(Icons.warning_amber_rounded, color: AppColors.error, size: 20),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      'Có sự cố đã được báo cáo trong chuyến đi này.',
+                      style: GoogleFonts.poppins(
+                        fontSize: 13,
+                        color: AppColors.error,
+                      ),
+                    ),
+                  ),
+                ],
               ),
-            ),
-            const SizedBox(height: 24),
-            Text(
-              'Chuyến đi hoàn thành!',
-              style: GoogleFonts.poppins(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-                color: Colors.white,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Quãng đường: ${trip.formattedDistance}\nThời gian: ${trip.formattedDuration}',
-              textAlign: TextAlign.center,
-              style: GoogleFonts.poppins(color: Colors.white70, fontSize: 14),
             ),
           ],
-        ),
+
+          const SizedBox(height: 32),
+
+          // Review CTA
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              onPressed: () => Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => CreateReviewPage(
+                    vehicleId: trip.vehicleId,
+                    vehicleName: trip.vehicleName ?? 'Xe điện',
+                  ),
+                ),
+              ),
+              icon: const Icon(Icons.star_rounded, size: 20),
+              label: Text(
+                'Đánh giá chuyến đi',
+                style: GoogleFonts.poppins(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFFFFB300),
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+
+          // Skip button
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton(
+              onPressed: () => Navigator.pop(context, true),
+              style: OutlinedButton.styleFrom(
+                side: const BorderSide(color: Colors.white24),
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+              ),
+              child: Text(
+                'Đánh giá sau',
+                style: GoogleFonts.poppins(
+                  fontSize: 15,
+                  color: Colors.white60,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 24),
+        ],
       ),
+    );
+  }
+
+  Widget _buildMetric({
+    required IconData icon,
+    required String label,
+    required String value,
+    required Color color,
+  }) {
+    return Column(
+      children: [
+        Icon(icon, color: color, size: 22),
+        const SizedBox(height: 6),
+        Text(
+          value,
+          style: GoogleFonts.poppins(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            color: Colors.white,
+          ),
+        ),
+        Text(
+          label,
+          style: GoogleFonts.poppins(fontSize: 11, color: Colors.white38),
+        ),
+      ],
     );
   }
 }

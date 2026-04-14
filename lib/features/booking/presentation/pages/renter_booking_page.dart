@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:intl/intl.dart';
 
 import '../../../../core/theme/app_theme.dart';
 import '../../../../injection_container.dart';
@@ -35,6 +34,7 @@ class _RenterBookingsContent extends StatefulWidget {
 class _RenterBookingsContentState extends State<_RenterBookingsContent>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
+  final Map<int, int> _visibleCounts = {0: 10, 1: 10, 2: 10, 3: 10};
 
   @override
   void initState() {
@@ -45,6 +45,7 @@ class _RenterBookingsContentState extends State<_RenterBookingsContent>
 
   void _onTabChanged() {
     if (!_tabController.indexIsChanging) {
+      setState(() => _visibleCounts[_tabController.index] = 10);
       // Load bookings based on selected tab
       BookingStatus? status;
       switch (_tabController.index) {
@@ -133,10 +134,13 @@ class _RenterBookingsContentState extends State<_RenterBookingsContent>
           return TabBarView(
             controller: _tabController,
             children: [
-              _buildBookingList(context, state, null),
-              _buildBookingList(context, state, BookingStatus.PENDING),
-              _buildBookingList(context, state, BookingStatus.CONFIRMED),
-              _buildBookingList(context, state, null, isHistory: true),
+              _buildBookingList(context, state, null, tabIndex: 0),
+              _buildBookingList(context, state, BookingStatus.PENDING,
+                  tabIndex: 1),
+              _buildBookingList(context, state, BookingStatus.CONFIRMED,
+                  tabIndex: 2),
+              _buildBookingList(context, state, null,
+                  isHistory: true, tabIndex: 3),
             ],
           );
         },
@@ -149,6 +153,7 @@ class _RenterBookingsContentState extends State<_RenterBookingsContent>
     BookingState state,
     BookingStatus? filterStatus, {
     bool isHistory = false,
+    required int tabIndex,
   }) {
     if (state is BookingLoading) {
       return const Center(child: CircularProgressIndicator());
@@ -170,16 +175,37 @@ class _RenterBookingsContentState extends State<_RenterBookingsContent>
         return _buildEmptyState(filterStatus, isHistory);
       }
 
+      final visibleCount = _visibleCounts[tabIndex] ?? 10;
+
       return RefreshIndicator(
         onRefresh: () async {
+          setState(() => _visibleCounts[tabIndex] = 10);
           context.read<BookingBloc>().add(
             LoadRenterBookingsEvent(status: filterStatus),
           );
         },
         child: ListView.builder(
           padding: const EdgeInsets.all(16),
-          itemCount: bookings.length,
+          itemCount:
+              bookings.length > visibleCount ? visibleCount + 1 : bookings.length,
           itemBuilder: (context, index) {
+            if (index == visibleCount) {
+              return Padding(
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                child: TextButton(
+                  onPressed: () =>
+                      setState(() => _visibleCounts[tabIndex] = visibleCount + 10),
+                  child: Text(
+                    'Xem thêm (${bookings.length - visibleCount} đặt xe)',
+                    style: GoogleFonts.poppins(
+                      fontSize: 14,
+                      color: AppColors.primary,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
+              );
+            }
             final booking = bookings[index];
             return BookingCard(
               booking: booking,

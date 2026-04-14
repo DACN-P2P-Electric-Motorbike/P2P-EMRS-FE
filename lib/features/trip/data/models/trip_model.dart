@@ -23,6 +23,7 @@ class TripModel extends TripEntity {
     super.completedAt,
     required super.createdAt,
     required super.updatedAt,
+    super.vehicleName,
   });
 
   factory TripModel.fromJson(Map<String, dynamic> json) {
@@ -38,6 +39,11 @@ class TripModel extends TripEntity {
           return TripStatus.notStarted;
       }
     }
+
+    // Extract vehicle name from nested booking→vehicle relation (history endpoint)
+    final booking = json['booking'] as Map<String, dynamic>?;
+    final vehicle = booking?['vehicle'] as Map<String, dynamic>?;
+    final vehicleName = vehicle?['name'] as String?;
 
     return TripModel(
       id: json['id'] as String,
@@ -65,6 +71,7 @@ class TripModel extends TripEntity {
           : null,
       createdAt: DateTime.parse(json['createdAt'] as String),
       updatedAt: DateTime.parse(json['updatedAt'] as String),
+      vehicleName: vehicleName,
     );
   }
 
@@ -90,5 +97,6 @@ class TripModel extends TripEntity {
     completedAt: completedAt,
     createdAt: createdAt,
     updatedAt: updatedAt,
+    vehicleName: vehicleName,
   );
 }
