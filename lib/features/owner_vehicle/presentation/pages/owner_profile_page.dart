@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../../../core/theme/app_theme.dart';
+import '../../../auth/domain/entities/user.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
 import '../../../auth/presentation/bloc/auth_event.dart';
 import '../../../auth/presentation/bloc/auth_state.dart';
@@ -112,10 +113,12 @@ class OwnerProfilePage extends StatelessWidget {
               ),
               GestureDetector(
                 onTap: () {
-                  // TODO: Navigate to edit profile
+                  if (user != null) {
+                    context.push('/profile/edit', extra: user);
+                  }
                 },
                 child: Text(
-                  'Edit Profile',
+                  'Chỉnh sửa hồ sơ',
                   style: GoogleFonts.poppins(
                     fontSize: 14,
                     color: AppColors.primary,
@@ -129,7 +132,9 @@ class OwnerProfilePage extends StatelessWidget {
         // Edit icon
         IconButton(
           onPressed: () {
-            // TODO: Navigate to edit profile
+            if (user != null) {
+              context.push('/profile/edit', extra: user);
+            }
           },
           icon: Icon(Icons.edit_outlined, color: AppColors.primary),
         ),
@@ -141,29 +146,29 @@ class OwnerProfilePage extends StatelessWidget {
     final features = [
       _FeatureItem(
         icon: Icons.credit_card_outlined,
-        label: 'License',
+        label: 'Giấy phép',
         onTap: () {},
       ),
-      _FeatureItem(icon: Icons.badge_outlined, label: 'Passport', onTap: () {}),
+      _FeatureItem(icon: Icons.badge_outlined, label: 'Hộ chiếu', onTap: () {}),
       _FeatureItem(
         icon: Icons.description_outlined,
-        label: 'Contract',
+        label: 'Hợp đồng',
         onTap: () {},
       ),
       _FeatureItem(
         icon: Icons.two_wheeler_outlined,
-        label: 'Your Bike',
+        label: 'Xe của tôi',
         isHighlighted: true,
         onTap: () => context.push('/owner'),
       ),
       _FeatureItem(
         icon: Icons.account_balance_wallet_outlined,
-        label: 'Earnings',
-        onTap: () {},
+        label: 'Doanh thu',
+        onTap: () => context.push('/owner-earnings'),
       ),
       _FeatureItem(
         icon: Icons.bar_chart_outlined,
-        label: 'Statistics',
+        label: 'Thống kê',
         onTap: () {},
       ),
     ];
@@ -221,13 +226,13 @@ class OwnerProfilePage extends StatelessWidget {
 
   Widget _buildMenuList(BuildContext context) {
     final menuItems = [
-      _MenuItem(icon: Icons.person_outline, label: 'My Profile', onTap: () {}),
+      _MenuItem(icon: Icons.person_outline, label: 'Hồ sơ', onTap: () {}),
       _MenuItem(
         icon: Icons.calendar_today_outlined,
-        label: 'My Bookings',
-        onTap: () {},
+        label: 'Đặt xe của tôi',
+        onTap: () => context.push('/bookings'),
       ),
-      _MenuItem(icon: Icons.settings_outlined, label: 'Settings', onTap: () {}),
+      _MenuItem(icon: Icons.settings_outlined, label: 'Cài đặt', onTap: () {}),
     ];
 
     return Column(
@@ -273,14 +278,14 @@ class OwnerProfilePage extends StatelessWidget {
           color: AppColors.inputBackground,
           borderRadius: BorderRadius.circular(10),
         ),
-        child: Icon(Icons.logout_outlined, color: AppColors.textPrimary),
+        child: Icon(Icons.logout_outlined, color: AppColors.error),
       ),
       title: Text(
-        'Logout',
+        'Đăng xuất',
         style: GoogleFonts.poppins(
           fontSize: 16,
           fontWeight: FontWeight.w500,
-          color: AppColors.textPrimary,
+          color: AppColors.error,
         ),
       ),
       onTap: () {
@@ -294,21 +299,22 @@ class OwnerProfilePage extends StatelessWidget {
       context: context,
       builder: (dialogContext) => AlertDialog(
         title: Text(
-          'Logout',
+          'Đăng xuất',
           style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
         ),
-        content: const Text('Are you sure you want to logout?'),
+        content: const Text('Bạn có chắc chắn muốn đăng xuất?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(dialogContext).pop(),
-            child: const Text('Cancel'),
+            child: const Text('Hủy'),
           ),
           ElevatedButton(
             onPressed: () {
               Navigator.of(dialogContext).pop();
               context.read<AuthBloc>().add(const AuthLogoutStarted());
             },
-            child: const Text('Logout'),
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
+            child: const Text('Đăng xuất'),
           ),
         ],
       ),

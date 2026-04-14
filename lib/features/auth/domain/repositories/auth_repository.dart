@@ -25,4 +25,12 @@ abstract class AuthRepository {
   /// Get current user profile
   /// Returns Either<Failure, UserEntity>
   Future<Either<Failure, UserEntity>> getProfile();
+
+  /// Update user profile (fullName, phone, avatarUrl, address)
+  Future<Either<Failure, UserEntity>> updateProfile({
+    String? fullName,
+    String? phone,
+    String? avatarUrl,
+    String? address,
+  });
 }

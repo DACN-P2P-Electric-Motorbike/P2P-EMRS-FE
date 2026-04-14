@@ -53,3 +53,13 @@ class AuthAuthenticated extends AuthState {
   @override
   List<Object> get props => [user];
 }
+
+/// Profile updated successfully
+class ProfileUpdated extends AuthState {
+  final UserEntity user;
+
+  const ProfileUpdated({required this.user});
+
+  @override
+  List<Object> get props => [user];
+}

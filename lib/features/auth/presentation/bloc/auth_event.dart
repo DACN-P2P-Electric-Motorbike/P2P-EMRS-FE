@@ -44,3 +44,21 @@ class AuthCheckRequested extends AuthEvent {
 class AuthResetRequested extends AuthEvent {
   const AuthResetRequested();
 }
+
+/// Event triggered when user updates their profile
+class UpdateProfileStarted extends AuthEvent {
+  final String? fullName;
+  final String? phone;
+  final String? avatarUrl;
+  final String? address;
+
+  const UpdateProfileStarted({
+    this.fullName,
+    this.phone,
+    this.avatarUrl,
+    this.address,
+  });
+
+  @override
+  List<Object?> get props => [fullName, phone, avatarUrl, address];
+}

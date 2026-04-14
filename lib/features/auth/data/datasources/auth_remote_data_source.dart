@@ -15,6 +15,14 @@ abstract class AuthRemoteDataSource {
 
   /// Get current user profile
   Future<AuthResponseModel> getProfile();
+
+  /// Update user profile
+  Future<AuthResponseModel> updateProfile({
+    String? fullName,
+    String? phone,
+    String? avatarUrl,
+    String? address,
+  });
 }
 
 /// Implementation of AuthRemoteDataSource using DioClient
@@ -86,6 +94,41 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
 
       throw ServerException(
         message: 'Failed to get profile',
+        statusCode: response.statusCode,
+      );
+    } on DioException catch (e) {
+      throw _handleDioError(e);
+    }
+  }
+
+  @override
+  Future<AuthResponseModel> updateProfile({
+    String? fullName,
+    String? phone,
+    String? avatarUrl,
+    String? address,
+  }) async {
+    try {
+      final data = <String, dynamic>{};
+      if (fullName != null) data['fullName'] = fullName;
+      if (phone != null) data['phone'] = phone;
+      if (avatarUrl != null) data['avatarUrl'] = avatarUrl;
+      if (address != null) data['address'] = address;
+
+      final response = await _dioClient.patch(
+        ApiConstants.authProfile,
+        data: data,
+      );
+
+      if (response.statusCode == 200) {
+        return AuthResponseModel.fromJson({
+          'user': response.data,
+          'accessToken': '',
+        });
+      }
+
+      throw ServerException(
+        message: 'Failed to update profile',
         statusCode: response.statusCode,
       );
     } on DioException catch (e) {
