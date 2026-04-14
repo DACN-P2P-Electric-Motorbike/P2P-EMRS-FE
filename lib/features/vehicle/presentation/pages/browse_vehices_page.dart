@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../../../../core/services/location_service.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../injection_container.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
@@ -44,6 +45,11 @@ class _BrowseVehiclesViewState extends State<_BrowseVehiclesView> {
   List<VehicleFeature> _selectedFeatures = [];
   String _sortBy = 'default'; // default, price_low, price_high, rating
 
+  // GPS / nearby filter
+  bool _nearbyEnabled = false;
+  double _nearbyRadius = 5.0; // km
+  bool _locating = false;
+
   @override
   void dispose() {
     _searchController.dispose();
@@ -79,11 +85,53 @@ class _BrowseVehiclesViewState extends State<_BrowseVehiclesView> {
         _minBatteryLevel = null;
         _selectedFeatures = [];
         _sortBy = 'default';
+        _nearbyEnabled = false;
       });
 
       if (_allVehicles.isNotEmpty) {
         context.read<VehicleListCubit>().filterVehicles(_allVehicles);
       }
+    }
+  }
+
+  // Toggle nearby filter — requests GPS and loads nearby vehicles
+  Future<void> _toggleNearby() async {
+    if (_nearbyEnabled) {
+      setState(() => _nearbyEnabled = false);
+      if (_allVehicles.isNotEmpty) {
+        context.read<VehicleListCubit>().filterVehicles(_allVehicles);
+      }
+      return;
+    }
+
+    setState(() => _locating = true);
+
+    try {
+      final locationService = sl<LocationService>();
+      final position = await locationService.getCurrentPosition();
+      if (!mounted) return;
+
+      if (position == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Không thể lấy vị trí. Vui lòng cho phép truy cập GPS.',
+              style: GoogleFonts.poppins(fontSize: 13),
+            ),
+            backgroundColor: AppColors.error,
+          ),
+        );
+        return;
+      }
+
+      setState(() => _nearbyEnabled = true);
+      await context.read<VehicleListCubit>().loadNearbyVehicles(
+        userLat: position.latitude,
+        userLng: position.longitude,
+        radiusKm: _nearbyRadius,
+      );
+    } finally {
+      if (mounted) setState(() => _locating = false);
     }
   }
 
@@ -95,7 +143,8 @@ class _BrowseVehiclesViewState extends State<_BrowseVehiclesView> {
         _minBatteryLevel != null ||
         _selectedFeatures.isNotEmpty ||
         _sortBy != 'default' ||
-        _searchController.text.trim().isNotEmpty;
+        _searchController.text.trim().isNotEmpty ||
+        _nearbyEnabled;
   }
 
   @override
@@ -246,6 +295,28 @@ class _BrowseVehiclesViewState extends State<_BrowseVehiclesView> {
                         tooltip: 'Xóa bộ lọc',
                       ),
                     ),
+                  // Nearby / GPS toggle button
+                  _locating
+                      ? const SizedBox(
+                          width: 24,
+                          height: 24,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2.5,
+                            color: Colors.white,
+                          ),
+                        )
+                      : IconButton(
+                          onPressed: _toggleNearby,
+                          icon: Icon(
+                            _nearbyEnabled
+                                ? Icons.near_me
+                                : Icons.near_me_outlined,
+                            color: _nearbyEnabled
+                                ? AppColors.warning
+                                : Colors.white,
+                          ),
+                          tooltip: 'Xe gần tôi',
+                        ),
                   // Filter button
                   IconButton(
                     onPressed: () async {
@@ -406,6 +477,20 @@ class _BrowseVehiclesViewState extends State<_BrowseVehiclesView> {
                 _applyFilters();
               }
             }),
+          if (_nearbyEnabled)
+            _buildFilterChip(
+              '📍 Gần tôi: ${_nearbyRadius.toStringAsFixed(0)} km',
+              () {
+                if (mounted) {
+                  setState(() => _nearbyEnabled = false);
+                  if (_allVehicles.isNotEmpty) {
+                    context
+                        .read<VehicleListCubit>()
+                        .filterVehicles(_allVehicles);
+                  }
+                }
+              },
+            ),
         ],
       ),
     );
@@ -460,13 +545,7 @@ class _BrowseVehiclesViewState extends State<_BrowseVehiclesView> {
                         title: 'Lịch sử',
                         subtitle: 'Chuyến đi',
                         color: AppColors.warning,
-                        onTap: () {
-                          if (mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('Coming soon!')),
-                            );
-                          }
-                        },
+                        onTap: () => context.push('/trip-history'),
                       ),
                     ),
                     const SizedBox(width: 16),
@@ -478,11 +557,11 @@ class _BrowseVehiclesViewState extends State<_BrowseVehiclesView> {
                         subtitle: 'Thanh toán',
                         color: AppColors.success,
                         onTap: () {
-                          if (mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('Coming soon!')),
-                            );
-                          }
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Tính năng đang được phát triển'),
+                            ),
+                          );
                         },
                       ),
                     ),

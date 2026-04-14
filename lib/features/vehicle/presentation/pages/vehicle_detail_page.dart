@@ -2,8 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:go_router/go_router.dart';
+import 'package:intl/intl.dart';
 import '../../../../../core/theme/app_theme.dart';
+import '../../../../../core/utils/open_external_map.dart';
 import '../../../../../injection_container.dart';
+import '../../../review/domain/entities/review_entity.dart';
+import '../../../review/presentation/bloc/review_bloc.dart';
+import '../../../review/presentation/bloc/review_event.dart';
+import '../../../review/presentation/bloc/review_state.dart';
 import '../../domain/entities/vehicle_entity.dart';
 import '../bloc/vehicle_detail_cubit.dart';
 import '../widgets/vehicle_image_carousel.dart';
@@ -16,12 +22,21 @@ class VehicleDetailPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return BlocProvider(
-      create: (_) => sl<VehicleDetailCubit>()..loadVehicle(vehicleId),
+    return MultiBlocProvider(
+      providers: [
+        BlocProvider(
+          create: (_) => sl<VehicleDetailCubit>()..loadVehicle(vehicleId),
+        ),
+        BlocProvider(
+          create: (_) =>
+              sl<ReviewBloc>()..add(LoadVehicleReviewsEvent(vehicleId)),
+        ),
+      ],
       child: const _VehicleDetailView(),
     );
   }
 }
+
 
 class _VehicleDetailView extends StatelessWidget {
   const _VehicleDetailView();
@@ -426,47 +441,57 @@ class _VehicleDetailContent extends StatelessWidget {
                         // Location
                         _buildSectionTitle('Vị trí'),
                         const SizedBox(height: 12),
-                        Container(
-                          padding: const EdgeInsets.all(16),
-                          decoration: BoxDecoration(
-                            color: AppColors.surfaceVariant,
+                        Material(
+                          color: AppColors.surfaceVariant,
+                          borderRadius: BorderRadius.circular(12),
+                          child: InkWell(
                             borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Row(
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.all(12),
-                                decoration: BoxDecoration(
-                                  color: AppColors.primary.withOpacity(0.1),
-                                  borderRadius: BorderRadius.circular(10),
-                                ),
-                                child: const Icon(
-                                  Icons.location_on,
-                                  color: AppColors.primary,
-                                  size: 24,
-                                ),
-                              ),
-                              const SizedBox(width: 16),
-                              Expanded(
-                                child: Text(
-                                  vehicle.address,
-                                  style: GoogleFonts.poppins(
-                                    fontSize: 14,
-                                    color: AppColors.textPrimary,
+                            onTap: () => openVehicleLocationInExternalMaps(
+                              context,
+                              address: vehicle.address,
+                              latitude: vehicle.latitude,
+                              longitude: vehicle.longitude,
+                            ),
+                            child: Padding(
+                              padding: const EdgeInsets.all(16),
+                              child: Row(
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.all(12),
+                                    decoration: BoxDecoration(
+                                      color: AppColors.primary.withOpacity(0.1),
+                                      borderRadius: BorderRadius.circular(10),
+                                    ),
+                                    child: const Icon(
+                                      Icons.location_on,
+                                      color: AppColors.primary,
+                                      size: 24,
+                                    ),
                                   ),
-                                ),
+                                  const SizedBox(width: 16),
+                                  Expanded(
+                                    child: Text(
+                                      vehicle.address,
+                                      style: GoogleFonts.poppins(
+                                        fontSize: 14,
+                                        color: AppColors.textPrimary,
+                                      ),
+                                    ),
+                                  ),
+                                  IconButton(
+                                    onPressed: () =>
+                                        openVehicleLocationInExternalMaps(
+                                          context,
+                                          address: vehicle.address,
+                                          latitude: vehicle.latitude,
+                                          longitude: vehicle.longitude,
+                                        ),
+                                    icon: const Icon(Icons.map),
+                                    color: AppColors.primary,
+                                  ),
+                                ],
                               ),
-                              IconButton(
-                                onPressed: () {
-                                  // TODO: Open map
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(content: Text('Mở bản đồ')),
-                                  );
-                                },
-                                icon: const Icon(Icons.map),
-                                color: AppColors.primary,
-                              ),
-                            ],
+                            ),
                           ),
                         ),
 
@@ -547,6 +572,12 @@ class _VehicleDetailContent extends StatelessWidget {
                             ],
                           ),
                         ),
+                        // ── Reviews ─────────────────────────────────────────
+                        const SizedBox(height: 24),
+                        _buildSectionTitle('Đánh giá từ người thuê'),
+                        const SizedBox(height: 12),
+                        const _VehicleReviewsSection(),
+
                         const SizedBox(height: 100), // Space for bottom button
                       ],
                     ),
@@ -699,5 +730,347 @@ class _VehicleDetailContent extends StatelessWidget {
 
   String _formatPrice(double price) {
     return '${price.toStringAsFixed(0).replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (m) => '${m[1]},')}đ';
+  }
+}
+
+// ── Vehicle Reviews Section ───────────────────────────────────────────────────
+
+class _VehicleReviewsSection extends StatefulWidget {
+  const _VehicleReviewsSection();
+
+  @override
+  State<_VehicleReviewsSection> createState() => _VehicleReviewsSectionState();
+}
+
+class _VehicleReviewsSectionState extends State<_VehicleReviewsSection> {
+  int? _selectedRating;
+
+  @override
+  Widget build(BuildContext context) {
+    return BlocBuilder<ReviewBloc, ReviewState>(
+      builder: (context, state) {
+        if (state is ReviewLoading) {
+          return const Center(
+            child: Padding(
+              padding: EdgeInsets.symmetric(vertical: 24),
+              child: CircularProgressIndicator(),
+            ),
+          );
+        }
+
+        if (state is ReviewsLoaded) {
+          if (state.reviews.isEmpty) {
+            return Container(
+              padding: const EdgeInsets.symmetric(vertical: 24),
+              alignment: Alignment.center,
+              child: Text(
+                'Chưa có đánh giá nào',
+                style: GoogleFonts.poppins(
+                  fontSize: 14,
+                  color: AppColors.textMuted,
+                ),
+              ),
+            );
+          }
+
+          final filtered = _selectedRating == null
+              ? state.reviews
+              : state.reviews
+                  .where((r) => r.rating == _selectedRating)
+                  .toList();
+
+          // Rating summary bar
+          final avg = state.reviews.fold<double>(
+                0,
+                (sum, r) => sum + r.rating,
+              ) /
+              state.reviews.length;
+
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _ReviewSummaryBar(average: avg, count: state.reviews.length),
+              const SizedBox(height: 12),
+              // Star chip filter row
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: [
+                    _StarFilterChip(
+                      label: 'Tất cả',
+                      selected: _selectedRating == null,
+                      onTap: () => setState(() => _selectedRating = null),
+                    ),
+                    const SizedBox(width: 8),
+                    ...List.generate(5, (i) {
+                      final star = 5 - i;
+                      return Padding(
+                        padding: const EdgeInsets.only(right: 8),
+                        child: _StarFilterChip(
+                          label: '$star ★',
+                          selected: _selectedRating == star,
+                          onTap: () =>
+                              setState(() => _selectedRating = star),
+                        ),
+                      );
+                    }),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 12),
+              if (filtered.isEmpty)
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  child: Text(
+                    'Không có đánh giá $_selectedRating sao',
+                    style: GoogleFonts.poppins(
+                      fontSize: 14,
+                      color: AppColors.textMuted,
+                    ),
+                  ),
+                )
+              else ...[
+                ...filtered.take(5).map((r) => _ReviewCard(review: r)),
+                if (filtered.length > 5)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 4),
+                    child: Text(
+                      'và ${filtered.length - 5} đánh giá khác',
+                      style: GoogleFonts.poppins(
+                        fontSize: 13,
+                        color: AppColors.textMuted,
+                      ),
+                    ),
+                  ),
+              ],
+            ],
+          );
+        }
+
+        return const SizedBox.shrink();
+      },
+    );
+  }
+}
+
+class _StarFilterChip extends StatelessWidget {
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  const _StarFilterChip({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+        decoration: BoxDecoration(
+          color: selected ? AppColors.primary : AppColors.surfaceVariant,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: selected ? AppColors.primary : AppColors.border,
+          ),
+        ),
+        child: Text(
+          label,
+          style: GoogleFonts.poppins(
+            fontSize: 13,
+            fontWeight: selected ? FontWeight.w600 : FontWeight.normal,
+            color: selected ? Colors.white : AppColors.textSecondary,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ReviewSummaryBar extends StatelessWidget {
+  final double average;
+  final int count;
+
+  const _ReviewSummaryBar({required this.average, required this.count});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceVariant,
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Row(
+        children: [
+          Column(
+            children: [
+              Text(
+                average.toStringAsFixed(1),
+                style: GoogleFonts.poppins(
+                  fontSize: 36,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.textPrimary,
+                ),
+              ),
+              _StarRow(rating: average.round()),
+              const SizedBox(height: 4),
+              Text(
+                '$count đánh giá',
+                style: GoogleFonts.poppins(
+                  fontSize: 12,
+                  color: AppColors.textMuted,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(width: 20),
+          Expanded(
+            child: Column(
+              children: List.generate(5, (i) {
+                final star = 5 - i;
+                return Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 2),
+                  child: Row(
+                    children: [
+                      Text(
+                        '$star',
+                        style: GoogleFonts.poppins(
+                          fontSize: 11,
+                          color: AppColors.textMuted,
+                        ),
+                      ),
+                      const SizedBox(width: 4),
+                      const Icon(
+                        Icons.star_rounded,
+                        size: 11,
+                        color: Color(0xFFFFB300),
+                      ),
+                      const SizedBox(width: 6),
+                      Expanded(
+                        child: Container(
+                          height: 6,
+                          decoration: BoxDecoration(
+                            color: Colors.grey[200],
+                            borderRadius: BorderRadius.circular(3),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              }),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _StarRow extends StatelessWidget {
+  final int rating;
+  const _StarRow({required this.rating});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: List.generate(5, (i) {
+        return Icon(
+          i < rating ? Icons.star_rounded : Icons.star_outline_rounded,
+          size: 16,
+          color: const Color(0xFFFFB300),
+        );
+      }),
+    );
+  }
+}
+
+class _ReviewCard extends StatelessWidget {
+  final ReviewEntity review;
+  const _ReviewCard({required this.review});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey.shade100),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 6,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              CircleAvatar(
+                radius: 18,
+                backgroundColor: AppColors.primary.withOpacity(0.1),
+                backgroundImage: review.userAvatarUrl != null
+                    ? NetworkImage(review.userAvatarUrl!)
+                    : null,
+                child: review.userAvatarUrl == null
+                    ? Text(
+                        (review.userName ?? 'U')[0].toUpperCase(),
+                        style: GoogleFonts.poppins(
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.primary,
+                        ),
+                      )
+                    : null,
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      review.userName ?? 'Người dùng',
+                      style: GoogleFonts.poppins(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.textPrimary,
+                      ),
+                    ),
+                    Text(
+                      DateFormat('dd/MM/yyyy').format(review.createdAt),
+                      style: GoogleFonts.poppins(
+                        fontSize: 11,
+                        color: AppColors.textMuted,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              _StarRow(rating: review.rating),
+            ],
+          ),
+          if (review.comment != null && review.comment!.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            Text(
+              review.comment!,
+              style: GoogleFonts.poppins(
+                fontSize: 13,
+                color: AppColors.textSecondary,
+                height: 1.5,
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
   }
 }

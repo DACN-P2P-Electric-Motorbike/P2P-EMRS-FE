@@ -4,6 +4,7 @@ import 'package:geolocator/geolocator.dart';
 import '../../../../../core/usecases/usecase.dart';
 import '../../domain/entities/vehicle_entity.dart';
 import '../../domain/usecases/get_available_vehicles.dart';
+import '../../domain/usecases/get_nearby_vehicles.dart';
 
 // States
 abstract class VehicleListState extends Equatable {
@@ -38,10 +39,14 @@ class VehicleListError extends VehicleListState {
 // Cubit
 class VehicleListCubit extends Cubit<VehicleListState> {
   final GetAvailableVehicles _getAvailableVehicles;
+  final GetNearbyVehicles _getNearbyVehicles;
 
-  VehicleListCubit({required GetAvailableVehicles getAvailableVehicles})
-    : _getAvailableVehicles = getAvailableVehicles,
-      super(VehicleListInitial());
+  VehicleListCubit({
+    required GetAvailableVehicles getAvailableVehicles,
+    required GetNearbyVehicles getNearbyVehicles,
+  })  : _getAvailableVehicles = getAvailableVehicles,
+        _getNearbyVehicles = getNearbyVehicles,
+        super(VehicleListInitial());
 
   Future<void> loadVehicles() async {
     emit(VehicleListLoading());
@@ -160,6 +165,7 @@ class VehicleListCubit extends Cubit<VehicleListState> {
   }
 
   /// Load vehicles near a given user position within a radius.
+  /// Uses server-side filtering via GET /vehicles/available?latitude=&longitude=&radiusKm=
   Future<void> loadNearbyVehicles({
     required double userLat,
     required double userLng,
@@ -167,14 +173,17 @@ class VehicleListCubit extends Cubit<VehicleListState> {
   }) async {
     emit(VehicleListLoading());
 
-    final result = await _getAvailableVehicles(const NoParams());
+    final result = await _getNearbyVehicles(
+      NearbyVehicleParams(
+        latitude: userLat,
+        longitude: userLng,
+        radiusKm: radiusKm,
+      ),
+    );
 
     result.fold(
       (failure) => emit(VehicleListError(failure.message)),
-      (vehicles) {
-        final nearby = _filterByRadius(vehicles, userLat, userLng, radiusKm);
-        emit(VehicleListLoaded(nearby));
-      },
+      (vehicles) => emit(VehicleListLoaded(vehicles)),
     );
   }
 
