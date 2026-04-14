@@ -2,6 +2,7 @@ import 'package:dartz/dartz.dart';
 import '../../../../core/error/failures.dart';
 import '../../../../core/usecases/usecase.dart';
 import '../entities/payment_entity.dart';
+import '../entities/owner_earnings_entity.dart';
 import '../repositories/payment_repository.dart';
 
 class CreatePaymentParams {
@@ -91,3 +92,47 @@ class InitiateMoMoUseCase
     return repository.initiateMoMo(params.paymentId);
   }
 }
+
+class GetPaymentByIdParams {
+  final String paymentId;
+  const GetPaymentByIdParams(this.paymentId);
+}
+
+class GetPaymentByIdUseCase
+    implements UseCase<PaymentEntity, GetPaymentByIdParams> {
+  final PaymentRepository repository;
+  GetPaymentByIdUseCase(this.repository);
+
+  @override
+  Future<Either<Failure, PaymentEntity>> call(GetPaymentByIdParams params) {
+    return repository.getPaymentById(params.paymentId);
+  }
+}
+
+class RefundPaymentParams {
+  final String paymentId;
+  const RefundPaymentParams(this.paymentId);
+}
+
+class RefundPaymentUseCase
+    implements UseCase<PaymentEntity, RefundPaymentParams> {
+  final PaymentRepository repository;
+  RefundPaymentUseCase(this.repository);
+
+  @override
+  Future<Either<Failure, PaymentEntity>> call(RefundPaymentParams params) {
+    return repository.refund(params.paymentId);
+  }
+}
+
+class GetOwnerEarningsUseCase
+    implements UseCase<OwnerEarningsEntity, NoParams> {
+  final PaymentRepository repository;
+  GetOwnerEarningsUseCase(this.repository);
+
+  @override
+  Future<Either<Failure, OwnerEarningsEntity>> call(NoParams params) {
+    return repository.getOwnerEarnings();
+  }
+}
+

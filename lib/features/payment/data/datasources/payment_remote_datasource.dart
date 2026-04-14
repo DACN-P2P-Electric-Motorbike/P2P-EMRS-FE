@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 import '../../../../core/error/exceptions.dart';
 import '../../../../core/network/dio_client.dart';
 import '../models/payment_model.dart';
+import '../../domain/entities/owner_earnings_entity.dart';
 
 abstract class PaymentRemoteDataSource {
   Future<PaymentModel> createPayment({
@@ -20,6 +21,8 @@ abstract class PaymentRemoteDataSource {
   Future<Map<String, String>> initiateMoMo(String paymentId);
 
   Future<PaymentModel> refund(String paymentId);
+
+  Future<OwnerEarningsEntity> getOwnerEarnings();
 }
 
 class PaymentRemoteDataSourceImpl implements PaymentRemoteDataSource {
@@ -163,4 +166,23 @@ class PaymentRemoteDataSourceImpl implements PaymentRemoteDataSource {
       throw ServerException.fromDioException(e);
     }
   }
+
+  @override
+  Future<OwnerEarningsEntity> getOwnerEarnings() async {
+    try {
+      final response = await _dioClient.get('/payments/owner-earnings');
+      if (response.statusCode == 200) {
+        return OwnerEarningsEntity.fromJson(
+          response.data as Map<String, dynamic>,
+        );
+      }
+      throw ServerException(
+        message: 'Failed to get earnings',
+        statusCode: response.statusCode,
+      );
+    } on DioException catch (e) {
+      throw ServerException.fromDioException(e);
+    }
+  }
 }
+

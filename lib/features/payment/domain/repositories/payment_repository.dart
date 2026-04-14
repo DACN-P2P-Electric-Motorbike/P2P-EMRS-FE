@@ -1,6 +1,7 @@
 import 'package:dartz/dartz.dart';
 import '../../../../core/error/failures.dart';
 import '../entities/payment_entity.dart';
+import '../entities/owner_earnings_entity.dart';
 
 abstract class PaymentRepository {
   Future<Either<Failure, PaymentEntity>> createPayment({
@@ -21,4 +22,7 @@ abstract class PaymentRepository {
   Future<Either<Failure, Map<String, String>>> initiateMoMo(String paymentId);
 
   Future<Either<Failure, PaymentEntity>> refund(String paymentId);
+
+  Future<Either<Failure, OwnerEarningsEntity>> getOwnerEarnings();
 }
+

@@ -1,5 +1,6 @@
 import 'package:equatable/equatable.dart';
 import '../../domain/entities/payment_entity.dart';
+import '../../domain/entities/owner_earnings_entity.dart';
 
 abstract class PaymentState extends Equatable {
   const PaymentState();
@@ -67,4 +68,20 @@ class PaymentFailure extends PaymentState {
 
   @override
   List<Object?> get props => [message];
+}
+
+class PaymentRefunded extends PaymentState {
+  final PaymentEntity payment;
+  const PaymentRefunded(this.payment);
+
+  @override
+  List<Object?> get props => [payment];
+}
+
+class OwnerEarningsLoaded extends PaymentState {
+  final OwnerEarningsEntity earnings;
+  const OwnerEarningsLoaded(this.earnings);
+
+  @override
+  List<Object?> get props => [earnings];
 }

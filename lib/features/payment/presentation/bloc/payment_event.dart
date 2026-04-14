@@ -54,6 +54,28 @@ class InitiateMoMoEvent extends PaymentEvent {
   List<Object?> get props => [paymentId];
 }
 
+class GetPaymentByIdEvent extends PaymentEvent {
+  final String paymentId;
+
+  const GetPaymentByIdEvent(this.paymentId);
+
+  @override
+  List<Object?> get props => [paymentId];
+}
+
+class RefundPaymentEvent extends PaymentEvent {
+  final String paymentId;
+
+  const RefundPaymentEvent(this.paymentId);
+
+  @override
+  List<Object?> get props => [paymentId];
+}
+
 class ResetPaymentStateEvent extends PaymentEvent {
   const ResetPaymentStateEvent();
+}
+
+class LoadOwnerEarningsEvent extends PaymentEvent {
+  const LoadOwnerEarningsEvent();
 }
