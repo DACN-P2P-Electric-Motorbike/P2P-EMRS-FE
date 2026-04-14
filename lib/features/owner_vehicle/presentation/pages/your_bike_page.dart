@@ -92,7 +92,7 @@ class _YourBikeContentState extends State<_YourBikeContent>
           },
         ),
         title: Text(
-          'Your Bike',
+          'Xe của tôi',
           style: GoogleFonts.poppins(
             fontSize: 18,
             fontWeight: FontWeight.w600,
@@ -422,7 +422,7 @@ class _YourBikeContentState extends State<_YourBikeContent>
                 Icon(Icons.add, size: 40, color: AppColors.textMuted),
                 const SizedBox(height: 12),
                 Text(
-                  'Add a new bike',
+                  'Thêm xe mới',
                   style: GoogleFonts.poppins(
                     fontSize: 14,
                     fontWeight: FontWeight.w500,

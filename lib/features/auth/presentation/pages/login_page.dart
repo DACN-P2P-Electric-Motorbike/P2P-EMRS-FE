@@ -1,8 +1,8 @@
-import 'package:fe_capstone_project/features/auth/presentation/pages/forgot_password_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:go_router/go_router.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../injection_container.dart';
 import '../bloc/auth_bloc.dart';
@@ -80,31 +80,33 @@ class _LoginPageContentState extends State<_LoginPageContent> {
                   key: _formKey,
                   child: Column(
                     children: [
-                      const SizedBox(height: 60),
+                      const SizedBox(height: 56),
 
-                      // Logo Section
+                      // Logo
                       _buildLogo(),
 
                       const SizedBox(height: 40),
 
-                      // Welcome Text
+                      // Welcome
                       Text(
-                        'Welcome Back',
-                        style: Theme.of(context).textTheme.displaySmall
-                            ?.copyWith(fontWeight: FontWeight.bold),
+                        'Chào mừng trở lại!',
+                        style: GoogleFonts.poppins(
+                          fontSize: 26,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.textPrimary,
+                        ),
                       ),
-
                       const SizedBox(height: 8),
-
                       Text(
-                        'Log in to your account using email\nor social networks',
-                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        'Đăng nhập để tiếp tục khám phá',
+                        style: GoogleFonts.poppins(
+                          fontSize: 14,
                           color: AppColors.textSecondary,
                         ),
                         textAlign: TextAlign.center,
                       ),
 
-                      const SizedBox(height: 32),
+                      const SizedBox(height: 36),
 
                       // Email Field
                       _buildTextField(
@@ -115,12 +117,12 @@ class _LoginPageContentState extends State<_LoginPageContent> {
                         enabled: !isLoading,
                         validator: (value) {
                           if (value == null || value.isEmpty) {
-                            return 'Please enter your email';
+                            return 'Vui lòng nhập email';
                           }
                           if (!RegExp(
                             r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$',
                           ).hasMatch(value)) {
-                            return 'Please enter a valid email';
+                            return 'Email không hợp lệ';
                           }
                           return null;
                         },
@@ -131,7 +133,7 @@ class _LoginPageContentState extends State<_LoginPageContent> {
                       // Password Field
                       _buildTextField(
                         controller: _passwordController,
-                        hintText: 'Password',
+                        hintText: 'Mật khẩu',
                         prefixIcon: Icons.lock_outline,
                         obscureText: _obscurePassword,
                         enabled: !isLoading,
@@ -144,40 +146,32 @@ class _LoginPageContentState extends State<_LoginPageContent> {
                             size: 20,
                           ),
                           onPressed: () {
-                            setState(() {
-                              _obscurePassword = !_obscurePassword;
-                            });
+                            setState(() => _obscurePassword = !_obscurePassword);
                           },
                         ),
                         validator: (value) {
                           if (value == null || value.isEmpty) {
-                            return 'Please enter your password';
+                            return 'Vui lòng nhập mật khẩu';
                           }
                           return null;
                         },
                       ),
 
-                      const SizedBox(height: 8),
+                      const SizedBox(height: 10),
 
                       // Forgot Password
                       Align(
                         alignment: Alignment.centerRight,
                         child: TextButton(
-                          onPressed: () {
-                            Navigator.of(context).push(
-                              MaterialPageRoute(
-                                builder: (_) => const ForgotPasswordPage(),
-                              ),
-                            );
-                          },
+                          onPressed: () => context.push('/forgot-password'),
                           style: TextButton.styleFrom(
                             padding: EdgeInsets.zero,
                             minimumSize: Size.zero,
                             tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                           ),
                           child: Text(
-                            'Forgot Password?',
-                            style: TextStyle(
+                            'Quên mật khẩu?',
+                            style: GoogleFonts.poppins(
                               color: AppColors.primary,
                               fontSize: 14,
                               fontWeight: FontWeight.w500,
@@ -186,7 +180,7 @@ class _LoginPageContentState extends State<_LoginPageContent> {
                         ),
                       ),
 
-                      const SizedBox(height: 24),
+                      const SizedBox(height: 28),
 
                       // Login Button
                       SizedBox(
@@ -197,7 +191,7 @@ class _LoginPageContentState extends State<_LoginPageContent> {
                           style: ElevatedButton.styleFrom(
                             backgroundColor: AppColors.primary,
                             shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(14),
+                              borderRadius: BorderRadius.circular(16),
                             ),
                             elevation: 0,
                           ),
@@ -206,9 +200,9 @@ class _LoginPageContentState extends State<_LoginPageContent> {
                                   color: Colors.white,
                                   size: 20,
                                 )
-                              : const Text(
-                                  'Log In',
-                                  style: TextStyle(
+                              : Text(
+                                  'Đăng nhập',
+                                  style: GoogleFonts.poppins(
                                     fontSize: 16,
                                     fontWeight: FontWeight.w600,
                                     color: Colors.white,
@@ -217,15 +211,15 @@ class _LoginPageContentState extends State<_LoginPageContent> {
                         ),
                       ),
 
-                      const SizedBox(height: 24),
+                      const SizedBox(height: 28),
 
                       // Sign Up Link
                       Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           Text(
-                            'First time here? ',
-                            style: TextStyle(
+                            'Chưa có tài khoản? ',
+                            style: GoogleFonts.poppins(
                               color: AppColors.textSecondary,
                               fontSize: 14,
                             ),
@@ -235,8 +229,8 @@ class _LoginPageContentState extends State<_LoginPageContent> {
                                 ? null
                                 : () => context.push('/register'),
                             child: Text(
-                              'Sign up',
-                              style: TextStyle(
+                              'Đăng ký ngay',
+                              style: GoogleFonts.poppins(
                                 color: AppColors.primary,
                                 fontSize: 14,
                                 fontWeight: FontWeight.w600,
@@ -246,66 +240,7 @@ class _LoginPageContentState extends State<_LoginPageContent> {
                         ],
                       ),
 
-                      const SizedBox(height: 32),
-
-                      // Divider
-                      Row(
-                        children: [
-                          Expanded(
-                            child: Container(
-                              height: 1,
-                              color: AppColors.border,
-                            ),
-                          ),
-                          Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 16),
-                            child: Text(
-                              'Or sign in with',
-                              style: TextStyle(
-                                color: AppColors.textSecondary,
-                                fontSize: 14,
-                              ),
-                            ),
-                          ),
-                          Expanded(
-                            child: Container(
-                              height: 1,
-                              color: AppColors.border,
-                            ),
-                          ),
-                        ],
-                      ),
-
-                      const SizedBox(height: 24),
-
-                      // Social Buttons
-                      Row(
-                        children: [
-                          Expanded(
-                            child: _buildSocialButton(
-                              label: 'Google',
-                              icon: 'G',
-                              isGoogle: true,
-                              onPressed: () {
-                                // TODO: Implement Google Sign In
-                              },
-                            ),
-                          ),
-                          const SizedBox(width: 16),
-                          Expanded(
-                            child: _buildSocialButton(
-                              label: 'Facebook',
-                              icon: 'f',
-                              isFacebook: true,
-                              onPressed: () {
-                                // TODO: Implement Facebook Sign In
-                              },
-                            ),
-                          ),
-                        ],
-                      ),
-
-                      const SizedBox(height: 40),
+                      const SizedBox(height: 48),
                     ],
                   ),
                 ),
@@ -320,51 +255,48 @@ class _LoginPageContentState extends State<_LoginPageContent> {
   Widget _buildLogo() {
     return Column(
       children: [
-        // DREAM text
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            _buildLogoLetter('D', isBlue: true),
+            _buildLogoLetter('D'),
             const SizedBox(width: 8),
-            _buildLogoLetter('R', isBlue: true),
+            _buildLogoLetter('R'),
             const SizedBox(width: 8),
-            _buildLogoLetter('E', isBlue: true),
+            _buildLogoLetter('E'),
             const SizedBox(width: 8),
-            _buildLogoLetter('A', isBlue: true),
+            _buildLogoLetter('A'),
             const SizedBox(width: 8),
-            _buildLogoLetter('M', isBlue: true),
+            _buildLogoLetter('M'),
           ],
         ),
         const SizedBox(height: 4),
-        // RIDE text with helmet
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            _buildLogoLetter('R', isBlue: true),
+            _buildLogoLetter('R'),
             const SizedBox(width: 8),
-            _buildLogoLetter('I', isBlue: true),
+            _buildLogoLetter('I'),
             const SizedBox(width: 8),
-            // Helmet icon
-            Icon(
+            const Icon(
               Icons.sports_motorsports_outlined,
               color: AppColors.primary,
               size: 28,
             ),
             const SizedBox(width: 8),
-            _buildLogoLetter('E', isBlue: true),
+            _buildLogoLetter('E'),
           ],
         ),
       ],
     );
   }
 
-  Widget _buildLogoLetter(String letter, {bool isBlue = false}) {
+  Widget _buildLogoLetter(String letter) {
     return Text(
       letter,
-      style: TextStyle(
+      style: GoogleFonts.poppins(
         fontSize: 24,
         fontWeight: FontWeight.w600,
-        color: isBlue ? AppColors.primary : AppColors.textPrimary,
+        color: AppColors.primary,
         letterSpacing: 2,
         fontStyle: FontStyle.italic,
       ),
@@ -387,112 +319,38 @@ class _LoginPageContentState extends State<_LoginPageContent> {
       keyboardType: keyboardType,
       enabled: enabled,
       validator: validator,
-      style: const TextStyle(fontSize: 14, color: AppColors.textPrimary),
+      style: GoogleFonts.poppins(fontSize: 14, color: AppColors.textPrimary),
       decoration: InputDecoration(
         hintText: hintText,
-        hintStyle: TextStyle(color: AppColors.textMuted, fontSize: 14),
-        prefixIcon: Icon(
-          prefixIcon,
-          color: AppColors.primary.withOpacity(0.7),
-          size: 20,
-        ),
+        hintStyle: GoogleFonts.poppins(color: AppColors.textMuted, fontSize: 14),
+        prefixIcon: Icon(prefixIcon, color: AppColors.primary, size: 20),
         suffixIcon: suffixIcon,
         filled: true,
         fillColor: AppColors.inputBackground,
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(16),
           borderSide: BorderSide.none,
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(16),
           borderSide: BorderSide.none,
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14),
-          borderSide: BorderSide(color: AppColors.primary, width: 1.5),
+          borderRadius: BorderRadius.circular(16),
+          borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
         ),
         errorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(16),
           borderSide: BorderSide(color: AppColors.error, width: 1),
+        ),
+        focusedErrorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: BorderSide(color: AppColors.error, width: 1.5),
         ),
         contentPadding: const EdgeInsets.symmetric(
           horizontal: 16,
           vertical: 18,
         ),
-      ),
-    );
-  }
-
-  Widget _buildSocialButton({
-    required String label,
-    required String icon,
-    bool isGoogle = false,
-    bool isFacebook = false,
-    required VoidCallback onPressed,
-  }) {
-    return OutlinedButton(
-      onPressed: onPressed,
-      style: OutlinedButton.styleFrom(
-        padding: const EdgeInsets.symmetric(vertical: 14),
-        side: BorderSide(color: AppColors.border),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          if (isGoogle)
-            Container(
-              width: 24,
-              height: 24,
-              decoration: BoxDecoration(shape: BoxShape.circle),
-              child: Center(
-                child: Text(
-                  'G',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    foreground: Paint()
-                      ..shader = const LinearGradient(
-                        colors: [
-                          Color(0xFF4285F4),
-                          Color(0xFF34A853),
-                          Color(0xFFFBBC05),
-                          Color(0xFFEA4335),
-                        ],
-                      ).createShader(Rect.fromLTWH(0, 0, 24, 24)),
-                  ),
-                ),
-              ),
-            )
-          else if (isFacebook)
-            Container(
-              width: 24,
-              height: 24,
-              decoration: const BoxDecoration(
-                color: Color(0xFF1877F2),
-                shape: BoxShape.circle,
-              ),
-              child: const Center(
-                child: Text(
-                  'f',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-            ),
-          const SizedBox(width: 8),
-          Text(
-            label,
-            style: TextStyle(
-              color: AppColors.textPrimary,
-              fontSize: 14,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-        ],
       ),
     );
   }

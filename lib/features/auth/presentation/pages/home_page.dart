@@ -108,71 +108,6 @@ class HomePage extends StatelessWidget {
                   padding: const EdgeInsets.all(20),
                   sliver: SliverList(
                     delegate: SliverChildListDelegate([
-                      // User Info Card
-                      // if (user != null) ...[
-                      //   Container(
-                      //     padding: const EdgeInsets.all(20),
-                      //     decoration: BoxDecoration(
-                      //       color: Colors.white,
-                      //       borderRadius: BorderRadius.circular(16),
-                      //       boxShadow: [
-                      //         BoxShadow(
-                      //           color: Colors.black.withOpacity(0.05),
-                      //           blurRadius: 10,
-                      //           offset: const Offset(0, 4),
-                      //         ),
-                      //       ],
-                      //     ),
-                      //     child: Column(
-                      //       crossAxisAlignment: CrossAxisAlignment.start,
-                      //       children: [
-                      //         Row(
-                      //           children: [
-                      //             const Icon(
-                      //               Icons.person_outline,
-                      //               color: AppColors.primary,
-                      //             ),
-                      //             const SizedBox(width: 8),
-                      //             Text(
-                      //               'Thông tin tài khoản',
-                      //               style: GoogleFonts.poppins(
-                      //                 fontSize: 16,
-                      //                 fontWeight: FontWeight.bold,
-                      //                 color: AppColors.textPrimary,
-                      //               ),
-                      //             ),
-                      //           ],
-                      //         ),
-                      //         const Divider(height: 24),
-                      //         _buildInfoRow(
-                      //           'Email',
-                      //           user.email,
-                      //           Icons.email_outlined,
-                      //         ),
-                      //         const SizedBox(height: 12),
-                      //         _buildInfoRow(
-                      //           'Số điện thoại',
-                      //           user.phone,
-                      //           Icons.phone_outlined,
-                      //         ),
-                      //         const SizedBox(height: 12),
-                      //         _buildInfoRow(
-                      //           'Vai trò',
-                      //           user.displayRole,
-                      //           Icons.badge_outlined,
-                      //         ),
-                      //         const SizedBox(height: 12),
-                      //         _buildInfoRow(
-                      //           'Điểm tin cậy',
-                      //           '${user.trustScore.toStringAsFixed(1)}/100',
-                      //           Icons.verified_outlined,
-                      //         ),
-                      //       ],
-                      //     ),
-                      //   ),
-                      //   const SizedBox(height: 24),
-                      // ],
-
                       // Quick Actions Title
                       Text(
                         'Thao tác nhanh',
@@ -184,11 +119,10 @@ class HomePage extends StatelessWidget {
                       ),
                       const SizedBox(height: 16),
 
-                      // Action Cards - Row 1 (Role-based)
-                      Row(
-                        children: [
-                          // Owner-only: My Bikes
-                          if (user?.isOwner == true || user?.isAdmin == true)
+                      // Owner row
+                      if (user?.isOwner == true || user?.isAdmin == true) ...[
+                        Row(
+                          children: [
                             Expanded(
                               child: _buildActionCard(
                                 context,
@@ -199,115 +133,46 @@ class HomePage extends StatelessWidget {
                                 onTap: () => context.push('/owner'),
                               ),
                             ),
-                          if (user?.isOwner == true || user?.isAdmin == true)
                             const SizedBox(width: 16),
-                          // All users: Find bike to rent
+                            Expanded(
+                              child: _buildActionCard(
+                                context,
+                                icon: Icons.account_balance_wallet_outlined,
+                                title: 'Doanh thu',
+                                subtitle: 'Thu nhập',
+                                color: AppColors.success,
+                                onTap: () => context.push('/owner-earnings'),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 16),
+                      ],
+
+                      // Renter row
+                      Row(
+                        children: [
                           Expanded(
                             child: _buildActionCard(
                               context,
-                              icon: Icons.search,
+                              icon: Icons.search_rounded,
                               title: 'Tìm xe',
-                              subtitle: 'Thuê xe',
+                              subtitle: 'Duyệt xe',
                               color: AppColors.secondary,
-                              onTap: () {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(content: Text('Coming soon!')),
-                                );
-                              },
+                              onTap: () => context.push('/browse-vehicles'),
                             ),
                           ),
-                          // Renter-only: Show history in first row
-                          if (user?.isRenter == true) ...[
-                            const SizedBox(width: 16),
-                            Expanded(
-                              child: _buildActionCard(
-                                context,
-                                icon: Icons.history,
-                                title: 'Lịch sử',
-                                subtitle: 'Chuyến đi',
-                                color: AppColors.warning,
-                                onTap: () => context.push('/trip-history'),
-                              ),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: _buildActionCard(
+                              context,
+                              icon: Icons.history_rounded,
+                              title: 'Lịch sử',
+                              subtitle: 'Chuyến đi',
+                              color: AppColors.warning,
+                              onTap: () => context.push('/trip-history'),
                             ),
-                          ],
-                        ],
-                      ),
-                      const SizedBox(height: 16),
-
-                      // Action Cards - Row 2
-                      Row(
-                        children: [
-                          // Owner: Show history and earnings
-                          if (user?.isOwner == true ||
-                              user?.isAdmin == true) ...[
-                            // Expanded(
-                            //   child: _buildActionCard(
-                            //     context,
-                            //     icon: Icons.history,
-                            //     title: 'Lịch sử',
-                            //     subtitle: 'Chuyến đi',
-                            //     color: AppColors.warning,
-                            //     onTap: () {
-                            //       ScaffoldMessenger.of(context).showSnackBar(
-                            //         const SnackBar(
-                            //           content: Text('Coming soon!'),
-                            //         ),
-                            //       );
-                            //     },
-                            //   ),
-                            // ),
-                            // const SizedBox(width: 16),
-                            // Expanded(
-                            //   child: _buildActionCard(
-                            //     context,
-                            //     icon: Icons.account_balance_wallet_outlined,
-                            //     title: 'Thu nhập',
-                            //     subtitle: 'Doanh thu',
-                            //     color: AppColors.success,
-                            //     onTap: () {
-                            //       ScaffoldMessenger.of(context).showSnackBar(
-                            //         const SnackBar(content: Text('Coming soon!')),
-                            //       );
-                            //     },
-                            //   ),
-                            // ),
-                          ],
-                          // Renter: Show wallet and support
-                          if (user?.isRenter == true) ...[
-                            Expanded(
-                              child: _buildActionCard(
-                                context,
-                                icon: Icons.wallet_outlined,
-                                title: 'Ví tiền',
-                                subtitle: 'Thanh toán',
-                                color: AppColors.success,
-                                onTap: () {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
-                                      content: Text('Coming soon!'),
-                                    ),
-                                  );
-                                },
-                              ),
-                            ),
-                            const SizedBox(width: 16),
-                            Expanded(
-                              child: _buildActionCard(
-                                context,
-                                icon: Icons.support_agent_outlined,
-                                title: 'Hỗ trợ',
-                                subtitle: 'Liên hệ',
-                                color: AppColors.info,
-                                onTap: () {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
-                                      content: Text('Coming soon!'),
-                                    ),
-                                  );
-                                },
-                              ),
-                            ),
-                          ],
+                          ),
                         ],
                       ),
                       const SizedBox(height: 24),

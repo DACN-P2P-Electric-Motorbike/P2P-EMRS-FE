@@ -10,53 +10,69 @@ class BecomeOwnerPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.white,
       appBar: AppBar(
-        title: const Text('Trở thành chủ xe'),
+        backgroundColor: Colors.white,
+        elevation: 0,
+        title: Text(
+          'Trở thành chủ xe',
+          style: GoogleFonts.poppins(
+            fontSize: 18,
+            fontWeight: FontWeight.w600,
+            color: AppColors.textPrimary,
+          ),
+        ),
+        centerTitle: true,
         automaticallyImplyLeading: false,
       ),
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(horizontal: 24),
           child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
+              const SizedBox(height: 32),
+
               // Illustration
               Container(
-                width: 200,
-                height: 200,
+                width: 160,
+                height: 160,
                 decoration: BoxDecoration(
-                  color: AppColors.primary.withOpacity(0.1),
+                  color: AppColors.primary.withOpacity(0.08),
                   shape: BoxShape.circle,
                 ),
                 child: const Center(
                   child: Icon(
                     Icons.electric_moped,
-                    size: 100,
+                    size: 80,
                     color: AppColors.primary,
                   ),
                 ),
               ),
 
-              const SizedBox(height: 40),
+              const SizedBox(height: 28),
 
               // Title
               Text(
                 'Kiếm thu nhập từ xe nhàn rỗi',
-                style: Theme.of(context).textTheme.displaySmall?.copyWith(
+                style: GoogleFonts.poppins(
+                  fontSize: 24,
                   fontWeight: FontWeight.bold,
                   color: AppColors.textPrimary,
                 ),
                 textAlign: TextAlign.center,
               ),
 
-              const SizedBox(height: 16),
+              const SizedBox(height: 12),
 
               // Description
               Text(
                 'Chia sẻ xe điện của bạn và kiếm thêm thu nhập thụ động mỗi tháng',
-                style: Theme.of(
-                  context,
-                ).textTheme.bodyLarge?.copyWith(color: AppColors.textSecondary),
+                style: GoogleFonts.poppins(
+                  fontSize: 15,
+                  color: AppColors.textSecondary,
+                  height: 1.5,
+                ),
                 textAlign: TextAlign.center,
               ),
 
@@ -64,51 +80,66 @@ class BecomeOwnerPage extends StatelessWidget {
 
               // Benefits
               _buildBenefit(
-                icon: Icons.attach_money,
+                icon: Icons.attach_money_rounded,
                 title: 'Thu nhập thụ động',
                 description: 'Kiếm tiền khi xe không sử dụng',
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 14),
               _buildBenefit(
-                icon: Icons.security,
+                icon: Icons.verified_user_outlined,
                 title: 'Bảo hiểm toàn diện',
                 description: 'Xe được bảo vệ trong mọi chuyến đi',
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 14),
               _buildBenefit(
-                icon: Icons.schedule,
+                icon: Icons.schedule_rounded,
                 title: 'Linh hoạt thời gian',
                 description: 'Tự quyết định khi nào cho thuê',
               ),
 
-              const Spacer(),
+              const SizedBox(height: 40),
 
-              // CTA Button - Navigate to vehicle registration
+              // CTA Button
               SizedBox(
                 width: double.infinity,
-                height: 56,
+                height: 54,
                 child: ElevatedButton(
                   onPressed: () {
-                    // Navigate to become owner registration page
                     context.push('/become-owner/register-vehicle');
                   },
-                  child: const Text(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    elevation: 0,
+                  ),
+                  child: Text(
                     'Đăng ký xe ngay',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                    style: GoogleFonts.poppins(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: 12),
+
+              // Skip button
+              TextButton(
+                onPressed: () => context.go('/home'),
+                child: Text(
+                  'Để sau',
+                  style: GoogleFonts.poppins(
+                    fontSize: 14,
+                    color: AppColors.textMuted,
                   ),
                 ),
               ),
 
               const SizedBox(height: 16),
-
-              // Skip button - Go to home
-              TextButton(
-                onPressed: () {
-                  // Navigate to home screen
-                  context.go('/home');
-                },
-                child: const Text('Để sau'),
-              ),
             ],
           ),
         ),
@@ -127,8 +158,8 @@ class BecomeOwnerPage extends StatelessWidget {
           width: 48,
           height: 48,
           decoration: BoxDecoration(
-            color: AppColors.primary.withOpacity(0.1),
-            borderRadius: BorderRadius.circular(12),
+            color: AppColors.primary.withOpacity(0.08),
+            borderRadius: BorderRadius.circular(14),
           ),
           child: Icon(icon, color: AppColors.primary, size: 24),
         ),
@@ -139,16 +170,16 @@ class BecomeOwnerPage extends StatelessWidget {
             children: [
               Text(
                 title,
-                style: const TextStyle(
-                  fontSize: 16,
+                style: GoogleFonts.poppins(
+                  fontSize: 15,
                   fontWeight: FontWeight.w600,
                   color: AppColors.textPrimary,
                 ),
               ),
               Text(
                 description,
-                style: const TextStyle(
-                  fontSize: 14,
+                style: GoogleFonts.poppins(
+                  fontSize: 13,
                   color: AppColors.textSecondary,
                 ),
               ),

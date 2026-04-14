@@ -59,7 +59,7 @@ class _OwnerDashboardContentState extends State<_OwnerDashboardContent> {
       backgroundColor: AppColors.background,
       appBar: AppBar(
         title: Text(
-          'My Vehicles',
+          'Xe của tôi',
           style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
         ),
         actions: [
@@ -108,6 +108,76 @@ class _OwnerDashboardContentState extends State<_OwnerDashboardContent> {
                 // Stats header
                 SliverToBoxAdapter(child: _buildStatsHeader(state)),
 
+                // Earnings Navigation Card
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    child: InkWell(
+                      onTap: () => context.push('/owner-earnings'),
+                      borderRadius: BorderRadius.circular(16),
+                      child: Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: AppColors.surface,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: AppColors.primary.withOpacity(0.2)),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.02),
+                              blurRadius: 8,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
+                        ),
+                        child: Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: AppColors.primary.withOpacity(0.1),
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Icon(
+                                Icons.account_balance_wallet_outlined,
+                                color: AppColors.primary,
+                              ),
+                            ),
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Doanh thu',
+                                    style: GoogleFonts.poppins(
+                                      fontWeight: FontWeight.w600,
+                                      fontSize: 16,
+                                      color: AppColors.textPrimary,
+                                    ),
+                                  ),
+                                  Text(
+                                    'Xem thống kê thu nhập từ xe',
+                                    style: GoogleFonts.poppins(
+                                      fontSize: 12,
+                                      color: AppColors.textSecondary,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const Icon(
+                              Icons.chevron_right,
+                              color: AppColors.textSecondary,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+
+                const SliverToBoxAdapter(child: SizedBox(height: 16)),
+
                 // Vehicle list
                 if (state.vehicles.isEmpty)
                   SliverFillRemaining(child: _buildEmptyState())
@@ -135,7 +205,7 @@ class _OwnerDashboardContentState extends State<_OwnerDashboardContent> {
         foregroundColor: Colors.white,
         icon: const Icon(Icons.add),
         label: Text(
-          'Add Vehicle',
+          'Thêm xe',
           style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
         ),
       ),
@@ -165,7 +235,7 @@ class _OwnerDashboardContentState extends State<_OwnerDashboardContent> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Vehicle Overview',
+            'Tổng quan xe',
             style: GoogleFonts.poppins(
               fontSize: 18,
               fontWeight: FontWeight.w600,
@@ -177,19 +247,19 @@ class _OwnerDashboardContentState extends State<_OwnerDashboardContent> {
             children: [
               _buildStatItem(
                 icon: Icons.electric_moped,
-                label: 'Total',
+                label: 'Tổng số',
                 value: state.vehicleCount.toString(),
               ),
               const SizedBox(width: 24),
               _buildStatItem(
                 icon: Icons.check_circle_outline,
-                label: 'Available',
+                label: 'Có thể thuê',
                 value: state.availableCount.toString(),
               ),
               const SizedBox(width: 24),
               _buildStatItem(
                 icon: Icons.pending_outlined,
-                label: 'Pending',
+                label: 'Chờ duyệt',
                 value: state.pendingCount.toString(),
               ),
             ],
@@ -257,7 +327,7 @@ class _OwnerDashboardContentState extends State<_OwnerDashboardContent> {
             ),
             const SizedBox(height: 24),
             Text(
-              'No Vehicles Yet',
+              'Chưa có xe nào',
               style: GoogleFonts.poppins(
                 fontSize: 20,
                 fontWeight: FontWeight.w600,
@@ -266,7 +336,7 @@ class _OwnerDashboardContentState extends State<_OwnerDashboardContent> {
             ),
             const SizedBox(height: 8),
             Text(
-              'Start earning by registering your electric motorbike for rent.',
+              'Đăng ký xe điện để bắt đầu kiếm thu nhập thụ động.',
               textAlign: TextAlign.center,
               style: GoogleFonts.poppins(
                 fontSize: 14,
@@ -277,7 +347,10 @@ class _OwnerDashboardContentState extends State<_OwnerDashboardContent> {
             ElevatedButton.icon(
               onPressed: _navigateToRegister,
               icon: const Icon(Icons.add),
-              label: const Text('Register Your First Vehicle'),
+              label: Text(
+                'Đăng ký xe đầu tiên',
+                style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
+              ),
             ),
           ],
         ),

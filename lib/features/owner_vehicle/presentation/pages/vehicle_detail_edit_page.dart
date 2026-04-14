@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/utils/open_external_map.dart';
 import '../../../../injection_container.dart';
 import '../../domain/entities/vehicle_entity.dart';
 import '../bloc/owner_vehicle_bloc.dart';
@@ -42,7 +43,7 @@ class _VehicleDetailContentState extends State<_VehicleDetailContent> {
         if (state.status == OwnerVehicleStatus.updated) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text(state.successMessage ?? 'Updated successfully'),
+              content: Text(state.successMessage ?? 'Cập nhật thành công'),
               backgroundColor: AppColors.success,
             ),
           );
@@ -50,7 +51,7 @@ class _VehicleDetailContentState extends State<_VehicleDetailContent> {
         if (state.status == OwnerVehicleStatus.deleted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text(state.successMessage ?? 'Vehicle deleted successfully'),
+              content: Text(state.successMessage ?? 'Đã xóa xe thành công'),
               backgroundColor: AppColors.success,
             ),
           );
@@ -73,14 +74,14 @@ class _VehicleDetailContentState extends State<_VehicleDetailContent> {
 
         if (isDeleting) {
           return Scaffold(
-            appBar: _buildAppBar(context, 'Deleting...'),
+            appBar: _buildAppBar(context, 'Đang xóa...'),
             body: const Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   SpinKitFadingCircle(color: AppColors.error, size: 50),
                   SizedBox(height: 16),
-                  Text('Deleting vehicle...'),
+                  Text('Đang xóa xe...'),
                 ],
               ),
             ),
@@ -89,7 +90,7 @@ class _VehicleDetailContentState extends State<_VehicleDetailContent> {
 
         if (isLoading && vehicle == null) {
           return Scaffold(
-            appBar: _buildAppBar(context, 'Loading...'),
+            appBar: _buildAppBar(context, 'Đang tải...'),
             body: const Center(
               child: SpinKitFadingCircle(color: AppColors.primary, size: 50),
             ),
@@ -98,7 +99,7 @@ class _VehicleDetailContentState extends State<_VehicleDetailContent> {
 
         if (vehicle == null) {
           return Scaffold(
-            appBar: _buildAppBar(context, 'Error'),
+            appBar: _buildAppBar(context, 'Lỗi'),
             body: Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -106,13 +107,13 @@ class _VehicleDetailContentState extends State<_VehicleDetailContent> {
                   Icon(Icons.error_outline, size: 64, color: AppColors.error),
                   const SizedBox(height: 16),
                   Text(
-                    'Vehicle not found',
+                    'Không tìm thấy xe',
                     style: GoogleFonts.poppins(fontSize: 16),
                   ),
                   const SizedBox(height: 16),
                   ElevatedButton(
                     onPressed: () => context.pop(),
-                    child: const Text('Go Back'),
+                    child: const Text('Quay lại'),
                   ),
                 ],
               ),
@@ -163,7 +164,7 @@ class _VehicleDetailContentState extends State<_VehicleDetailContent> {
                       ],
 
                       // Location
-                      _buildLocationSection(vehicle),
+                      _buildLocationSection(context, vehicle),
 
                       const SizedBox(height: 32),
 
@@ -292,19 +293,19 @@ class _VehicleDetailContentState extends State<_VehicleDetailContent> {
             children: [
               _buildStatItem(
                 icon: Icons.attach_money,
-                label: 'Price',
+                label: 'Giá thuê',
                 value: vehicle.formattedPricePerDay,
               ),
               const SizedBox(width: 24),
               _buildStatItem(
                 icon: Icons.trip_origin,
-                label: 'Total Trips',
+                label: 'Tổng chuyến',
                 value: vehicle.totalTrips.toString(),
               ),
               const SizedBox(width: 24),
               _buildStatItem(
                 icon: Icons.star,
-                label: 'Rating',
+                label: 'Đánh giá',
                 value: vehicle.totalRating.toStringAsFixed(1),
               ),
             ],
@@ -475,7 +476,7 @@ class _VehicleDetailContentState extends State<_VehicleDetailContent> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                'Battery Level',
+                'Mức pin',
                 style: GoogleFonts.poppins(
                   fontSize: 16,
                   fontWeight: FontWeight.w600,
@@ -570,7 +571,7 @@ class _VehicleDetailContentState extends State<_VehicleDetailContent> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Features',
+            'Tính năng',
             style: GoogleFonts.poppins(
               fontSize: 16,
               fontWeight: FontWeight.w600,
@@ -617,7 +618,7 @@ class _VehicleDetailContentState extends State<_VehicleDetailContent> {
     );
   }
 
-  Widget _buildLocationSection(VehicleEntity vehicle) {
+  Widget _buildLocationSection(BuildContext context, VehicleEntity vehicle) {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -635,7 +636,7 @@ class _VehicleDetailContentState extends State<_VehicleDetailContent> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Pickup Location',
+            'Địa điểm nhận xe',
             style: GoogleFonts.poppins(
               fontSize: 16,
               fontWeight: FontWeight.w600,
@@ -663,6 +664,17 @@ class _VehicleDetailContentState extends State<_VehicleDetailContent> {
                   ),
                 ),
               ),
+              IconButton(
+                onPressed: () => openVehicleLocationInExternalMaps(
+                  context,
+                  address: vehicle.address,
+                  latitude: vehicle.latitude,
+                  longitude: vehicle.longitude,
+                ),
+                icon: const Icon(Icons.map),
+                color: AppColors.primary,
+                tooltip: 'Open map',
+              ),
             ],
           ),
         ],
@@ -685,7 +697,7 @@ class _VehicleDetailContentState extends State<_VehicleDetailContent> {
         ),
         icon: const Icon(Icons.delete_outline),
         label: Text(
-          'Delete Vehicle',
+          'Xóa xe',
           style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
         ),
       ),
@@ -697,16 +709,16 @@ class _VehicleDetailContentState extends State<_VehicleDetailContent> {
       context: context,
       builder: (dialogContext) => AlertDialog(
         title: Text(
-          'Delete Vehicle',
+          'Xóa xe',
           style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
         ),
         content: Text(
-          'Are you sure you want to delete "${vehicle.model}"? This action cannot be undone.',
+          'Bạn có chắc muốn xóa "${vehicle.model}"? Hành động này không thể hoàn tác.',
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(dialogContext).pop(),
-            child: const Text('Cancel'),
+            child: const Text('Hủy'),
           ),
           ElevatedButton(
             onPressed: () {
@@ -715,7 +727,7 @@ class _VehicleDetailContentState extends State<_VehicleDetailContent> {
               // Don't pop here - the listener will pop after successful deletion
             },
             style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
-            child: const Text('Delete'),
+            child: const Text('Xóa'),
           ),
         ],
       ),
@@ -767,11 +779,11 @@ class _VehicleDetailContentState extends State<_VehicleDetailContent> {
   }
 
   String _getBatteryStatus(int level) {
-    if (level > 80) return 'Fully charged';
-    if (level > 60) return 'Good battery';
-    if (level > 40) return 'Moderate';
-    if (level > 20) return 'Low battery';
-    return 'Critical - needs charging';
+    if (level > 80) return 'Pin đầy';
+    if (level > 60) return 'Pin tốt';
+    if (level > 40) return 'Pin trung bình';
+    if (level > 20) return 'Pin yếu';
+    return 'Cần sạc ngay';
   }
 
   IconData _getFeatureIcon(VehicleFeature feature) {
