@@ -1,10 +1,14 @@
 import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_map/flutter_map.dart' as fm;
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart' as gmaps;
+import 'package:latlong2/latlong.dart' as ll;
 
+import '../../../../core/config/map_provider_config.dart';
 import '../../../../core/services/location_service.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../injection_container.dart';
@@ -14,6 +18,10 @@ import '../widgets/nearby_vehicles_sheet.dart';
 
 /// Full-screen map page showing nearby vehicles with interactive markers,
 /// a radius slider, and a draggable bottom sheet listing vehicles.
+///
+/// Uses **OpenStreetMap tiles** (via [flutter_map]) — no Google API key on web.
+/// On Android/iOS, [GoogleMap] is used only when [useGoogleMapWidget] is true
+/// (see [map_provider_config.dart]).
 class VehicleMapPage extends StatefulWidget {
   const VehicleMapPage({super.key});
 
@@ -23,21 +31,18 @@ class VehicleMapPage extends StatefulWidget {
 
 class _VehicleMapPageState extends State<VehicleMapPage> {
   final LocationService _locationService = sl<LocationService>();
-  GoogleMapController? _mapController;
+  gmaps.GoogleMapController? _googleMapController;
+  final fm.MapController _osmMapController = fm.MapController();
 
-  // User position
-  LatLng? _userPosition;
+  ll.LatLng? _userPosition;
   bool _isLoadingLocation = true;
   bool _permissionDenied = false;
 
-  // Radius control
   double _radiusKm = 5.0;
 
-  // All fetched vehicles (unfiltered by radius, but with lat/lng)
   List<VehicleEntity> _allFetchedVehicles = [];
 
-  // Default center: Ho Chi Minh City
-  static const LatLng _defaultCenter = LatLng(10.7769, 106.7009);
+  static const ll.LatLng _defaultCenter = ll.LatLng(10.7769, 106.7009);
 
   @override
   void initState() {
@@ -47,7 +52,8 @@ class _VehicleMapPageState extends State<VehicleMapPage> {
 
   @override
   void dispose() {
-    _mapController?.dispose();
+    _googleMapController?.dispose();
+    _osmMapController.dispose();
     super.dispose();
   }
 
@@ -58,7 +64,7 @@ class _VehicleMapPageState extends State<VehicleMapPage> {
 
     if (position != null) {
       setState(() {
-        _userPosition = LatLng(position.latitude, position.longitude);
+        _userPosition = ll.LatLng(position.latitude, position.longitude);
         _isLoadingLocation = false;
       });
 
@@ -83,11 +89,18 @@ class _VehicleMapPageState extends State<VehicleMapPage> {
 
   void _animateCameraToUser() {
     final target = _userPosition ?? _defaultCenter;
-    _mapController?.animateCamera(
-      CameraUpdate.newCameraPosition(
-        CameraPosition(target: target, zoom: 14),
-      ),
-    );
+    if (useGoogleMapWidget) {
+      _googleMapController?.animateCamera(
+        gmaps.CameraUpdate.newCameraPosition(
+          gmaps.CameraPosition(
+            target: gmaps.LatLng(target.latitude, target.longitude),
+            zoom: 14,
+          ),
+        ),
+      );
+    } else {
+      _osmMapController.move(target, 14);
+    }
   }
 
   void _onRadiusChanged(double value) {
@@ -102,17 +115,19 @@ class _VehicleMapPageState extends State<VehicleMapPage> {
     }
   }
 
-  Set<Marker> _buildMarkers(List<VehicleEntity> vehicles) {
+  Set<gmaps.Marker> _buildGoogleMarkers(List<VehicleEntity> vehicles) {
     return vehicles.map((vehicle) {
       final isAvailable =
           vehicle.isAvailable && vehicle.status == VehicleStatus.available;
-      return Marker(
-        markerId: MarkerId(vehicle.id),
-        position: LatLng(vehicle.latitude!, vehicle.longitude!),
-        icon: BitmapDescriptor.defaultMarkerWithHue(
-          isAvailable ? BitmapDescriptor.hueGreen : BitmapDescriptor.hueRed,
+      return gmaps.Marker(
+        markerId: gmaps.MarkerId(vehicle.id),
+        position: gmaps.LatLng(vehicle.latitude!, vehicle.longitude!),
+        icon: gmaps.BitmapDescriptor.defaultMarkerWithHue(
+          isAvailable
+              ? gmaps.BitmapDescriptor.hueGreen
+              : gmaps.BitmapDescriptor.hueRed,
         ),
-        infoWindow: InfoWindow(
+        infoWindow: gmaps.InfoWindow(
           title: vehicle.displayName,
           snippet: isAvailable
               ? '${vehicle.formattedPricePerHour} • Có sẵn'
@@ -124,12 +139,12 @@ class _VehicleMapPageState extends State<VehicleMapPage> {
     }).toSet();
   }
 
-  Set<Circle> _buildCircles() {
+  Set<gmaps.Circle> _buildGoogleCircles() {
     if (_userPosition == null) return {};
     return {
-      Circle(
-        circleId: const CircleId('searchRadius'),
-        center: _userPosition!,
+      gmaps.Circle(
+        circleId: const gmaps.CircleId('searchRadius'),
+        center: gmaps.LatLng(_userPosition!.latitude, _userPosition!.longitude),
         radius: _radiusKm * 1000,
         fillColor: AppColors.primary.withOpacity(0.08),
         strokeColor: AppColors.primary.withOpacity(0.4),
@@ -138,16 +153,124 @@ class _VehicleMapPageState extends State<VehicleMapPage> {
     };
   }
 
+  List<fm.Marker> _buildOsmVehicleMarkers(List<VehicleEntity> vehicles) {
+    return vehicles.map((vehicle) {
+      final isAvailable =
+          vehicle.isAvailable && vehicle.status == VehicleStatus.available;
+      return fm.Marker(
+        point: ll.LatLng(vehicle.latitude!, vehicle.longitude!),
+        width: 48,
+        height: 48,
+        alignment: Alignment.bottomCenter,
+        child: GestureDetector(
+          onTap: () => context.push('/vehicle/${vehicle.id}'),
+          child: Icon(
+            Icons.location_on,
+            size: 44,
+            color: isAvailable ? Colors.green.shade700 : Colors.red.shade700,
+            shadows: const [
+              Shadow(
+                blurRadius: 4,
+                color: Colors.black26,
+                offset: Offset(0, 1),
+              ),
+            ],
+          ),
+        ),
+      );
+    }).toList();
+  }
+
+  List<fm.CircleMarker> _buildOsmRadiusCircles() {
+    if (_userPosition == null) return [];
+    return [
+      fm.CircleMarker(
+        point: _userPosition!,
+        radius: _radiusKm * 1000,
+        useRadiusInMeter: true,
+        color: AppColors.primary.withOpacity(0.08),
+        borderColor: AppColors.primary.withOpacity(0.45),
+        borderStrokeWidth: 2,
+      ),
+    ];
+  }
+
+  Widget _buildOsmMap(List<VehicleEntity> vehicles) {
+    final center = _userPosition ?? _defaultCenter;
+    final userMarkers = <fm.Marker>[];
+    if (_userPosition != null) {
+      userMarkers.add(
+        fm.Marker(
+          point: _userPosition!,
+          width: 36,
+          height: 36,
+          child: Container(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              shape: BoxShape.circle,
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.2),
+                  blurRadius: 6,
+                ),
+              ],
+            ),
+            child: const Icon(Icons.person_pin_circle,
+                color: AppColors.primary, size: 28),
+          ),
+        ),
+      );
+    }
+
+    return fm.FlutterMap(
+      mapController: _osmMapController,
+      options: fm.MapOptions(
+        initialCenter: center,
+        initialZoom: 14,
+        minZoom: 3,
+        maxZoom: 19,
+        onMapReady: _animateCameraToUser,
+      ),
+      children: [
+        fm.TileLayer(
+          urlTemplate: kOsmTileUrlTemplate,
+          subdomains: kOsmSubdomains,
+          userAgentPackageName: 'com.example.fe_capstone_project',
+        ),
+        fm.CircleLayer(circles: _buildOsmRadiusCircles()),
+        fm.MarkerLayer(markers: _buildOsmVehicleMarkers(vehicles)),
+        if (userMarkers.isNotEmpty) fm.MarkerLayer(markers: userMarkers),
+      ],
+    );
+  }
+
+  Widget _buildGoogleMap(List<VehicleEntity> vehicles) {
+    final center = _userPosition ?? _defaultCenter;
+    return gmaps.GoogleMap(
+      initialCameraPosition: gmaps.CameraPosition(
+        target: gmaps.LatLng(center.latitude, center.longitude),
+        zoom: 14,
+      ),
+      myLocationEnabled: true,
+      myLocationButtonEnabled: false,
+      zoomControlsEnabled: false,
+      mapToolbarEnabled: false,
+      markers: _buildGoogleMarkers(vehicles),
+      circles: _buildGoogleCircles(),
+      onMapCreated: (controller) {
+        _googleMapController = controller;
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: Stack(
         children: [
-          // ── Google Map ──
           BlocConsumer<VehicleListCubit, VehicleListState>(
             listener: (context, state) {
               if (state is VehicleListLoaded) {
-                // Keep the full list for radius re-filtering
                 if (_allFetchedVehicles.isEmpty ||
                     state.vehicles.length > _allFetchedVehicles.length) {
                   _allFetchedVehicles = List.from(state.vehicles);
@@ -157,25 +280,12 @@ class _VehicleMapPageState extends State<VehicleMapPage> {
             builder: (context, state) {
               final vehicles =
                   state is VehicleListLoaded ? state.vehicles : <VehicleEntity>[];
-              return GoogleMap(
-                initialCameraPosition: CameraPosition(
-                  target: _userPosition ?? _defaultCenter,
-                  zoom: 14,
-                ),
-                myLocationEnabled: true,
-                myLocationButtonEnabled: false,
-                zoomControlsEnabled: false,
-                mapToolbarEnabled: false,
-                markers: _buildMarkers(vehicles),
-                circles: _buildCircles(),
-                onMapCreated: (controller) {
-                  _mapController = controller;
-                },
-              );
+              return useGoogleMapWidget
+                  ? _buildGoogleMap(vehicles)
+                  : _buildOsmMap(vehicles);
             },
           ),
 
-          // ── Loading overlay ──
           if (_isLoadingLocation)
             Container(
               color: Colors.black26,
@@ -194,7 +304,6 @@ class _VehicleMapPageState extends State<VehicleMapPage> {
               ),
             ),
 
-          // ── Permission denied overlay ──
           if (_permissionDenied && !_isLoadingLocation)
             Container(
               color: Colors.black45,
@@ -251,7 +360,6 @@ class _VehicleMapPageState extends State<VehicleMapPage> {
               ),
             ),
 
-          // ── Top header bar ──
           Positioned(
             top: MediaQuery.of(context).padding.top + 8,
             left: 16,
@@ -276,14 +384,30 @@ class _VehicleMapPageState extends State<VehicleMapPage> {
                     onPressed: () => context.pop(),
                   ),
                   Expanded(
-                    child: Text(
-                      'Xe gần bạn',
-                      style: GoogleFonts.poppins(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.textPrimary,
-                      ),
-                      textAlign: TextAlign.center,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          'Xe gần bạn',
+                          style: GoogleFonts.poppins(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.textPrimary,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                        if (!useGoogleMapWidget)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 2),
+                            child: Text(
+                              'Bản đồ OpenStreetMap (sandbox)',
+                              style: GoogleFonts.poppins(
+                                fontSize: 11,
+                                color: AppColors.textMuted,
+                              ),
+                            ),
+                          ),
+                      ],
                     ),
                   ),
                   IconButton(
@@ -298,14 +422,14 @@ class _VehicleMapPageState extends State<VehicleMapPage> {
             ),
           ),
 
-          // ── Radius slider ──
           if (!_permissionDenied && !_isLoadingLocation)
             Positioned(
               left: 16,
               right: 16,
               bottom: MediaQuery.of(context).size.height * 0.32 + 16,
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(16),
@@ -370,7 +494,6 @@ class _VehicleMapPageState extends State<VehicleMapPage> {
               ),
             ),
 
-          // ── Draggable bottom sheet ──
           if (!_permissionDenied && !_isLoadingLocation)
             DraggableScrollableSheet(
               initialChildSize: 0.30,
@@ -384,7 +507,6 @@ class _VehicleMapPageState extends State<VehicleMapPage> {
               },
             ),
 
-          // ── My location FAB ──
           if (!_permissionDenied && !_isLoadingLocation)
             Positioned(
               right: 16,

@@ -18,6 +18,8 @@ class BookingModel {
   final DateTime updatedAt;
   final DateTime? confirmedAt;
   final DateTime? cancelledAt;
+  final String? vehicleName;
+  final String? paymentStatus;
 
   const BookingModel({
     required this.id,
@@ -35,6 +37,8 @@ class BookingModel {
     required this.updatedAt,
     this.confirmedAt,
     this.cancelledAt,
+    this.vehicleName,
+    this.paymentStatus,
   });
 
   /// Parse from JSON response
@@ -59,6 +63,8 @@ class BookingModel {
       cancelledAt: json['cancelledAt'] != null
           ? DateTime.parse(json['cancelledAt'] as String)
           : null,
+      vehicleName: (json['vehicle'] as Map<String, dynamic>?)?['name'] as String?,
+      paymentStatus: json['paymentStatus'] as String?,
     );
   }
 
@@ -101,6 +107,8 @@ class BookingModel {
       updatedAt: updatedAt,
       confirmedAt: confirmedAt,
       cancelledAt: cancelledAt,
+      vehicleName: vehicleName,
+      paymentStatus: paymentStatus,
     );
   }
 }

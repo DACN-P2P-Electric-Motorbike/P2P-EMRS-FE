@@ -12,8 +12,12 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:file_picker/file_picker.dart';
 
-import '../../../../core/theme/app_theme.dart';
+import 'package:latlong2/latlong.dart' as latlong2;
+
+import '../../../../core/services/geocoding_service.dart';
 import '../../../../core/services/upload_service.dart';
+import '../../../../core/theme/app_theme.dart';
+import '../../../../core/widgets/location_picker_page.dart';
 import '../../../../injection_container.dart';
 import '../../data/models/create_vehicle_params.dart';
 import '../../domain/entities/vehicle_entity.dart';
@@ -76,6 +80,8 @@ class _BikeRegistrationContentState extends State<_BikeRegistrationContent> {
   // Step 3: Pricing & Location
   final _pricePerDayController = TextEditingController();
   final _addressController = TextEditingController();
+  double? _pickedLatitude;
+  double? _pickedLongitude;
 
   @override
   void dispose() {
@@ -119,25 +125,25 @@ class _BikeRegistrationContentState extends State<_BikeRegistrationContent> {
   Future<void> _submitRegistration() async {
     // Validate required fields
     if (_selectedBrand == null) {
-      _showError('Please select a brand');
+      _showError('Vui lòng chọn hãng xe');
       return;
     }
     if (_modelController.text.isEmpty) {
-      _showError('Please enter model name');
+      _showError('Vui lòng nhập tên model');
       return;
     }
     if (_licensePlateController.text.isEmpty) {
-      _showError('Please enter license plate');
+      _showError('Vui lòng nhập biển số xe');
       return;
     }
     if (_pricePerDayController.text.isEmpty) {
-      _showError('Please enter rental price');
+      _showError('Vui lòng nhập giá thuê');
       return;
     }
 
     final pricePerDay = double.tryParse(_pricePerDayController.text) ?? 0;
     if (pricePerDay < 1000) {
-      _showError('Minimum rental price is 1,000 VND/day');
+      _showError('Giá thuê tối thiểu là 1.000 VND/ngày');
       return;
     }
 
@@ -148,7 +154,7 @@ class _BikeRegistrationContentState extends State<_BikeRegistrationContent> {
       final uploadSuccess = await _uploadAllImages();
       if (!uploadSuccess) {
         _showError(
-          _uploadError ?? 'Failed to upload images. Please try again.',
+          _uploadError ?? 'Tải lên ảnh thất bại. Vui lòng thử lại.',
         );
         return;
       }
@@ -165,6 +171,8 @@ class _BikeRegistrationContentState extends State<_BikeRegistrationContent> {
       address: _addressController.text.isNotEmpty
           ? _addressController.text.trim()
           : 'Ho Chi Minh City',
+      latitude: _pickedLatitude,
+      longitude: _pickedLongitude,
       description: null,
       images: _vehicleImageUrl != null
           ? [_vehicleImageUrl!]
@@ -183,6 +191,32 @@ class _BikeRegistrationContentState extends State<_BikeRegistrationContent> {
       context.read<OwnerVehicleBloc>().add(
         RegisterVehicleSubmit(params: params),
       );
+    }
+  }
+
+  Future<void> _openLocationPicker(BuildContext context) async {
+    // Pre-populate picker with whatever the user typed in the address field
+    final currentAddress = _addressController.text.trim();
+    final result = await Navigator.push<LocationPickerResult>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => LocationPickerPage(
+          initialAddress: currentAddress.isNotEmpty ? currentAddress : null,
+          initialLatLng: (_pickedLatitude != null && _pickedLongitude != null)
+              ? latlong2.LatLng(_pickedLatitude!, _pickedLongitude!)
+              : null,
+        ),
+      ),
+    );
+    if (result != null && mounted) {
+      setState(() {
+        _pickedLatitude = result.latitude;
+        _pickedLongitude = result.longitude;
+        // Overwrite the text field only when the address differs
+        if (result.address.isNotEmpty) {
+          _addressController.text = result.address;
+        }
+      });
     }
   }
 
@@ -341,7 +375,7 @@ class _BikeRegistrationContentState extends State<_BikeRegistrationContent> {
                 onPressed: _previousStep,
               ),
               title: Text(
-                'Bike Registration',
+                'Đăng ký xe',
                 style: GoogleFonts.poppins(
                   fontSize: 18,
                   fontWeight: FontWeight.w600,
@@ -395,7 +429,7 @@ class _BikeRegistrationContentState extends State<_BikeRegistrationContent> {
                                   if (_isUploading) ...[
                                     const SizedBox(width: 8),
                                     Text(
-                                      'Uploading...',
+                                      'Đang tải lên...',
                                       style: GoogleFonts.poppins(
                                         color: Colors.white,
                                         fontSize: 14,
@@ -406,8 +440,8 @@ class _BikeRegistrationContentState extends State<_BikeRegistrationContent> {
                               )
                             : Text(
                                 _currentStep == _totalSteps - 1
-                                    ? 'Submit'
-                                    : 'Next',
+                                    ? 'Đăng ký'
+                                    : 'Tiếp theo',
                                 style: GoogleFonts.poppins(
                                   fontSize: 16,
                                   fontWeight: FontWeight.w600,
@@ -428,49 +462,31 @@ class _BikeRegistrationContentState extends State<_BikeRegistrationContent> {
 
   Widget _buildStepIndicator() {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
       color: Colors.white,
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
       child: Row(
-        children: List.generate(_totalSteps, (index) {
-          final isActive = index <= _currentStep;
-          final isCompleted = index < _currentStep;
-          return Expanded(
-            child: Row(
-              children: [
-                Container(
-                  width: 28,
-                  height: 28,
+        children: [
+          for (int i = 0; i < _totalSteps; i++) ...[
+            _StepCircle(
+              index: i,
+              currentStep: _currentStep,
+            ),
+            if (i < _totalSteps - 1)
+              Expanded(
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 300),
+                  height: 2,
+                  margin: const EdgeInsets.symmetric(horizontal: 6),
                   decoration: BoxDecoration(
-                    color: isActive ? AppColors.primary : AppColors.border,
-                    shape: BoxShape.circle,
-                  ),
-                  child: Center(
-                    child: isCompleted
-                        ? const Icon(Icons.check, color: Colors.white, size: 16)
-                        : Text(
-                            '${index + 1}',
-                            style: GoogleFonts.poppins(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
-                              color: isActive
-                                  ? Colors.white
-                                  : AppColors.textMuted,
-                            ),
-                          ),
+                    color: i < _currentStep
+                        ? AppColors.primary
+                        : AppColors.border,
+                    borderRadius: BorderRadius.circular(1),
                   ),
                 ),
-                if (index < _totalSteps - 1)
-                  Expanded(
-                    child: Container(
-                      height: 2,
-                      margin: const EdgeInsets.symmetric(horizontal: 8),
-                      color: isCompleted ? AppColors.primary : AppColors.border,
-                    ),
-                  ),
-              ],
-            ),
-          );
-        }),
+              ),
+          ],
+        ],
       ),
     );
   }
@@ -487,9 +503,9 @@ class _BikeRegistrationContentState extends State<_BikeRegistrationContent> {
           const SizedBox(height: 24),
 
           // Model Brand Dropdown
-          _buildLabel('Model brand *'),
+          _buildLabel('Hãng xe *'),
           _buildDropdown<VehicleBrand>(
-            hint: 'Select one brand',
+            hint: 'Chọn hãng xe',
             value: _selectedBrand,
             items: VehicleBrand.values,
             itemLabel: (brand) => brand.displayName,
@@ -498,23 +514,23 @@ class _BikeRegistrationContentState extends State<_BikeRegistrationContent> {
           const SizedBox(height: 20),
 
           // Additional Features
-          _buildLabel('Additional Features'),
+          _buildLabel('Tính năng bổ sung'),
           _buildMultiSelectDropdown(),
           const SizedBox(height: 20),
 
           // Model Name
-          _buildLabel('Model Name *'),
+          _buildLabel('Tên model *'),
           _buildTextField(
             controller: _modelController,
-            hintText: 'e.g., VinFast Evo200',
+            hintText: 'VD: VinFast Evo200',
           ),
           const SizedBox(height: 20),
 
           // Number Plate
-          _buildLabel('Number plate *'),
+          _buildLabel('Biển số xe *'),
           _buildTextField(
             controller: _licensePlateController,
-            hintText: 'e.g., 59A-12345',
+            hintText: 'VD: 59A-12345',
             textCapitalization: TextCapitalization.characters,
           ),
         ],
@@ -530,7 +546,7 @@ class _BikeRegistrationContentState extends State<_BikeRegistrationContent> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Supporting Documents',
+            'Giấy tờ xe',
             style: GoogleFonts.poppins(
               fontSize: 20,
               fontWeight: FontWeight.bold,
@@ -539,7 +555,7 @@ class _BikeRegistrationContentState extends State<_BikeRegistrationContent> {
           ),
           const SizedBox(height: 8),
           Text(
-            'Upload your vehicle registration documents',
+            'Tải lên các giấy tờ đăng ký xe của bạn',
             style: GoogleFonts.poppins(
               fontSize: 14,
               color: AppColors.textSecondary,
@@ -548,16 +564,16 @@ class _BikeRegistrationContentState extends State<_BikeRegistrationContent> {
           const SizedBox(height: 24),
 
           // License Number
-          _buildLabel('License Number'),
+          _buildLabel('Số đăng ký xe'),
           _buildTextField(
             controller: _licenseNumberController,
-            hintText: 'Enter vehicle registration number',
+            hintText: 'Nhập số đăng ký xe',
           ),
           const SizedBox(height: 20),
 
           // License Photos (Front & Back)
           Text(
-            'Registration Certificate Photos',
+            'Ảnh giấy đăng ký xe',
             style: GoogleFonts.poppins(
               fontSize: 14,
               fontWeight: FontWeight.w600,
@@ -569,7 +585,7 @@ class _BikeRegistrationContentState extends State<_BikeRegistrationContent> {
             children: [
               Expanded(
                 child: _buildDocUploadCard(
-                  label: 'Front Side',
+                  label: 'Mặt trước',
                   fileName: _licenseFrontName,
                   isFront: true,
                 ),
@@ -577,7 +593,7 @@ class _BikeRegistrationContentState extends State<_BikeRegistrationContent> {
               const SizedBox(width: 16),
               Expanded(
                 child: _buildDocUploadCard(
-                  label: 'Back Side',
+                  label: 'Mặt sau',
                   fileName: _licenseBackName,
                   isFront: false,
                 ),
@@ -600,7 +616,7 @@ class _BikeRegistrationContentState extends State<_BikeRegistrationContent> {
                 const SizedBox(width: 12),
                 Expanded(
                   child: Text(
-                    'Documents help verify your vehicle ownership. This step is optional but recommended.',
+                    'Giấy tờ giúp xác minh quyền sở hữu xe của bạn. Bước này tùy chọn nhưng được khuyến khích.',
                     style: GoogleFonts.poppins(
                       fontSize: 12,
                       color: AppColors.info,
@@ -705,6 +721,40 @@ class _BikeRegistrationContentState extends State<_BikeRegistrationContent> {
           _buildTextField(
             controller: _addressController,
             hintText: 'VD: 123 Nguyễn Huệ, Quận 1, TP.HCM',
+          ),
+          const SizedBox(height: 8),
+          // Map location picker button
+          OutlinedButton.icon(
+            onPressed: () => _openLocationPicker(context),
+            icon: Icon(
+              _pickedLatitude != null
+                  ? Icons.edit_location_alt_outlined
+                  : Icons.map_outlined,
+              size: 18,
+            ),
+            label: Text(
+              _pickedLatitude != null
+                  ? 'Đã chọn vị trí trên bản đồ  ✓'
+                  : 'Chọn vị trí chính xác trên bản đồ',
+              style: GoogleFonts.poppins(fontSize: 13),
+            ),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: _pickedLatitude != null
+                  ? AppColors.success
+                  : AppColors.primary,
+              side: BorderSide(
+                color: _pickedLatitude != null
+                    ? AppColors.success
+                    : AppColors.primary,
+              ),
+              padding: const EdgeInsets.symmetric(
+                horizontal: 16,
+                vertical: 10,
+              ),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+            ),
           ),
           const SizedBox(height: 24),
 
@@ -940,7 +990,7 @@ class _BikeRegistrationContentState extends State<_BikeRegistrationContent> {
                   ),
                   const SizedBox(height: 12),
                   Text(
-                    'Tap to upload vehicle image',
+                    'Nhấn để tải ảnh xe lên',
                     style: GoogleFonts.poppins(
                       fontSize: 14,
                       color: AppColors.textPrimary,
@@ -1239,7 +1289,7 @@ class _BikeRegistrationContentState extends State<_BikeRegistrationContent> {
       child: ExpansionTile(
         title: Text(
           _selectedFeatures.isEmpty
-              ? 'Select features (optional)'
+              ? 'Chọn tính năng (tùy chọn)'
               : _selectedFeatures.map((f) => f.displayName).join(', '),
           style: GoogleFonts.poppins(
             color: _selectedFeatures.isEmpty
@@ -1274,6 +1324,50 @@ class _BikeRegistrationContentState extends State<_BikeRegistrationContent> {
             },
           );
         }).toList(),
+      ),
+    );
+  }
+}
+
+class _StepCircle extends StatelessWidget {
+  final int index;
+  final int currentStep;
+
+  const _StepCircle({required this.index, required this.currentStep});
+
+  @override
+  Widget build(BuildContext context) {
+    final isCompleted = index < currentStep;
+    final isActive = index == currentStep;
+
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 300),
+      width: 32,
+      height: 32,
+      decoration: BoxDecoration(
+        color: isCompleted || isActive ? AppColors.primary : AppColors.border,
+        shape: BoxShape.circle,
+        boxShadow: isActive
+            ? [
+                BoxShadow(
+                  color: AppColors.primary.withOpacity(0.35),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+              ]
+            : null,
+      ),
+      child: Center(
+        child: isCompleted
+            ? const Icon(Icons.check_rounded, color: Colors.white, size: 16)
+            : Text(
+                '${index + 1}',
+                style: GoogleFonts.poppins(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                  color: isActive ? Colors.white : AppColors.textMuted,
+                ),
+              ),
       ),
     );
   }

@@ -1,9 +1,13 @@
+import 'dart:async';
+
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../../../core/platform/web_helper.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../injection_container.dart';
 import '../../domain/entities/payment_entity.dart';
@@ -52,10 +56,43 @@ class _PaymentView extends StatefulWidget {
   State<_PaymentView> createState() => _PaymentViewState();
 }
 
-class _PaymentViewState extends State<_PaymentView> {
+class _PaymentViewState extends State<_PaymentView> with WidgetsBindingObserver {
   PaymentMethod _selectedMethod = PaymentMethod.payos;
+  StreamSubscription<dynamic>? _webMessageSub;
 
   final _formatter = NumberFormat.currency(locale: 'vi_VN', symbol: 'đ');
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+
+    // Web: listen for postMessage from the PayOS result tab (platform-safe)
+    _webMessageSub = listenToPayOSWindowMessage((data) {
+      if (mounted) {
+        context.read<PaymentBloc>().add(
+          LoadPaymentByBookingEvent(widget.bookingId),
+        );
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _webMessageSub?.cancel();
+    super.dispose();
+  }
+
+  // Mobile: reload when user returns from external browser
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed && mounted) {
+      context.read<PaymentBloc>().add(
+        LoadPaymentByBookingEvent(widget.bookingId),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {

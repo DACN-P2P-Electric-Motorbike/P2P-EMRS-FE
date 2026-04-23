@@ -18,11 +18,11 @@ enum UserRole {
 
   String get apiValue => this == UserRole.owner ? 'OWNER' : 'RENTER';
 
-  String get displayName => this == UserRole.owner ? 'Vehicle Owner' : 'Renter';
+  String get displayName => this == UserRole.owner ? 'Chủ xe' : 'Người thuê';
 
   String get description => this == UserRole.owner
-      ? 'I want to rent out my electric motorbike'
-      : 'I want to rent electric motorbikes';
+      ? 'Tôi muốn cho thuê xe điện của mình'
+      : 'Tôi muốn thuê xe điện';
 
   IconData get icon =>
       this == UserRole.owner ? Icons.electric_moped : Icons.person_search;
@@ -156,7 +156,7 @@ class _RegisterPageContentState extends State<_RegisterPageContent> {
 
                       // Header
                       Text(
-                        'Create New Account',
+                        'Tạo tài khoản mới',
                         style: GoogleFonts.poppins(
                           fontSize: 24,
                           fontWeight: FontWeight.bold,
@@ -167,7 +167,7 @@ class _RegisterPageContentState extends State<_RegisterPageContent> {
                       const SizedBox(height: 8),
 
                       Text(
-                        'Join our community of electric motorbike\nrenters and owners',
+                        'Tham gia cộng đồng chia sẻ xe điện\ncủa chúng tôi ngay hôm nay',
                         style: GoogleFonts.poppins(
                           fontSize: 14,
                           color: AppColors.textSecondary,
@@ -184,15 +184,15 @@ class _RegisterPageContentState extends State<_RegisterPageContent> {
                       // Full Name Field
                       _buildTextField(
                         controller: _fullNameController,
-                        hintText: 'Full Name',
+                        hintText: 'Họ và tên',
                         prefixIcon: Icons.person_outline,
                         enabled: !isLoading,
                         validator: (value) {
                           if (value == null || value.isEmpty) {
-                            return 'Please enter your full name';
+                            return 'Vui lòng nhập họ và tên';
                           }
                           if (value.length < 2) {
-                            return 'Name must be at least 2 characters';
+                            return 'Tên phải có ít nhất 2 ký tự';
                           }
                           return null;
                         },
@@ -209,12 +209,12 @@ class _RegisterPageContentState extends State<_RegisterPageContent> {
                         enabled: !isLoading,
                         validator: (value) {
                           if (value == null || value.isEmpty) {
-                            return 'Please enter your email';
+                            return 'Vui lòng nhập email';
                           }
                           if (!RegExp(
                             r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$',
                           ).hasMatch(value)) {
-                            return 'Please enter a valid email';
+                            return 'Email không hợp lệ';
                           }
                           return null;
                         },
@@ -225,19 +225,18 @@ class _RegisterPageContentState extends State<_RegisterPageContent> {
                       // Phone Field
                       _buildTextField(
                         controller: _phoneController,
-                        hintText: 'Phone Number (+84...)',
+                        hintText: 'Số điện thoại (+84...)',
                         prefixIcon: Icons.phone_outlined,
                         keyboardType: TextInputType.phone,
                         enabled: !isLoading,
                         validator: (value) {
                           if (value == null || value.isEmpty) {
-                            return 'Please enter your phone number';
+                            return 'Vui lòng nhập số điện thoại';
                           }
-                          // Vietnamese phone number validation
                           if (!RegExp(
                             r'^(\+84|84|0)[3|5|7|8|9][0-9]{8}$',
                           ).hasMatch(value.replaceAll(' ', ''))) {
-                            return 'Please enter a valid Vietnamese phone number';
+                            return 'Số điện thoại Việt Nam không hợp lệ';
                           }
                           return null;
                         },
@@ -268,7 +267,7 @@ class _RegisterPageContentState extends State<_RegisterPageContent> {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    'Owner Verification',
+                                    'Xác minh chủ xe',
                                     style: GoogleFonts.poppins(
                                       fontSize: 14,
                                       fontWeight: FontWeight.w600,
@@ -276,7 +275,7 @@ class _RegisterPageContentState extends State<_RegisterPageContent> {
                                     ),
                                   ),
                                   Text(
-                                    'Required for vehicle registration',
+                                    'Bắt buộc để đăng ký xe',
                                     style: GoogleFonts.poppins(
                                       fontSize: 12,
                                       color: AppColors.textMuted,
@@ -293,7 +292,7 @@ class _RegisterPageContentState extends State<_RegisterPageContent> {
                         // ID Card Number (CCCD/CMND)
                         _buildTextField(
                           controller: _idCardController,
-                          hintText: 'ID Card Number (CCCD/CMND)',
+                          hintText: 'Số CCCD/CMND',
                           prefixIcon: Icons.credit_card_outlined,
                           keyboardType: TextInputType.number,
                           enabled: !isLoading,
@@ -304,10 +303,10 @@ class _RegisterPageContentState extends State<_RegisterPageContent> {
                           validator: (value) {
                             if (_selectedRole == UserRole.owner) {
                               if (value == null || value.isEmpty) {
-                                return 'ID Card number is required for owners';
+                                return 'Số CCCD/CMND là bắt buộc cho chủ xe';
                               }
                               if (value.length != 9 && value.length != 12) {
-                                return 'ID Card must be 9 or 12 digits';
+                                return 'CCCD/CMND phải có 9 hoặc 12 chữ số';
                               }
                             }
                             return null;
@@ -319,7 +318,7 @@ class _RegisterPageContentState extends State<_RegisterPageContent> {
                         // Address
                         _buildTextField(
                           controller: _addressController,
-                          hintText: 'Business Address (Optional)',
+                          hintText: 'Địa chỉ (Tùy chọn)',
                           prefixIcon: Icons.location_on_outlined,
                           enabled: !isLoading,
                           maxLines: 2,
@@ -331,7 +330,7 @@ class _RegisterPageContentState extends State<_RegisterPageContent> {
                       // Password Field
                       _buildTextField(
                         controller: _passwordController,
-                        hintText: 'Password',
+                        hintText: 'Mật khẩu',
                         prefixIcon: Icons.lock_outline,
                         obscureText: _obscurePassword,
                         enabled: !isLoading,
@@ -351,10 +350,10 @@ class _RegisterPageContentState extends State<_RegisterPageContent> {
                         ),
                         validator: (value) {
                           if (value == null || value.isEmpty) {
-                            return 'Please enter a password';
+                            return 'Vui lòng nhập mật khẩu';
                           }
                           if (value.length < 6) {
-                            return 'Password must be at least 6 characters';
+                            return 'Mật khẩu phải có ít nhất 6 ký tự';
                           }
                           return null;
                         },
@@ -365,7 +364,7 @@ class _RegisterPageContentState extends State<_RegisterPageContent> {
                       // Confirm Password Field
                       _buildTextField(
                         controller: _confirmPasswordController,
-                        hintText: 'Confirm Password',
+                        hintText: 'Xác nhận mật khẩu',
                         prefixIcon: Icons.lock_outline,
                         obscureText: _obscureConfirmPassword,
                         enabled: !isLoading,
@@ -386,10 +385,10 @@ class _RegisterPageContentState extends State<_RegisterPageContent> {
                         ),
                         validator: (value) {
                           if (value == null || value.isEmpty) {
-                            return 'Please confirm your password';
+                            return 'Vui lòng xác nhận mật khẩu';
                           }
                           if (value != _passwordController.text) {
-                            return 'Passwords do not match';
+                            return 'Mật khẩu không khớp';
                           }
                           return null;
                         },
@@ -406,7 +405,7 @@ class _RegisterPageContentState extends State<_RegisterPageContent> {
                           style: ElevatedButton.styleFrom(
                             backgroundColor: AppColors.primary,
                             shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(14),
+                              borderRadius: BorderRadius.circular(16),
                             ),
                             elevation: 0,
                           ),
@@ -416,9 +415,7 @@ class _RegisterPageContentState extends State<_RegisterPageContent> {
                                   size: 20,
                                 )
                               : Text(
-                                  _selectedRole == UserRole.owner
-                                      ? 'Register as Owner'
-                                      : 'Sign Up',
+                                  'Đăng ký',
                                   style: GoogleFonts.poppins(
                                     fontSize: 16,
                                     fontWeight: FontWeight.w600,
@@ -435,7 +432,7 @@ class _RegisterPageContentState extends State<_RegisterPageContent> {
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           Text(
-                            'Already have an account? ',
+                            'Đã có tài khoản? ',
                             style: GoogleFonts.poppins(
                               color: AppColors.textSecondary,
                               fontSize: 14,
@@ -446,69 +443,12 @@ class _RegisterPageContentState extends State<_RegisterPageContent> {
                                 ? null
                                 : () => Navigator.of(context).pop(),
                             child: Text(
-                              'Log in',
+                              'Đăng nhập',
                               style: GoogleFonts.poppins(
                                 color: AppColors.primary,
                                 fontSize: 14,
                                 fontWeight: FontWeight.w600,
                               ),
-                            ),
-                          ),
-                        ],
-                      ),
-
-                      const SizedBox(height: 32),
-
-                      // Divider
-                      Row(
-                        children: [
-                          Expanded(
-                            child: Container(
-                              height: 1,
-                              color: AppColors.border,
-                            ),
-                          ),
-                          Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 16),
-                            child: Text(
-                              'Or sign up with',
-                              style: GoogleFonts.poppins(
-                                color: AppColors.textSecondary,
-                                fontSize: 14,
-                              ),
-                            ),
-                          ),
-                          Expanded(
-                            child: Container(
-                              height: 1,
-                              color: AppColors.border,
-                            ),
-                          ),
-                        ],
-                      ),
-
-                      const SizedBox(height: 24),
-
-                      // Social Buttons
-                      Row(
-                        children: [
-                          Expanded(
-                            child: _buildSocialButton(
-                              label: 'Google',
-                              isGoogle: true,
-                              onPressed: () {
-                                // TODO: Implement Google Sign In
-                              },
-                            ),
-                          ),
-                          const SizedBox(width: 16),
-                          Expanded(
-                            child: _buildSocialButton(
-                              label: 'Facebook',
-                              isFacebook: true,
-                              onPressed: () {
-                                // TODO: Implement Facebook Sign In
-                              },
                             ),
                           ),
                         ],
@@ -689,27 +629,31 @@ class _RegisterPageContentState extends State<_RegisterPageContent> {
         ),
         prefixIcon: Icon(
           prefixIcon,
-          color: AppColors.primary.withOpacity(0.7),
+          color: AppColors.primary,
           size: 20,
         ),
         suffixIcon: suffixIcon,
         filled: true,
         fillColor: AppColors.inputBackground,
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(16),
           borderSide: BorderSide.none,
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(16),
           borderSide: BorderSide.none,
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14),
-          borderSide: BorderSide(color: AppColors.primary, width: 1.5),
+          borderRadius: BorderRadius.circular(16),
+          borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
         ),
         errorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(16),
           borderSide: BorderSide(color: AppColors.error, width: 1),
+        ),
+        focusedErrorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: BorderSide(color: AppColors.error, width: 1.5),
         ),
         contentPadding: const EdgeInsets.symmetric(
           horizontal: 16,

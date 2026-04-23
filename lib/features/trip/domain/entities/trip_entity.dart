@@ -24,6 +24,8 @@ class TripEntity extends Equatable {
   final DateTime? completedAt;
   final DateTime createdAt;
   final DateTime updatedAt;
+  /// Vehicle name populated from the nested booking→vehicle relation (history).
+  final String? vehicleName;
 
   const TripEntity({
     required this.id,
@@ -47,6 +49,7 @@ class TripEntity extends Equatable {
     this.completedAt,
     required this.createdAt,
     required this.updatedAt,
+    this.vehicleName,
   });
 
   static TripStatus _statusFromString(String value) {
@@ -113,5 +116,6 @@ class TripEntity extends Equatable {
     completedAt,
     createdAt,
     updatedAt,
+    vehicleName,
   ];
 }

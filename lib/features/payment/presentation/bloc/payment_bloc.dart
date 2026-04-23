@@ -1,4 +1,5 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
+import '../../../../core/usecases/usecase.dart';
 import '../../domain/usecases/payment_usecases.dart';
 import 'payment_event.dart';
 import 'payment_state.dart';
@@ -6,28 +7,40 @@ import 'payment_state.dart';
 class PaymentBloc extends Bloc<PaymentEvent, PaymentState> {
   final CreatePaymentUseCase _createPayment;
   final GetPaymentByBookingUseCase _getPaymentByBooking;
+  final GetPaymentByIdUseCase _getPaymentById;
   final SimulatePaymentSuccessUseCase _simulateSuccess;
   final InitiatePayOSUseCase _initiatePayOS;
   final InitiateMoMoUseCase _initiateMoMo;
+  final RefundPaymentUseCase _refundPayment;
+  final GetOwnerEarningsUseCase _getOwnerEarnings;
 
   PaymentBloc({
     required CreatePaymentUseCase createPayment,
     required GetPaymentByBookingUseCase getPaymentByBooking,
+    required GetPaymentByIdUseCase getPaymentById,
     required SimulatePaymentSuccessUseCase simulateSuccess,
     required InitiatePayOSUseCase initiatePayOS,
     required InitiateMoMoUseCase initiateMoMo,
+    required RefundPaymentUseCase refundPayment,
+    required GetOwnerEarningsUseCase getOwnerEarnings,
   }) : _createPayment = createPayment,
        _getPaymentByBooking = getPaymentByBooking,
+       _getPaymentById = getPaymentById,
        _simulateSuccess = simulateSuccess,
        _initiatePayOS = initiatePayOS,
        _initiateMoMo = initiateMoMo,
+       _refundPayment = refundPayment,
+       _getOwnerEarnings = getOwnerEarnings,
        super(const PaymentInitial()) {
     on<CreatePaymentEvent>(_onCreatePayment);
     on<LoadPaymentByBookingEvent>(_onLoadPaymentByBooking);
+    on<GetPaymentByIdEvent>(_onGetPaymentById);
     on<SimulatePaymentSuccessEvent>(_onSimulateSuccess);
     on<InitiatePayOSEvent>(_onInitiatePayOS);
     on<InitiateMoMoEvent>(_onInitiateMoMo);
+    on<RefundPaymentEvent>(_onRefundPayment);
     on<ResetPaymentStateEvent>(_onReset);
+    on<LoadOwnerEarningsEvent>(_onLoadOwnerEarnings);
   }
 
   Future<void> _onCreatePayment(
@@ -105,7 +118,43 @@ class PaymentBloc extends Bloc<PaymentEvent, PaymentState> {
     );
   }
 
+  Future<void> _onGetPaymentById(
+    GetPaymentByIdEvent event,
+    Emitter<PaymentState> emit,
+  ) async {
+    emit(const PaymentLoading());
+    final result = await _getPaymentById(GetPaymentByIdParams(event.paymentId));
+    result.fold(
+      (failure) => emit(PaymentFailure(failure.message)),
+      (payment) => emit(PaymentLoaded(payment)),
+    );
+  }
+
+  Future<void> _onRefundPayment(
+    RefundPaymentEvent event,
+    Emitter<PaymentState> emit,
+  ) async {
+    emit(const PaymentLoading());
+    final result = await _refundPayment(RefundPaymentParams(event.paymentId));
+    result.fold(
+      (failure) => emit(PaymentFailure(failure.message)),
+      (payment) => emit(PaymentRefunded(payment)),
+    );
+  }
+
   void _onReset(ResetPaymentStateEvent event, Emitter<PaymentState> emit) {
     emit(const PaymentInitial());
+  }
+
+  Future<void> _onLoadOwnerEarnings(
+    LoadOwnerEarningsEvent event,
+    Emitter<PaymentState> emit,
+  ) async {
+    emit(const PaymentLoading());
+    final result = await _getOwnerEarnings(const NoParams());
+    result.fold(
+      (failure) => emit(PaymentFailure(failure.message)),
+      (earnings) => emit(OwnerEarningsLoaded(earnings)),
+    );
   }
 }

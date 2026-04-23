@@ -14,7 +14,6 @@ import '../../../../injection_container.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
 import '../../../auth/presentation/bloc/auth_event.dart';
 import '../../../auth/presentation/bloc/auth_state.dart';
-import 'edit_profile_page.dart';
 import '../../../../features/payment/presentation/pages/payment_methods_page.dart';
 
 /// Profile page - redesigned similar to OwnerProfilePage
@@ -144,16 +143,11 @@ class ProfilePage extends StatelessWidget {
               GestureDetector(
                 onTap: () {
                   if (user != null) {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => EditProfilePage(user: user),
-                      ),
-                    );
+                    context.push('/profile/edit', extra: user);
                   }
                 },
                 child: Text(
-                  'Edit Profile',
+                  'Chỉnh sửa hồ sơ',
                   style: GoogleFonts.poppins(
                     fontSize: 14,
                     color: AppColors.primary,
@@ -167,12 +161,7 @@ class ProfilePage extends StatelessWidget {
         IconButton(
           onPressed: () {
             if (user != null) {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => EditProfilePage(user: user),
-                ),
-              );
+              context.push('/profile/edit', extra: user);
             }
           },
           icon: const Icon(Icons.edit_outlined, color: AppColors.primary),
@@ -380,6 +369,12 @@ class ProfilePage extends StatelessWidget {
         label: 'Về Dream Ride',
         onTap: () => _showAboutDialog(context),
       ),
+      // Dev-only: uncomment to access payment sandbox
+      // _MenuItem(
+      //   icon: Icons.developer_mode,
+      //   label: 'Dev: Payment Sandbox',
+      //   onTap: () => context.push('/payment-sandbox'),
+      // ),
     ];
 
     return Column(

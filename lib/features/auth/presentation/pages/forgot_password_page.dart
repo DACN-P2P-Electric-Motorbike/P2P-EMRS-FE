@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:dio/dio.dart';
+import 'package:go_router/go_router.dart';
+import 'package:google_fonts/google_fonts.dart';
+
+import '../../../../core/network/dio_client.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../injection_container.dart';
-import '../../../../core/network/dio_client.dart';
-import 'otp_verification_page.dart';
 
 class ForgotPasswordPage extends StatefulWidget {
   const ForgotPasswordPage({super.key});
@@ -48,12 +50,11 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
         );
 
         // Navigate to OTP verification page
-        Navigator.of(context).push(
-          MaterialPageRoute(
-            builder: (_) =>
-                OtpVerificationPage(email: _emailController.text.trim()),
-          ),
-        );
+        if (context.mounted) {
+          context.push(
+            '/otp-verify?email=${Uri.encodeComponent(_emailController.text.trim())}',
+          );
+        }
       }
     } on DioException catch (e) {
       if (mounted) {
@@ -88,36 +89,64 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
               children: [
                 const SizedBox(height: 16),
 
-                // Back Button
-                IconButton(
-                  onPressed: () => Navigator.of(context).pop(),
-                  icon: const Icon(
-                    Icons.arrow_back_ios,
-                    color: AppColors.textPrimary,
-                    size: 20,
-                  ),
-                  padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(),
+                // Back + Step indicator
+                Row(
+                  children: [
+                    IconButton(
+                      onPressed: () => Navigator.of(context).pop(),
+                      icon: const Icon(
+                        Icons.arrow_back_ios,
+                        color: AppColors.textPrimary,
+                        size: 20,
+                      ),
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
+                    ),
+                    const Spacer(),
+                    _buildStepIndicator(1),
+                  ],
                 ),
 
-                const SizedBox(height: 40),
+                const SizedBox(height: 36),
 
-                // Header
+                // Icon
                 Center(
-                  child: Text(
-                    'Forgot Password',
-                    style: Theme.of(context).textTheme.displaySmall?.copyWith(
-                      fontWeight: FontWeight.bold,
+                  child: Container(
+                    width: 72,
+                    height: 72,
+                    decoration: BoxDecoration(
+                      color: AppColors.primary.withOpacity(0.1),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      Icons.lock_open_outlined,
+                      color: AppColors.primary,
+                      size: 36,
                     ),
                   ),
                 ),
 
-                const SizedBox(height: 12),
+                const SizedBox(height: 24),
+
+                // Header
+                Center(
+                  child: Text(
+                    'Quên mật khẩu',
+                    style: GoogleFonts.poppins(
+                      fontSize: 26,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.textPrimary,
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: 10),
 
                 Center(
                   child: Text(
-                    "Please enter your email address. So we'll send\nyou link to get back into your account.",
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    'Nhập email của bạn để nhận\nmã xác thực đặt lại mật khẩu',
+                    style: GoogleFonts.poppins(
+                      fontSize: 14,
                       color: AppColors.textSecondary,
                     ),
                     textAlign: TextAlign.center,
@@ -205,9 +234,9 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
                             color: Colors.white,
                             size: 20,
                           )
-                        : const Text(
-                            'Send Code',
-                            style: TextStyle(
+                        : Text(
+                            'Gửi mã xác thực',
+                            style: GoogleFonts.poppins(
                               fontSize: 16,
                               fontWeight: FontWeight.w600,
                               color: Colors.white,
@@ -220,6 +249,33 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildStepIndicator(int currentStep) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: List.generate(3, (i) {
+        final step = i + 1;
+        final isActive = step == currentStep;
+        final isDone = step < currentStep;
+        return Row(
+          children: [
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              width: isActive ? 24 : 8,
+              height: 8,
+              decoration: BoxDecoration(
+                color: isActive || isDone
+                    ? AppColors.primary
+                    : Colors.grey[300],
+                borderRadius: BorderRadius.circular(4),
+              ),
+            ),
+            if (i < 2) const SizedBox(width: 4),
+          ],
+        );
+      }),
     );
   }
 }

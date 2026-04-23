@@ -33,6 +33,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     on<AuthLogoutStarted>(_onLogoutStarted);
     on<AuthCheckRequested>(_onCheckRequested);
     on<AuthResetRequested>(_onResetRequested);
+    on<UpdateProfileStarted>(_onUpdateProfile);
   }
 
   /// Handle login event
@@ -110,5 +111,23 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   /// Handle reset event
   void _onResetRequested(AuthResetRequested event, Emitter<AuthState> emit) {
     emit(const AuthInitial());
+  }
+
+  /// Handle profile update
+  Future<void> _onUpdateProfile(
+    UpdateProfileStarted event,
+    Emitter<AuthState> emit,
+  ) async {
+    emit(const AuthLoading());
+    final result = await _authRepository.updateProfile(
+      fullName: event.fullName,
+      phone: event.phone,
+      avatarUrl: event.avatarUrl,
+      address: event.address,
+    );
+    result.fold(
+      (failure) => emit(AuthFailure(message: failure.message)),
+      (user) => emit(ProfileUpdated(user: user)),
+    );
   }
 }

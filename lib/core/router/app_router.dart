@@ -15,13 +15,25 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../features/auth/domain/entities/user.dart';
+import '../../features/auth/presentation/bloc/auth_bloc.dart';
+import '../../features/auth/presentation/bloc/auth_state.dart';
+
+import '../../features/auth/presentation/pages/forgot_password_page.dart';
 import '../../features/auth/presentation/pages/login_page.dart';
-import '../../features/auth/presentation/pages/register_page.dart';
+import '../../features/auth/presentation/pages/otp_verification_page.dart';
+import '../../features/auth/presentation/pages/password_reset_success_page.dart';
 import '../../features/auth/presentation/pages/profile.dart';
+import '../../features/auth/presentation/pages/profile_edit_page.dart';
+import '../../features/auth/presentation/pages/register_page.dart';
+import '../../features/auth/presentation/pages/reset_password_page.dart';
 import '../../features/main/presentation/pages/main_shell.dart';
 import '../../features/owner_vehicle/presentation/pages/bike_registration_page.dart';
 import '../../features/owner_vehicle/presentation/pages/vehicle_detail_edit_page.dart';
 import '../../injection_container.dart';
+
+import 'package:fe_capstone_project/features/payment/presentation/pages/payment_sandbox_page.dart';
+import 'package:fe_capstone_project/features/payment/presentation/pages/owner_earnings_page.dart';
 
 final GlobalKey<NavigatorState> rootNavigatorKey = GlobalKey<NavigatorState>();
 
@@ -34,6 +46,34 @@ class AppRouter {
     navigatorKey: rootNavigatorKey,
     initialLocation: '/login',
     debugLogDiagnostics: true,
+    redirect: (context, state) {
+      final authState = context.read<AuthBloc>().state;
+      
+      // If user is accessing owner routes, verify role
+      final isOwnerRoute = state.uri.path.startsWith('/owner') || 
+                           state.uri.path == '/owner-earnings';
+                           
+      if (isOwnerRoute && authState is AuthAuthenticated) {
+        if (!authState.user.isOwner && !authState.user.isAdmin) {
+          // If not owner/admin, redirect to become-owner page
+          return '/become-owner';
+        }
+      }
+      
+      // Redirect to login if unauthenticated and trying to access protected routes
+      // (Simplified: assuming all routes except auth ones are protected)
+      final isAuthRoute = state.uri.path == '/login' || 
+                          state.uri.path == '/register' ||
+                          state.uri.path.startsWith('/forgot-password') ||
+                          state.uri.path.startsWith('/reset-password') ||
+                          state.uri.path.startsWith('/otp-verify');
+                          
+      if (!isAuthRoute && (authState is AuthInitial || authState is AuthUnauthenticated)) {
+        return '/login';
+      }
+      
+      return null;
+    },
     routes: [
       // ==================== AUTH ROUTES (No navbar) ====================
       GoRoute(
@@ -45,6 +85,33 @@ class AppRouter {
         path: '/register',
         name: 'register',
         builder: (context, state) => const RegisterPage(),
+      ),
+      GoRoute(
+        path: '/forgot-password',
+        name: 'forgot-password',
+        builder: (context, state) => const ForgotPasswordPage(),
+      ),
+      GoRoute(
+        path: '/otp-verify',
+        name: 'otp-verify',
+        builder: (context, state) {
+          final email = state.uri.queryParameters['email'] ?? '';
+          return OtpVerificationPage(email: email);
+        },
+      ),
+      GoRoute(
+        path: '/reset-password',
+        name: 'reset-password',
+        builder: (context, state) {
+          final email = state.uri.queryParameters['email'] ?? '';
+          final otp = state.uri.queryParameters['otp'] ?? '';
+          return ResetPasswordPage(email: email, otp: otp);
+        },
+      ),
+      GoRoute(
+        path: '/reset-success',
+        name: 'reset-success',
+        builder: (context, state) => const PasswordResetSuccessPage(),
       ),
 
       // ==================== MAIN APP WITH BOTTOM NAV ====================
@@ -187,6 +254,28 @@ class AppRouter {
       ),
 
       // ==================== FULL SCREEN ROUTES (No navbar) ====================
+
+      GoRoute(
+        path: '/payment-sandbox',
+        name: 'payment-sandbox',
+        builder: (context, state) => const PaymentSandboxPage(),
+      ),
+
+      GoRoute(
+        path: '/owner-earnings',
+        name: 'owner-earnings',
+        builder: (context, state) => const OwnerEarningsPage(),
+      ),
+
+      GoRoute(
+        path: '/profile/edit',
+        name: 'profile-edit',
+        builder: (context, state) {
+          final user = state.extra as UserEntity?;
+          if (user == null) return const SizedBox.shrink();
+          return ProfileEditPage(user: user);
+        },
+      ),
 
       // Public vehicle listing (fullscreen)
       GoRoute(

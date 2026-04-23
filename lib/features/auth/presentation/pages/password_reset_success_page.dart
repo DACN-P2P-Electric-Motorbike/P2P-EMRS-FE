@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../../../../core/theme/app_theme.dart';
-import 'login_page.dart';
+import 'package:go_router/go_router.dart';
 
 class PasswordResetSuccessPage extends StatelessWidget {
   const PasswordResetSuccessPage({super.key});
@@ -16,12 +17,12 @@ class PasswordResetSuccessPage extends StatelessWidget {
             children: [
               const Spacer(flex: 2),
 
-              // Success Illustration
+              // Success illustration
               Container(
-                width: 200,
-                height: 200,
+                width: 160,
+                height: 160,
                 decoration: BoxDecoration(
-                  color: AppColors.inputBackground,
+                  color: AppColors.success.withValues(alpha: 0.08),
                   shape: BoxShape.circle,
                 ),
                 child: Center(
@@ -29,19 +30,19 @@ class PasswordResetSuccessPage extends StatelessWidget {
                     width: 100,
                     height: 100,
                     decoration: BoxDecoration(
-                      color: AppColors.primary.withOpacity(0.1),
+                      color: AppColors.success.withValues(alpha: 0.15),
                       shape: BoxShape.circle,
                     ),
                     child: Center(
                       child: Container(
-                        width: 60,
-                        height: 60,
+                        width: 64,
+                        height: 64,
                         decoration: BoxDecoration(
-                          color: AppColors.primary,
+                          color: AppColors.success,
                           shape: BoxShape.circle,
                         ),
                         child: const Icon(
-                          Icons.check,
+                          Icons.check_rounded,
                           color: Colors.white,
                           size: 36,
                         ),
@@ -53,64 +54,62 @@ class PasswordResetSuccessPage extends StatelessWidget {
 
               const SizedBox(height: 40),
 
-              // Success Text
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Text(
-                    'Great ',
-                    style: Theme.of(context).textTheme.displaySmall?.copyWith(
+                    'Tuyệt vời! ',
+                    style: GoogleFonts.poppins(
+                      fontSize: 28,
                       fontWeight: FontWeight.bold,
-                      color: AppColors.primary,
+                      color: AppColors.success,
                     ),
                   ),
                   const Text('🎉', style: TextStyle(fontSize: 28)),
                 ],
               ),
 
-              const SizedBox(height: 8),
+              const SizedBox(height: 12),
 
               Text(
-                'your password has changed',
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                'Mật khẩu đã được thay đổi',
+                style: GoogleFonts.poppins(
+                  fontSize: 20,
                   fontWeight: FontWeight.bold,
                   color: AppColors.textPrimary,
                 ),
+                textAlign: TextAlign.center,
               ),
 
               const SizedBox(height: 12),
 
               Text(
-                "Don't worry, we'll let you know if there's a\nproblem with your account",
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                'Mật khẩu mới của bạn đã được lưu thành công.\nBây giờ bạn có thể đăng nhập bình thường.',
+                style: GoogleFonts.poppins(
+                  fontSize: 14,
                   color: AppColors.textSecondary,
+                  height: 1.6,
                 ),
                 textAlign: TextAlign.center,
               ),
 
               const Spacer(flex: 3),
 
-              // Back to Login Button
               SizedBox(
                 width: double.infinity,
                 height: 56,
                 child: ElevatedButton(
-                  onPressed: () {
-                    Navigator.of(context).pushAndRemoveUntil(
-                      MaterialPageRoute(builder: (_) => const LoginPage()),
-                      (route) => false,
-                    );
-                  },
+                  onPressed: () => context.go('/login'),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.primary,
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14),
+                      borderRadius: BorderRadius.circular(16),
                     ),
                     elevation: 0,
                   ),
-                  child: const Text(
-                    'Back to Log in',
-                    style: TextStyle(
+                  child: Text(
+                    'Về trang đăng nhập',
+                    style: GoogleFonts.poppins(
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
                       color: Colors.white,

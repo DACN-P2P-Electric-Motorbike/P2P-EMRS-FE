@@ -46,6 +46,16 @@ class _CreateReviewView extends StatefulWidget {
 class _CreateReviewViewState extends State<_CreateReviewView> {
   int _rating = 0;
   final _commentController = TextEditingController();
+  int _charCount = 0;
+  static const int _maxChars = 500;
+
+  @override
+  void initState() {
+    super.initState();
+    _commentController.addListener(() {
+      setState(() => _charCount = _commentController.text.length);
+    });
+  }
 
   @override
   void dispose() {
@@ -255,24 +265,45 @@ class _CreateReviewViewState extends State<_CreateReviewView> {
   }
 
   Widget _buildCommentField() {
+    final nearLimit = _charCount >= _maxChars * 0.85;
+    final atLimit = _charCount >= _maxChars;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          'Nhận xét (tùy chọn)',
-          style: GoogleFonts.poppins(
-            fontSize: 14,
-            fontWeight: FontWeight.w600,
-            color: AppColors.textPrimary,
-          ),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              'Nhận xét (tùy chọn)',
+              style: GoogleFonts.poppins(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: AppColors.textPrimary,
+              ),
+            ),
+            Text(
+              '$_charCount/$_maxChars',
+              style: GoogleFonts.poppins(
+                fontSize: 12,
+                color: atLimit
+                    ? AppColors.error
+                    : nearLimit
+                        ? AppColors.warning
+                        : AppColors.textMuted,
+              ),
+            ),
+          ],
         ),
         const SizedBox(height: 8),
         TextField(
           controller: _commentController,
           maxLines: 4,
+          maxLength: _maxChars,
+          buildCounter: (_, {required currentLength, required isFocused, maxLength}) =>
+              const SizedBox.shrink(),
           decoration: InputDecoration(
-            hintText:
-                'Chia sẻ trải nghiệm của bạn về xe...',
+            hintText: 'Chia sẻ trải nghiệm của bạn về xe...',
             hintStyle: GoogleFonts.poppins(
               color: AppColors.textMuted,
               fontSize: 14,

@@ -168,6 +168,8 @@ class _RenterBookingsTabState extends State<_RenterBookingsTab>
               labelColor: AppColors.primary,
               unselectedLabelColor: AppColors.textMuted,
               indicatorColor: AppColors.primary,
+              isScrollable: true,
+              tabAlignment: TabAlignment.start,
               labelStyle: GoogleFonts.poppins(
                 fontSize: 14,
                 fontWeight: FontWeight.w600,

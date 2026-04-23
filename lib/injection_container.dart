@@ -6,6 +6,7 @@ import 'core/storage/storage_service.dart';
 import 'core/services/upload_service.dart';
 import 'core/services/socket_service.dart';
 import 'core/services/fcm_service.dart';
+import 'core/services/geocoding_service.dart';
 import 'core/services/location_service.dart';
 
 // Trip Feature
@@ -73,6 +74,7 @@ import 'features/vehicle/data/repositories/vehicle_repository_impl.dart';
 // Vehicle Feature - Domain Layer
 import 'features/vehicle/domain/repositories/vehicle_repository.dart';
 import 'features/vehicle/domain/usecases/get_available_vehicles.dart';
+import 'features/vehicle/domain/usecases/get_nearby_vehicles.dart';
 import 'features/vehicle/domain/usecases/get_vehicle_by_id.dart';
 
 // Vehicle Feature - Presentation Layer
@@ -128,6 +130,9 @@ Future<void> init() async {
 
   // Location Service - Singleton
   sl.registerLazySingleton<LocationService>(() => LocationService());
+
+  // Geocoding Service - Singleton (Nominatim / OSM, no API key required)
+  sl.registerLazySingleton<GeocodingService>(() => GeocodingService());
 
   //============================================================================
   // FEATURES - AUTH
@@ -210,10 +215,14 @@ Future<void> init() async {
 
   // Use Cases
   sl.registerLazySingleton(() => GetAvailableVehicles(sl()));
+  sl.registerLazySingleton(() => GetNearbyVehicles(sl()));
   sl.registerLazySingleton(() => GetVehicleById(sl()));
 
   // Cubit - Factory
-  sl.registerFactory(() => VehicleListCubit(getAvailableVehicles: sl()));
+  sl.registerFactory(() => VehicleListCubit(
+        getAvailableVehicles: sl(),
+        getNearbyVehicles: sl(),
+      ));
   sl.registerFactory(() => VehicleDetailCubit(getVehicleById: sl()));
 
   //============================================================================
@@ -323,18 +332,24 @@ Future<void> init() async {
   // Use Cases
   sl.registerLazySingleton(() => CreatePaymentUseCase(sl()));
   sl.registerLazySingleton(() => GetPaymentByBookingUseCase(sl()));
+  sl.registerLazySingleton(() => GetPaymentByIdUseCase(sl()));
   sl.registerLazySingleton(() => SimulatePaymentSuccessUseCase(sl()));
   sl.registerLazySingleton(() => InitiatePayOSUseCase(sl()));
   sl.registerLazySingleton(() => InitiateMoMoUseCase(sl()));
+  sl.registerLazySingleton(() => RefundPaymentUseCase(sl()));
+  sl.registerLazySingleton(() => GetOwnerEarningsUseCase(sl()));
 
   // BLoC - Factory
   sl.registerFactory(
     () => PaymentBloc(
       createPayment: sl(),
       getPaymentByBooking: sl(),
+      getPaymentById: sl(),
       simulateSuccess: sl(),
       initiatePayOS: sl(),
       initiateMoMo: sl(),
+      refundPayment: sl(),
+      getOwnerEarnings: sl(),
     ),
   );
 

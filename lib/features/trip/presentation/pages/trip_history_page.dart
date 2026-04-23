@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 
 import '../../../../core/theme/app_theme.dart';
 import '../../../../injection_container.dart';
+import '../../../review/presentation/pages/create_review_page.dart';
 import '../../domain/entities/trip_entity.dart';
 import '../bloc/trip_bloc.dart';
 import '../bloc/trip_event.dart';
@@ -23,8 +24,18 @@ class TripHistoryPage extends StatelessWidget {
   }
 }
 
-class _TripHistoryView extends StatelessWidget {
+enum _TripFilter { all, normal, issues }
+
+class _TripHistoryView extends StatefulWidget {
   const _TripHistoryView();
+
+  @override
+  State<_TripHistoryView> createState() => _TripHistoryViewState();
+}
+
+class _TripHistoryViewState extends State<_TripHistoryView> {
+  _TripFilter _filter = _TripFilter.all;
+  int _visibleCount = 10;
 
   @override
   Widget build(BuildContext context) {
@@ -49,14 +60,90 @@ class _TripHistoryView extends StatelessWidget {
             return const Center(child: CircularProgressIndicator());
           }
           if (state is TripHistoryLoaded) {
-            if (state.trips.isEmpty) {
-              return _buildEmptyState();
-            }
-            return ListView.builder(
-              padding: const EdgeInsets.all(16),
-              itemCount: state.trips.length,
-              itemBuilder: (context, index) =>
-                  _TripCard(trip: state.trips[index]),
+            final all = state.trips;
+            final normal = all.where((t) => !t.hasIssues).toList();
+            final issues = all.where((t) => t.hasIssues).toList();
+
+            final filtered = switch (_filter) {
+              _TripFilter.all => all,
+              _TripFilter.normal => normal,
+              _TripFilter.issues => issues,
+            };
+
+            return Column(
+              children: [
+                // Filter chips
+                Container(
+                  color: Colors.white,
+                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+                  child: Row(
+                    children: [
+                      _FilterChip(
+                        label: 'Tất cả',
+                        count: all.length,
+                        selected: _filter == _TripFilter.all,
+                        onTap: () => setState(() {
+                          _filter = _TripFilter.all;
+                          _visibleCount = 10;
+                        }),
+                      ),
+                      const SizedBox(width: 8),
+                      _FilterChip(
+                        label: 'Bình thường',
+                        count: normal.length,
+                        selected: _filter == _TripFilter.normal,
+                        onTap: () => setState(() {
+                          _filter = _TripFilter.normal;
+                          _visibleCount = 10;
+                        }),
+                      ),
+                      const SizedBox(width: 8),
+                      _FilterChip(
+                        label: 'Có sự cố',
+                        count: issues.length,
+                        selected: _filter == _TripFilter.issues,
+                        activeColor: AppColors.warning,
+                        onTap: () => setState(() {
+                          _filter = _TripFilter.issues;
+                          _visibleCount = 10;
+                        }),
+                      ),
+                    ],
+                  ),
+                ),
+                Expanded(
+                  child: filtered.isEmpty
+                      ? _buildEmptyState(_filter)
+                      : ListView.builder(
+                          padding: const EdgeInsets.all(16),
+                          itemCount: filtered.length > _visibleCount
+                              ? _visibleCount + 1
+                              : filtered.length,
+                          itemBuilder: (context, index) {
+                            if (index == _visibleCount) {
+                              return Padding(
+                                padding:
+                                    const EdgeInsets.symmetric(vertical: 8),
+                                child: TextButton(
+                                  onPressed: () => setState(
+                                    () => _visibleCount += 10,
+                                  ),
+                                  child: Text(
+                                    'Xem thêm (${filtered.length - _visibleCount} chuyến đi)',
+                                    style: GoogleFonts.poppins(
+                                      fontSize: 14,
+                                      color: AppColors.primary,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                ),
+                              );
+                            }
+                            return _TripCard(trip: filtered[index]);
+                          },
+                        ),
+                ),
+              ],
             );
           }
           if (state is TripFailure) {
@@ -68,12 +155,25 @@ class _TripHistoryView extends StatelessWidget {
     );
   }
 
-  Widget _buildEmptyState() {
+  Widget _buildEmptyState(_TripFilter filter) {
+    final String message;
+    final IconData icon;
+    if (filter == _TripFilter.issues) {
+      icon = Icons.check_circle_outline;
+      message = 'Không có chuyến đi nào có sự cố';
+    } else if (filter == _TripFilter.normal) {
+      icon = Icons.route_outlined;
+      message = 'Không có chuyến đi bình thường';
+    } else {
+      icon = Icons.route_outlined;
+      message = 'Các chuyến đi đã hoàn thành sẽ hiển thị ở đây';
+    }
+
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.route_outlined, size: 80, color: Colors.grey[300]),
+          Icon(icon, size: 80, color: Colors.grey[300]),
           const SizedBox(height: 16),
           Text(
             'Chưa có chuyến đi nào',
@@ -85,7 +185,7 @@ class _TripHistoryView extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           Text(
-            'Các chuyến đi đã hoàn thành sẽ hiển thị ở đây',
+            message,
             style: GoogleFonts.poppins(
               fontSize: 14,
               color: AppColors.textMuted,
@@ -93,6 +193,71 @@ class _TripHistoryView extends StatelessWidget {
             textAlign: TextAlign.center,
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _FilterChip extends StatelessWidget {
+  final String label;
+  final int count;
+  final bool selected;
+  final VoidCallback onTap;
+  final Color? activeColor;
+
+  const _FilterChip({
+    required this.label,
+    required this.count,
+    required this.selected,
+    required this.onTap,
+    this.activeColor,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final color = activeColor ?? AppColors.primary;
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        decoration: BoxDecoration(
+          color: selected ? color.withOpacity(0.12) : Colors.grey[100],
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: selected ? color : Colors.transparent,
+            width: 1.5,
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              label,
+              style: GoogleFonts.poppins(
+                fontSize: 13,
+                fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
+                color: selected ? color : AppColors.textSecondary,
+              ),
+            ),
+            const SizedBox(width: 4),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+              decoration: BoxDecoration(
+                color: selected ? color : Colors.grey[300],
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Text(
+                '$count',
+                style: GoogleFonts.poppins(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                  color: selected ? Colors.white : AppColors.textMuted,
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -204,6 +369,35 @@ class _TripCard extends StatelessWidget {
               _buildAddressRow(Icons.location_on, trip.endAddress!),
             ],
           ],
+          const Divider(height: 20),
+          // Review button
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              onPressed: () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => CreateReviewPage(
+                    vehicleId: trip.vehicleId,
+                    vehicleName: trip.vehicleName ?? 'Xe đã thuê',
+                  ),
+                ),
+              ),
+              icon: const Icon(Icons.star_outline_rounded, size: 16),
+              label: Text(
+                'Đánh giá chuyến đi',
+                style: GoogleFonts.poppins(fontSize: 13),
+              ),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: AppColors.warning,
+                side: const BorderSide(color: AppColors.warning),
+                padding: const EdgeInsets.symmetric(vertical: 10),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
+            ),
+          ),
         ],
       ),
     );

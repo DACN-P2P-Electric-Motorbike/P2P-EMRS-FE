@@ -2,6 +2,7 @@ import 'package:dartz/dartz.dart';
 import '../../../../core/error/exceptions.dart';
 import '../../../../core/error/failures.dart';
 import '../../domain/entities/payment_entity.dart';
+import '../../domain/entities/owner_earnings_entity.dart';
 import '../../domain/repositories/payment_repository.dart';
 import '../datasources/payment_remote_datasource.dart';
 
@@ -129,6 +130,20 @@ class PaymentRepositoryImpl implements PaymentRepository {
     try {
       final payment = await _remoteDataSource.refund(paymentId);
       return Right(payment.toEntity());
+    } on ServerException catch (e) {
+      return Left(ServerFailure(message: e.message));
+    } on ConnectionException {
+      return const Left(ConnectionFailure());
+    } catch (e) {
+      return Left(ServerFailure(message: e.toString()));
+    }
+  }
+
+  @override
+  Future<Either<Failure, OwnerEarningsEntity>> getOwnerEarnings() async {
+    try {
+      final earnings = await _remoteDataSource.getOwnerEarnings();
+      return Right(earnings);
     } on ServerException catch (e) {
       return Left(ServerFailure(message: e.message));
     } on ConnectionException {

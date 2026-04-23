@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 
+import '../../../../core/services/location_service.dart';
 import '../../../../core/services/socket_service.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../injection_container.dart';
@@ -682,7 +683,7 @@ class _BookingDetailPageState extends State<BookingDetailPage> {
       MaterialPageRoute(
         builder: (_) => CreateReviewPage(
           vehicleId: booking.vehicleId,
-          vehicleName: 'Xe #${booking.vehicleId.substring(0, 8)}',
+          vehicleName: booking.vehicleName ?? 'Xe đã thuê',
         ),
       ),
     );
@@ -862,11 +863,52 @@ class _BookingDetailPageState extends State<BookingDetailPage> {
   }
 }
 
-/// Start Trip button with its own BLoC listener
-class _StartTripButton extends StatelessWidget {
+/// Start Trip button — collects GPS before dispatching [StartTripEvent].
+class _StartTripButton extends StatefulWidget {
   final BookingEntity booking;
 
   const _StartTripButton({required this.booking});
+
+  @override
+  State<_StartTripButton> createState() => _StartTripButtonState();
+}
+
+class _StartTripButtonState extends State<_StartTripButton> {
+  bool _isGettingLocation = false;
+
+  Future<void> _handleStartTrip(BuildContext context) async {
+    setState(() => _isGettingLocation = true);
+
+    double? lat;
+    double? lng;
+    String? address;
+
+    try {
+      final position = await sl<LocationService>().getCurrentPosition();
+      if (position != null) {
+        lat = position.latitude;
+        lng = position.longitude;
+        // Build a simple address string from coords (reverse geocode not
+        // needed here — backend stores raw coords for distance calc)
+        address = '${position.latitude.toStringAsFixed(5)}, '
+            '${position.longitude.toStringAsFixed(5)}';
+      }
+    } catch (_) {
+      // GPS unavailable — proceed without coords (nullable in backend)
+    }
+
+    if (!mounted) return;
+    setState(() => _isGettingLocation = false);
+
+    context.read<TripBloc>().add(
+      StartTripEvent(
+        bookingId: widget.booking.id,
+        startLatitude: lat,
+        startLongitude: lng,
+        startAddress: address,
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -878,7 +920,7 @@ class _StartTripButton extends StatelessWidget {
             MaterialPageRoute(
               builder: (_) => ActiveTripPage(
                 tripId: state.trip.id,
-                bookingId: booking.id,
+                bookingId: widget.booking.id,
               ),
             ),
           );
@@ -892,15 +934,12 @@ class _StartTripButton extends StatelessWidget {
         }
       },
       builder: (context, state) {
+        final isBusy = state is TripLoading || _isGettingLocation;
         return SizedBox(
           width: double.infinity,
           child: ElevatedButton.icon(
-            onPressed: state is TripLoading
-                ? null
-                : () => context.read<TripBloc>().add(
-                    StartTripEvent(bookingId: booking.id),
-                  ),
-            icon: state is TripLoading
+            onPressed: isBusy ? null : () => _handleStartTrip(context),
+            icon: isBusy
                 ? const SizedBox(
                     height: 18,
                     width: 18,
@@ -911,7 +950,9 @@ class _StartTripButton extends StatelessWidget {
                   )
                 : const Icon(Icons.play_circle_outline),
             label: Text(
-              'Bắt đầu chuyến đi',
+              _isGettingLocation
+                  ? 'Đang lấy vị trí...'
+                  : 'Bắt đầu chuyến đi',
               style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
             ),
             style: ElevatedButton.styleFrom(

@@ -103,16 +103,17 @@ class VehicleRemoteDataSourceImpl implements VehicleRemoteDataSource {
   }) async {
     try {
       final response = await _dioClient.get(
-        '${ApiConstants.vehicles}/nearby',
+        ApiConstants.availableVehicles,
         queryParameters: {
           'latitude': latitude,
           'longitude': longitude,
-          'radius': radius,
+          'radiusKm': radius,
         },
       );
 
-      if (response.data is List) {
-        return (response.data as List)
+      final data = response.data;
+      if (data is Map<String, dynamic> && data['vehicles'] is List) {
+        return (data['vehicles'] as List)
             .map((json) => VehicleModel.fromJson(json))
             .toList();
       }
