@@ -39,6 +39,8 @@ class _VehicleListViewState extends State<_VehicleListView> {
   int? _minBatteryLevel;
   List<VehicleFeature> _selectedFeatures = [];
   String _sortBy = 'default'; // default, price_low, price_high, rating
+  DateTime? _desiredStartTime;
+  DateTime? _desiredEndTime;
 
   @override
   void dispose() {
@@ -72,11 +74,19 @@ class _VehicleListViewState extends State<_VehicleListView> {
       _minBatteryLevel = null;
       _selectedFeatures = [];
       _sortBy = 'default';
+      _desiredStartTime = null;
+      _desiredEndTime = null;
     });
 
-    if (_allVehicles.isNotEmpty) {
-      context.read<VehicleListCubit>().filterVehicles(_allVehicles);
-    }
+    _loadVehiclesFromServer();
+  }
+
+  Future<void> _loadVehiclesFromServer() async {
+    _allVehicles.clear();
+    await context.read<VehicleListCubit>().loadVehicles(
+      startTime: _desiredStartTime,
+      endTime: _desiredEndTime,
+    );
   }
 
   bool get _hasActiveFilters {
@@ -86,7 +96,9 @@ class _VehicleListViewState extends State<_VehicleListView> {
         _minBatteryLevel != null ||
         _selectedFeatures.isNotEmpty ||
         _sortBy != 'default' ||
-        _searchController.text.trim().isNotEmpty;
+          _searchController.text.trim().isNotEmpty ||
+          _desiredStartTime != null ||
+          _desiredEndTime != null;
   }
 
   @override
@@ -164,10 +176,17 @@ class _VehicleListViewState extends State<_VehicleListView> {
                                   minBatteryLevel: _minBatteryLevel,
                                   selectedFeatures: _selectedFeatures,
                                   sortBy: _sortBy,
+                                  selectedStartTime: _desiredStartTime,
+                                  selectedEndTime: _desiredEndTime,
                                 ),
                               );
 
                           if (result != null) {
+                            final newStartTime = result['startTime'] as DateTime?;
+                            final newEndTime = result['endTime'] as DateTime?;
+                            final timeChanged = newStartTime != _desiredStartTime ||
+                                newEndTime != _desiredEndTime;
+
                             setState(() {
                               _selectedBrand = result['brand'];
                               _selectedType = result['type'];
@@ -175,8 +194,15 @@ class _VehicleListViewState extends State<_VehicleListView> {
                               _minBatteryLevel = result['minBatteryLevel'];
                               _selectedFeatures = result['features'] ?? [];
                               _sortBy = result['sortBy'] ?? 'default';
+                              _desiredStartTime = newStartTime;
+                              _desiredEndTime = newEndTime;
                             });
-                            _applyFilters();
+
+                            if (timeChanged) {
+                              await _loadVehiclesFromServer();
+                            } else {
+                              _applyFilters();
+                            }
                           }
                         },
                         icon: Stack(
@@ -312,6 +338,17 @@ class _VehicleListViewState extends State<_VehicleListView> {
                           _applyFilters();
                         },
                       ),
+                    if (_desiredStartTime != null && _desiredEndTime != null)
+                      _buildFilterChip(
+                        'Thời gian: ${_formatDateTime(_desiredStartTime!)} - ${_formatDateTime(_desiredEndTime!)}',
+                        () {
+                          setState(() {
+                            _desiredStartTime = null;
+                            _desiredEndTime = null;
+                          });
+                          _loadVehiclesFromServer();
+                        },
+                      ),
                   ],
                 ),
               ),
@@ -373,8 +410,7 @@ class _VehicleListViewState extends State<_VehicleListView> {
                             const SizedBox(height: 24),
                             ElevatedButton.icon(
                               onPressed: () {
-                                _allVehicles.clear();
-                                context.read<VehicleListCubit>().loadVehicles();
+                                _loadVehiclesFromServer();
                               },
                               icon: const Icon(Icons.refresh),
                               label: const Text('Thử lại'),
@@ -446,8 +482,7 @@ class _VehicleListViewState extends State<_VehicleListView> {
 
                     return RefreshIndicator(
                       onRefresh: () async {
-                        _allVehicles.clear();
-                        context.read<VehicleListCubit>().loadVehicles();
+                        await _loadVehiclesFromServer();
                       },
                       child: Column(
                         children: [
@@ -531,6 +566,14 @@ class _VehicleListViewState extends State<_VehicleListView> {
           RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
           (m) => '${m[1]},',
         );
+  }
+
+  String _formatDateTime(DateTime value) {
+    final day = value.day.toString().padLeft(2, '0');
+    final month = value.month.toString().padLeft(2, '0');
+    final hour = value.hour.toString().padLeft(2, '0');
+    final minute = value.minute.toString().padLeft(2, '0');
+    return '$day/$month $hour:$minute';
   }
 
   String _getSortLabel(String sortBy) {

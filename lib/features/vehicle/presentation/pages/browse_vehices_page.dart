@@ -49,6 +49,10 @@ class _BrowseVehiclesViewState extends State<_BrowseVehiclesView> {
   bool _nearbyEnabled = false;
   double _nearbyRadius = 5.0; // km
   bool _locating = false;
+  double? _nearbyLat;
+  double? _nearbyLng;
+  DateTime? _desiredStartTime;
+  DateTime? _desiredEndTime;
 
   @override
   void dispose() {
@@ -86,21 +90,39 @@ class _BrowseVehiclesViewState extends State<_BrowseVehiclesView> {
         _selectedFeatures = [];
         _sortBy = 'default';
         _nearbyEnabled = false;
+        _desiredStartTime = null;
+        _desiredEndTime = null;
       });
 
-      if (_allVehicles.isNotEmpty) {
-        context.read<VehicleListCubit>().filterVehicles(_allVehicles);
-      }
+      _loadVehiclesFromServer();
     }
+  }
+
+  Future<void> _loadVehiclesFromServer() async {
+    _allVehicles.clear();
+    await context.read<VehicleListCubit>().loadVehicles(
+      startTime: _desiredStartTime,
+      endTime: _desiredEndTime,
+    );
+  }
+
+  Future<void> _loadNearbyVehiclesFromServer() async {
+    if (_nearbyLat == null || _nearbyLng == null) return;
+    _allVehicles.clear();
+    await context.read<VehicleListCubit>().loadNearbyVehicles(
+      userLat: _nearbyLat!,
+      userLng: _nearbyLng!,
+      radiusKm: _nearbyRadius,
+      startTime: _desiredStartTime,
+      endTime: _desiredEndTime,
+    );
   }
 
   // Toggle nearby filter — requests GPS and loads nearby vehicles
   Future<void> _toggleNearby() async {
     if (_nearbyEnabled) {
       setState(() => _nearbyEnabled = false);
-      if (_allVehicles.isNotEmpty) {
-        context.read<VehicleListCubit>().filterVehicles(_allVehicles);
-      }
+      await _loadVehiclesFromServer();
       return;
     }
 
@@ -124,12 +146,12 @@ class _BrowseVehiclesViewState extends State<_BrowseVehiclesView> {
         return;
       }
 
-      setState(() => _nearbyEnabled = true);
-      await context.read<VehicleListCubit>().loadNearbyVehicles(
-        userLat: position.latitude,
-        userLng: position.longitude,
-        radiusKm: _nearbyRadius,
-      );
+      setState(() {
+        _nearbyEnabled = true;
+        _nearbyLat = position.latitude;
+        _nearbyLng = position.longitude;
+      });
+      await _loadNearbyVehiclesFromServer();
     } finally {
       if (mounted) setState(() => _locating = false);
     }
@@ -144,7 +166,9 @@ class _BrowseVehiclesViewState extends State<_BrowseVehiclesView> {
         _selectedFeatures.isNotEmpty ||
         _sortBy != 'default' ||
         _searchController.text.trim().isNotEmpty ||
-        _nearbyEnabled;
+          _nearbyEnabled ||
+          _desiredStartTime != null ||
+          _desiredEndTime != null;
   }
 
   @override
@@ -178,7 +202,7 @@ class _BrowseVehiclesViewState extends State<_BrowseVehiclesView> {
                     _buildQuickActions(context),
 
                     // Results count
-                    // _buildResultsCount(),
+                    _buildResultsCount(),
                     const SliverToBoxAdapter(child: SizedBox(height: 16)),
 
                     // Vehicles Grid
@@ -334,10 +358,17 @@ class _BrowseVehiclesViewState extends State<_BrowseVehiclesView> {
                               minBatteryLevel: _minBatteryLevel,
                               selectedFeatures: _selectedFeatures,
                               sortBy: _sortBy,
+                              selectedStartTime: _desiredStartTime,
+                              selectedEndTime: _desiredEndTime,
                             ),
                           );
 
                       if (result != null && mounted) {
+                        final newStartTime = result['startTime'] as DateTime?;
+                        final newEndTime = result['endTime'] as DateTime?;
+                        final timeChanged = newStartTime != _desiredStartTime ||
+                            newEndTime != _desiredEndTime;
+
                         setState(() {
                           _selectedBrand = result['brand'];
                           _selectedType = result['type'];
@@ -345,8 +376,19 @@ class _BrowseVehiclesViewState extends State<_BrowseVehiclesView> {
                           _minBatteryLevel = result['minBatteryLevel'];
                           _selectedFeatures = result['features'] ?? [];
                           _sortBy = result['sortBy'] ?? 'default';
+                          _desiredStartTime = newStartTime;
+                          _desiredEndTime = newEndTime;
                         });
-                        _applyFilters();
+
+                        if (timeChanged) {
+                          if (_nearbyEnabled) {
+                            await _loadNearbyVehiclesFromServer();
+                          } else {
+                            await _loadVehiclesFromServer();
+                          }
+                        } else {
+                          _applyFilters();
+                        }
                       }
                     },
                     icon: Stack(
@@ -477,17 +519,30 @@ class _BrowseVehiclesViewState extends State<_BrowseVehiclesView> {
                 _applyFilters();
               }
             }),
+          if (_desiredStartTime != null && _desiredEndTime != null)
+            _buildFilterChip(
+              'Thời gian: ${_formatDateTime(_desiredStartTime!)} - ${_formatDateTime(_desiredEndTime!)}',
+              () {
+                if (mounted) {
+                  setState(() {
+                    _desiredStartTime = null;
+                    _desiredEndTime = null;
+                  });
+                  if (_nearbyEnabled) {
+                    _loadNearbyVehiclesFromServer();
+                  } else {
+                    _loadVehiclesFromServer();
+                  }
+                }
+              },
+            ),
           if (_nearbyEnabled)
             _buildFilterChip(
               '📍 Gần tôi: ${_nearbyRadius.toStringAsFixed(0)} km',
               () {
                 if (mounted) {
                   setState(() => _nearbyEnabled = false);
-                  if (_allVehicles.isNotEmpty) {
-                    context
-                        .read<VehicleListCubit>()
-                        .filterVehicles(_allVehicles);
-                  }
+                  _loadVehiclesFromServer();
                 }
               },
             ),
@@ -660,8 +715,11 @@ class _BrowseVehiclesViewState extends State<_BrowseVehiclesView> {
                     const SizedBox(height: 24),
                     ElevatedButton.icon(
                       onPressed: () {
-                        _allVehicles.clear();
-                        context.read<VehicleListCubit>().loadVehicles();
+                        if (_nearbyEnabled) {
+                          _loadNearbyVehiclesFromServer();
+                        } else {
+                          _loadVehiclesFromServer();
+                        }
                       },
                       icon: const Icon(Icons.refresh),
                       label: const Text('Thử lại'),
@@ -829,6 +887,15 @@ class _BrowseVehiclesViewState extends State<_BrowseVehiclesView> {
   }
 
   // Helper methods
+  String _formatDateTime(DateTime value) {
+    final day = value.day.toString().padLeft(2, '0');
+    final month = value.month.toString().padLeft(2, '0');
+    final year = value.year;
+    final hour = value.hour.toString().padLeft(2, '0');
+    final minute = value.minute.toString().padLeft(2, '0');
+    return '$day/$month/$year $hour:$minute';
+  }
+
   String _formatPrice(double price) {
     return price
         .toStringAsFixed(0)

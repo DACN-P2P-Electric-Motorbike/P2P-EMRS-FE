@@ -1,7 +1,6 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:equatable/equatable.dart';
 import 'package:geolocator/geolocator.dart';
-import '../../../../../core/usecases/usecase.dart';
 import '../../domain/entities/vehicle_entity.dart';
 import '../../domain/usecases/get_available_vehicles.dart';
 import '../../domain/usecases/get_nearby_vehicles.dart';
@@ -48,10 +47,12 @@ class VehicleListCubit extends Cubit<VehicleListState> {
         _getNearbyVehicles = getNearbyVehicles,
         super(VehicleListInitial());
 
-  Future<void> loadVehicles() async {
+  Future<void> loadVehicles({DateTime? startTime, DateTime? endTime}) async {
     emit(VehicleListLoading());
 
-    final result = await _getAvailableVehicles(const NoParams());
+    final result = await _getAvailableVehicles(
+      GetAvailableVehiclesParams(startTime: startTime, endTime: endTime),
+    );
 
     result.fold(
       (failure) => emit(VehicleListError(failure.message)),
@@ -93,7 +94,7 @@ class VehicleListCubit extends Cubit<VehicleListState> {
     // Apply brand filter
     if (brand != null) {
       filtered = filtered.where((vehicle) {
-        return vehicle.brand.toApiString() == brand;
+        return vehicle.brand == brand;
       }).toList();
     }
 
@@ -170,6 +171,8 @@ class VehicleListCubit extends Cubit<VehicleListState> {
     required double userLat,
     required double userLng,
     double radiusKm = 5.0,
+    DateTime? startTime,
+    DateTime? endTime,
   }) async {
     emit(VehicleListLoading());
 
@@ -178,6 +181,8 @@ class VehicleListCubit extends Cubit<VehicleListState> {
         latitude: userLat,
         longitude: userLng,
         radiusKm: radiusKm,
+        startTime: startTime,
+        endTime: endTime,
       ),
     );
 

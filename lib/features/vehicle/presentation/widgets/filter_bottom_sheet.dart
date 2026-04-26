@@ -10,6 +10,8 @@ class FilterBottomSheet extends StatefulWidget {
   final int? minBatteryLevel;
   final List<VehicleFeature> selectedFeatures;
   final String sortBy;
+  final DateTime? selectedStartTime;
+  final DateTime? selectedEndTime;
 
   const FilterBottomSheet({
     super.key,
@@ -19,6 +21,8 @@ class FilterBottomSheet extends StatefulWidget {
     this.minBatteryLevel,
     this.selectedFeatures = const [],
     this.sortBy = 'default',
+    this.selectedStartTime,
+    this.selectedEndTime,
   });
 
   @override
@@ -32,6 +36,8 @@ class _FilterBottomSheetState extends State<FilterBottomSheet> {
   late int _minBatteryLevel;
   late List<VehicleFeature> _selectedFeatures;
   late String _sortBy;
+  DateTime? _selectedStartTime;
+  DateTime? _selectedEndTime;
 
   @override
   void initState() {
@@ -42,6 +48,8 @@ class _FilterBottomSheetState extends State<FilterBottomSheet> {
     _minBatteryLevel = widget.minBatteryLevel ?? 0;
     _selectedFeatures = List.from(widget.selectedFeatures);
     _sortBy = widget.sortBy;
+    _selectedStartTime = widget.selectedStartTime;
+    _selectedEndTime = widget.selectedEndTime;
   }
 
   @override
@@ -141,11 +149,11 @@ class _FilterBottomSheetState extends State<FilterBottomSheet> {
                       children: VehicleBrand.values.map((brand) {
                         return _buildChoiceChip(
                           brand.displayName,
-                          _selectedBrand == brand.toApiString(),
+                          _selectedBrand == brand,
                           () {
                             setState(() {
                               _selectedBrand = _selectedBrand == brand
-                                  ? VehicleBrand.other
+                                  ? null
                                   : brand;
                             });
                           },
@@ -175,6 +183,45 @@ class _FilterBottomSheetState extends State<FilterBottomSheet> {
                         );
                       }).toList(),
                     ),
+
+                    const SizedBox(height: 24),
+
+                    // Desired rental time range
+                    _buildSectionTitle('Khung giờ muốn thuê'),
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _buildDateTimeCard(
+                            label: 'Từ',
+                            value: _selectedStartTime,
+                            onTap: () => _pickDateTime(isStart: true),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: _buildDateTimeCard(
+                            label: 'Đến',
+                            value: _selectedEndTime,
+                            onTap: () => _pickDateTime(isStart: false),
+                          ),
+                        ),
+                      ],
+                    ),
+                    if (_selectedStartTime != null || _selectedEndTime != null)
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: TextButton.icon(
+                          onPressed: () {
+                            setState(() {
+                              _selectedStartTime = null;
+                              _selectedEndTime = null;
+                            });
+                          },
+                          icon: const Icon(Icons.close, size: 16),
+                          label: const Text('Xóa thời gian'),
+                        ),
+                      ),
 
                     const SizedBox(height: 24),
 
@@ -394,10 +441,34 @@ class _FilterBottomSheetState extends State<FilterBottomSheet> {
       _minBatteryLevel = 0;
       _selectedFeatures.clear();
       _sortBy = 'default';
+      _selectedStartTime = null;
+      _selectedEndTime = null;
     });
   }
 
   void _applyFilters() {
+    if ((_selectedStartTime == null) != (_selectedEndTime == null)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Vui lòng chọn đủ cả thời gian bắt đầu và kết thúc.'),
+          backgroundColor: AppColors.error,
+        ),
+      );
+      return;
+    }
+
+    if (_selectedStartTime != null &&
+        _selectedEndTime != null &&
+        !_selectedEndTime!.isAfter(_selectedStartTime!)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Thời gian kết thúc phải sau thời gian bắt đầu.'),
+          backgroundColor: AppColors.error,
+        ),
+      );
+      return;
+    }
+
     Navigator.pop(context, {
       'brand': _selectedBrand,
       'type': _selectedType,
@@ -405,7 +476,104 @@ class _FilterBottomSheetState extends State<FilterBottomSheet> {
       'minBatteryLevel': _minBatteryLevel == 0 ? null : _minBatteryLevel,
       'features': _selectedFeatures,
       'sortBy': _sortBy,
+      'startTime': _selectedStartTime,
+      'endTime': _selectedEndTime,
     });
+  }
+
+  Widget _buildDateTimeCard({
+    required String label,
+    required DateTime? value,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: AppColors.surfaceVariant,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: AppColors.border),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              label,
+              style: GoogleFonts.poppins(
+                fontSize: 12,
+                color: AppColors.textSecondary,
+              ),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              value == null ? 'Chọn ngày giờ' : _formatDateTime(value),
+              style: GoogleFonts.poppins(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: value == null
+                    ? AppColors.textMuted
+                    : AppColors.textPrimary,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _pickDateTime({required bool isStart}) async {
+    final now = DateTime.now();
+    final initial = isStart
+        ? (_selectedStartTime ?? now.add(const Duration(hours: 1)))
+        : (_selectedEndTime ??
+              (_selectedStartTime?.add(const Duration(hours: 2)) ??
+                  now.add(const Duration(hours: 2))));
+
+    final pickedDate = await showDatePicker(
+      context: context,
+      initialDate: initial,
+      firstDate: DateTime(now.year, now.month, now.day),
+      lastDate: now.add(const Duration(days: 365)),
+    );
+    if (pickedDate == null) return;
+    if (!mounted) return;
+
+    final pickedTime = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay.fromDateTime(initial),
+    );
+    if (pickedTime == null) return;
+
+    final selected = DateTime(
+      pickedDate.year,
+      pickedDate.month,
+      pickedDate.day,
+      pickedTime.hour,
+      pickedTime.minute,
+    );
+
+    if (!mounted) return;
+    setState(() {
+      if (isStart) {
+        _selectedStartTime = selected;
+        if (_selectedEndTime != null && !_selectedEndTime!.isAfter(selected)) {
+          _selectedEndTime = selected.add(const Duration(hours: 1));
+        }
+      } else {
+        _selectedEndTime = selected;
+      }
+    });
+  }
+
+  String _formatDateTime(DateTime value) {
+    final day = value.day.toString().padLeft(2, '0');
+    final month = value.month.toString().padLeft(2, '0');
+    final year = value.year;
+    final hour = value.hour.toString().padLeft(2, '0');
+    final minute = value.minute.toString().padLeft(2, '0');
+    return '$day/$month/$year $hour:$minute';
   }
 
   String _formatPrice(double price) {
