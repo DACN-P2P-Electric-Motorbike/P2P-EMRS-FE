@@ -5,7 +5,10 @@ import '../../../../core/error/failures.dart';
 /// Repository interface for vehicle operations (renter side)
 abstract class VehicleRepository {
   /// Get all available vehicles
-  Future<Either<Failure, List<VehicleEntity>>> getAvailableVehicles();
+  Future<Either<Failure, List<VehicleEntity>>> getAvailableVehicles({
+    DateTime? startTime,
+    DateTime? endTime,
+  });
 
   /// Get vehicle by ID
   Future<Either<Failure, VehicleEntity>> getVehicleById(String id);
@@ -25,6 +28,8 @@ abstract class VehicleRepository {
     required double latitude,
     required double longitude,
     double radius = 5.0,
+    DateTime? startTime,
+    DateTime? endTime,
   });
 
   /// Save/bookmark a vehicle

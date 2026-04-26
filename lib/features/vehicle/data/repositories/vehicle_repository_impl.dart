@@ -12,9 +12,15 @@ class VehicleRepositoryImpl implements VehicleRepository {
     : _remoteDataSource = remoteDataSource;
 
   @override
-  Future<Either<Failure, List<VehicleEntity>>> getAvailableVehicles() async {
+  Future<Either<Failure, List<VehicleEntity>>> getAvailableVehicles({
+    DateTime? startTime,
+    DateTime? endTime,
+  }) async {
     try {
-      final vehicles = await _remoteDataSource.getAvailableVehicles();
+      final vehicles = await _remoteDataSource.getAvailableVehicles(
+        startTime: startTime,
+        endTime: endTime,
+      );
       return Right(vehicles.map((model) => model.toEntity()).toList());
     } on ServerException catch (e) {
       return Left(ServerFailure(message: e.message, statusCode: e.statusCode));
@@ -72,12 +78,16 @@ class VehicleRepositoryImpl implements VehicleRepository {
     required double latitude,
     required double longitude,
     double radius = 5.0,
+    DateTime? startTime,
+    DateTime? endTime,
   }) async {
     try {
       final vehicles = await _remoteDataSource.getNearbyVehicles(
         latitude: latitude,
         longitude: longitude,
         radius: radius,
+        startTime: startTime,
+        endTime: endTime,
       );
       return Right(vehicles.map((model) => model.toEntity()).toList());
     } on ServerException catch (e) {
