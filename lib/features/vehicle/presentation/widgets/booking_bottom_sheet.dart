@@ -5,11 +5,11 @@ import 'package:intl/intl.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/widgets/app_network_image.dart';
 import '../../../../injection_container.dart';
 import '../../../booking/presentation/bloc/booking_bloc.dart';
 import '../../../booking/presentation/bloc/booking_event.dart';
 import '../../../booking/presentation/bloc/booking_state.dart';
-import '../../../booking/presentation/pages/booking_detail_page.dart';
 import '../../domain/entities/vehicle_entity.dart';
 
 /// Enhanced Booking Bottom Sheet with full BLoC integration
@@ -336,14 +336,13 @@ class _EnhancedBookingContentState extends State<_EnhancedBookingContent> {
           ClipRRect(
             borderRadius: BorderRadius.circular(12),
             child: widget.vehicle.images.isNotEmpty
-                ? Image.network(
-                    widget.vehicle.images.first,
+                ? AppNetworkImage(
+                    imageUrl: widget.vehicle.images.first,
                     width: 80,
                     height: 80,
                     fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) {
-                      return _buildImagePlaceholder();
-                    },
+                    cacheWidth: 180,
+                    errorWidget: _buildImagePlaceholder(),
                   )
                 : _buildImagePlaceholder(),
           ),

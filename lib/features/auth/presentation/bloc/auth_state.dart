@@ -63,3 +63,12 @@ class ProfileUpdated extends AuthState {
   @override
   List<Object> get props => [user];
 }
+
+class SensitiveOtpSent extends AuthState {
+  final String message;
+
+  const SensitiveOtpSent({required this.message});
+
+  @override
+  List<Object> get props => [message];
+}

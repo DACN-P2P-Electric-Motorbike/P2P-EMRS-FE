@@ -5,6 +5,7 @@ import 'package:fe_capstone_project/features/owner_vehicle/presentation/pages/ow
 import 'package:fe_capstone_project/features/owner_vehicle/presentation/pages/owner_entry_page.dart';
 import 'package:fe_capstone_project/features/renter/presentation/pages/become_owner_page.dart';
 import 'package:fe_capstone_project/features/review/presentation/pages/trust_score_page.dart';
+import 'package:fe_capstone_project/features/settings/presentation/pages/app_settings_page.dart';
 import 'package:fe_capstone_project/features/trip/presentation/pages/trip_history_page.dart';
 import 'package:fe_capstone_project/features/vehicle/presentation/pages/browse_vehices_page.dart';
 import 'package:fe_capstone_project/features/vehicle/presentation/pages/vehicle_detail_page.dart';
@@ -48,30 +49,33 @@ class AppRouter {
     debugLogDiagnostics: true,
     redirect: (context, state) {
       final authState = context.read<AuthBloc>().state;
-      
+
       // If user is accessing owner routes, verify role
-      final isOwnerRoute = state.uri.path.startsWith('/owner') || 
-                           state.uri.path == '/owner-earnings';
-                           
+      final isOwnerRoute =
+          state.uri.path.startsWith('/owner') ||
+          state.uri.path == '/owner-earnings';
+
       if (isOwnerRoute && authState is AuthAuthenticated) {
         if (!authState.user.isOwner && !authState.user.isAdmin) {
           // If not owner/admin, redirect to become-owner page
           return '/become-owner';
         }
       }
-      
+
       // Redirect to login if unauthenticated and trying to access protected routes
       // (Simplified: assuming all routes except auth ones are protected)
-      final isAuthRoute = state.uri.path == '/login' || 
-                          state.uri.path == '/register' ||
-                          state.uri.path.startsWith('/forgot-password') ||
-                          state.uri.path.startsWith('/reset-password') ||
-                          state.uri.path.startsWith('/otp-verify');
-                          
-      if (!isAuthRoute && (authState is AuthInitial || authState is AuthUnauthenticated)) {
+      final isAuthRoute =
+          state.uri.path == '/login' ||
+          state.uri.path == '/register' ||
+          state.uri.path.startsWith('/forgot-password') ||
+          state.uri.path.startsWith('/reset-password') ||
+          state.uri.path.startsWith('/otp-verify');
+
+      if (!isAuthRoute &&
+          (authState is AuthInitial || authState is AuthUnauthenticated)) {
         return '/login';
       }
-      
+
       return null;
     },
     routes: [
@@ -131,7 +135,8 @@ class AppRouter {
             selectedIndex = 2;
           } else if (path.startsWith('/notifications')) {
             selectedIndex = 3;
-          } else if (path.startsWith('/profile')) {
+          } else if (path.startsWith('/profile') ||
+              path.startsWith('/settings')) {
             selectedIndex = 4;
           }
 
@@ -250,11 +255,16 @@ class AppRouter {
               child: const ProfilePage(),
             ),
           ),
+
+          GoRoute(
+            path: '/settings',
+            name: 'settings',
+            builder: (context, state) => const AppSettingsPage(),
+          ),
         ],
       ),
 
       // ==================== FULL SCREEN ROUTES (No navbar) ====================
-
       GoRoute(
         path: '/payment-sandbox',
         name: 'payment-sandbox',

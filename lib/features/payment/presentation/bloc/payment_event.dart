@@ -65,11 +65,12 @@ class GetPaymentByIdEvent extends PaymentEvent {
 
 class RefundPaymentEvent extends PaymentEvent {
   final String paymentId;
+  final String otp;
 
-  const RefundPaymentEvent(this.paymentId);
+  const RefundPaymentEvent({required this.paymentId, required this.otp});
 
   @override
-  List<Object?> get props => [paymentId];
+  List<Object?> get props => [paymentId, otp];
 }
 
 class ResetPaymentStateEvent extends PaymentEvent {

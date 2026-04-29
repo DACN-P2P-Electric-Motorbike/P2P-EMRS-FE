@@ -10,8 +10,12 @@ import 'package:fe_capstone_project/features/notification/presentation/widgets/n
 import 'package:fe_capstone_project/firebase_options.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:logger/logger.dart';
+import 'core/localization/app_localizations.dart';
+import 'core/settings/app_preferences_controller.dart';
+import 'core/storage/storage_service.dart';
 import 'core/theme/app_theme.dart';
 import 'core/router/app_router.dart';
 import 'core/services/socket_service.dart';
@@ -71,6 +75,9 @@ void main() async {
     await di.init();
     _logger.i('✅ Dependency injection initialized');
 
+    final appPreferences = AppPreferencesController(di.sl<StorageService>());
+    await appPreferences.load();
+
     // Initialize FCM (mobile only)
     if (!kIsWeb) {
       await di.sl<FcmService>().initialize();
@@ -80,7 +87,7 @@ void main() async {
     }
 
     _logger.i('🎉 Application initialization complete');
-  runApp(const MyApp());
+    runApp(MyApp(appPreferences: appPreferences));
   } catch (e, stackTrace) {
     _logger.e(
       '❌ Fatal error during app initialization',
@@ -92,7 +99,9 @@ void main() async {
 }
 
 class MyApp extends StatefulWidget {
-  const MyApp({super.key});
+  final AppPreferencesController appPreferences;
+
+  const MyApp({super.key, required this.appPreferences});
 
   @override
   State<MyApp> createState() => _MyAppState();
@@ -182,99 +191,100 @@ class _MyAppState extends State<MyApp> {
 
   @override
   Widget build(BuildContext context) {
-    return MultiBlocProvider(
-      providers: [
-        // Auth Bloc - Global
-        BlocProvider<AuthBloc>(
-          create: (_) {
-            _logger.d('🏗️ Creating AuthBloc instance');
-            return di.sl<AuthBloc>()..add(const AuthCheckRequested());
-          },
-        ),
+    return AppPreferencesScope(
+      controller: widget.appPreferences,
+      child: MultiBlocProvider(
+        providers: [
+          BlocProvider<AuthBloc>(
+            create: (_) {
+              _logger.d('🏗️ Creating AuthBloc instance');
+              return di.sl<AuthBloc>()..add(const AuthCheckRequested());
+            },
+          ),
+          BlocProvider<NotificationBloc>(
+            create: (_) {
+              _logger.d('🏗️ Creating NotificationBloc instance');
+              return di.sl<NotificationBloc>();
+            },
+          ),
+          BlocProvider<BookingBloc>(
+            create: (_) {
+              _logger.d('🏗️ Creating BookingBloc instance');
+              return di.sl<BookingBloc>();
+            },
+          ),
+        ],
+        child: BlocListener<AuthBloc, AuthState>(
+          listener: (context, state) async {
+            if (state is AuthAuthenticated) {
+              _logger.i('✅ User authenticated: ${state.user.email}');
 
-        // Notification Bloc - Global
-        BlocProvider<NotificationBloc>(
-          create: (_) {
-            _logger.d('🏗️ Creating NotificationBloc instance');
-            return di.sl<NotificationBloc>();
-          },
-        ),
+              if (!_socketService.isConnected) {
+                _logger.d('Socket not connected, attempting connection');
+                const serverUrl = 'http://localhost:3000';
+                await _socketService.connect(serverUrl);
+              } else {
+                _logger.d('Socket already connected');
+              }
 
-        // Booking Bloc - Global
-        BlocProvider<BookingBloc>(
-          create: (_) {
-            _logger.d('🏗️ Creating BookingBloc instance');
-            return di.sl<BookingBloc>();
-          },
-        ),
-      ],
-      child: BlocListener<AuthBloc, AuthState>(
-        listener: (context, state) async {
-          if (state is AuthAuthenticated) {
-            _logger.i('✅ User authenticated: ${state.user.email}');
+              if (!kIsWeb && _fcmService != null) {
+                _setupFcmCallbacks();
+                await _registerFcmToken();
+              }
 
-            // Connect socket
-            if (!_socketService.isConnected) {
-              _logger.d('Socket not connected, attempting connection');
-              final serverUrl = 'http://localhost:3000';
-              await _socketService.connect(serverUrl);
-            } else {
-              _logger.d('Socket already connected');
-            }
+              if (!context.mounted) return;
+              _logger.d('Loading user notifications');
+              context.read<NotificationBloc>().add(
+                const LoadNotificationsEvent(),
+              );
+            } else if (state is AuthSuccess) {
+              _logger.i('✅ Login succeeded: ${state.user.email}');
+              if (!kIsWeb && _fcmService != null) {
+                _setupFcmCallbacks();
+                await _registerFcmToken();
+              }
+            } else if (state is AuthUnauthenticated) {
+              _logger.i('User unauthenticated, disconnecting socket');
+              _socketService.disconnect();
 
-            // Setup FCM callbacks and register token (mobile only)
-            if (!kIsWeb && _fcmService != null) {
-              _setupFcmCallbacks();
-              await _registerFcmToken();
-            }
-
-            // Load notifications
-            _logger.d('Loading user notifications');
-            context.read<NotificationBloc>().add(
-              const LoadNotificationsEvent(),
-            );
-          } else if (state is AuthSuccess) {
-            // Register FCM token immediately after login without waiting for
-            // the AuthCheckRequested → AuthAuthenticated round-trip.
-            _logger.i('✅ Login succeeded: ${state.user.email}');
-            if (!kIsWeb && _fcmService != null) {
-              _setupFcmCallbacks();
-              await _registerFcmToken();
-            }
-          } else if (state is AuthUnauthenticated) {
-            _logger.i('User unauthenticated, disconnecting socket');
-            _socketService.disconnect();
-
-            // Unregister FCM token (mobile only)
-            if (!kIsWeb && _fcmService != null) {
-              final fcmToken = _fcmService!.fcmToken;
-              if (fcmToken != null) {
-                final unregisterUseCase = di.sl<UnregisterFcmTokenUseCase>();
-                await unregisterUseCase(UnregisterFcmTokenParams(fcmToken));
+              if (!kIsWeb && _fcmService != null) {
+                final fcmToken = _fcmService!.fcmToken;
+                if (fcmToken != null) {
+                  final unregisterUseCase = di.sl<UnregisterFcmTokenUseCase>();
+                  await unregisterUseCase(UnregisterFcmTokenParams(fcmToken));
+                }
               }
             }
-          }
-        },
-        child: MaterialApp.router(
-          title: 'P2P Electric Motorbike Rental',
-          debugShowCheckedModeBanner: false,
-          theme: AppTheme.lightTheme,
-          routerConfig: AppRouter.router,
-
-          // ✅ bot_toast integration
-          builder: (context, child) {
-            // Wrap with NotificationListenerWidget first
-            child = NotificationListenerWidget(
-              child: child ?? const SizedBox(),
-            );
-
-            // ✅ Initialize bot_toast
-            return BotToastInit()(context, child);
           },
-
-          // ✅ Add bot_toast navigator observer
-          // Note: GoRouter handles this internally, but if using Navigator directly:
-          // navigatorObservers: [BotToastNavigatorObserver()],
+          child: AnimatedBuilder(
+            animation: widget.appPreferences,
+            builder: (context, _) {
+              return MaterialApp.router(
+                title: AppLocalizations(
+                  widget.appPreferences.locale,
+                ).t('appTitle'),
+                debugShowCheckedModeBanner: false,
+                theme: AppTheme.lightTheme,
+                darkTheme: AppTheme.darkTheme,
+                themeMode: widget.appPreferences.themeMode,
+                locale: widget.appPreferences.locale,
+                supportedLocales: AppLocalizations.supportedLocales,
+                localizationsDelegates: const [
+                  AppLocalizations.delegate,
+                  GlobalMaterialLocalizations.delegate,
+                  GlobalWidgetsLocalizations.delegate,
+                  GlobalCupertinoLocalizations.delegate,
+                ],
+                routerConfig: AppRouter.router,
+                builder: (context, child) {
+                  child = NotificationListenerWidget(
+                    child: child ?? const SizedBox(),
+                  );
+                  return BotToastInit()(context, child);
+                },
+              );
+            },
+          ),
         ),
       ),
     );

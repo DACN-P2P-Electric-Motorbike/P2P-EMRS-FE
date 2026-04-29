@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/widgets/app_network_image.dart';
 import '../../../../injection_container.dart';
 import '../../domain/entities/vehicle_entity.dart';
 import '../bloc/owner_vehicle_bloc.dart';
@@ -119,7 +120,9 @@ class _YourBikeContentState extends State<_YourBikeContent>
               ),
             );
             // Reset state after showing success message
-            context.read<OwnerVehicleBloc>().add(const ResetOwnerVehicleState());
+            context.read<OwnerVehicleBloc>().add(
+              const ResetOwnerVehicleState(),
+            );
           }
         },
         builder: (context, state) {
@@ -189,31 +192,13 @@ class _YourBikeContentState extends State<_YourBikeContent>
                       height: 80,
                       color: AppColors.inputBackground,
                       child: vehicle.images.isNotEmpty
-                          ? Image.network(
-                              vehicle.thumbnailUrl,
+                          ? AppNetworkImage(
+                              imageUrl: vehicle.thumbnailUrl,
+                              width: 100,
+                              height: 80,
                               fit: BoxFit.cover,
-                              loadingBuilder:
-                                  (context, child, loadingProgress) {
-                                if (loadingProgress == null) return child;
-                                return Center(
-                                  child: CircularProgressIndicator(
-                                    value: loadingProgress.expectedTotalBytes !=
-                                            null
-                                        ? loadingProgress
-                                                .cumulativeBytesLoaded /
-                                            loadingProgress.expectedTotalBytes!
-                                        : null,
-                                    strokeWidth: 2,
-                                    color: AppColors.primary,
-                                  ),
-                                );
-                              },
-                              errorBuilder: (context, error, stackTrace) {
-                                debugPrint('Image load error: $error');
-                                debugPrint(
-                                    'Image URL: ${vehicle.thumbnailUrl}');
-                                return _buildPlaceholderImage();
-                              },
+                              cacheWidth: 220,
+                              errorWidget: _buildPlaceholderImage(),
                             )
                           : _buildPlaceholderImage(),
                     ),
@@ -319,8 +304,9 @@ class _YourBikeContentState extends State<_YourBikeContent>
             Container(
               decoration: BoxDecoration(
                 color: AppColors.inputBackground,
-                borderRadius:
-                    const BorderRadius.vertical(bottom: Radius.circular(16)),
+                borderRadius: const BorderRadius.vertical(
+                  bottom: Radius.circular(16),
+                ),
               ),
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
               child: Row(

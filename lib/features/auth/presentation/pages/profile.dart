@@ -1,5 +1,3 @@
-import 'dart:io';
-
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -10,6 +8,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../../../core/network/dio_client.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/widgets/app_avatar.dart';
 import '../../../../injection_container.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
 import '../../../auth/presentation/bloc/auth_event.dart';
@@ -34,7 +33,7 @@ class ProfilePage extends StatelessWidget {
             : (state is AuthAuthenticated ? state.user : null);
 
         return Scaffold(
-          backgroundColor: Colors.white,
+          backgroundColor: Theme.of(context).scaffoldBackgroundColor,
           body: SafeArea(
             child: SingleChildScrollView(
               padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -83,36 +82,13 @@ class ProfilePage extends StatelessWidget {
   Widget _buildProfileHeader(BuildContext context, dynamic user) {
     return Row(
       children: [
-        // Avatar
         GestureDetector(
           onTap: () => _uploadAvatar(context),
-          child: Container(
-            width: 80,
-            height: 80,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: AppColors.inputBackground,
-              image: user?.avatarUrl != null && user!.avatarUrl!.isNotEmpty
-                  ? DecorationImage(
-                      image: NetworkImage(user.avatarUrl!),
-                      fit: BoxFit.cover,
-                    )
-                  : null,
-            ),
-            child: user?.avatarUrl == null || user!.avatarUrl!.isEmpty
-                ? Center(
-                    child: Text(
-                      user?.fullName?.isNotEmpty == true
-                          ? user.fullName[0].toUpperCase()
-                          : 'U',
-                      style: GoogleFonts.poppins(
-                        fontSize: 36,
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.primary,
-                      ),
-                    ),
-                  )
-                : null,
+          child: AppAvatar(
+            imageUrl: user?.avatarUrl,
+            fallbackText: user?.fullName ?? 'U',
+            size: 80,
+            backgroundColor: AppColors.inputBackground,
           ),
         ),
 
@@ -324,21 +300,24 @@ class ProfilePage extends StatelessWidget {
         onTap: () {
           Navigator.push(
             context,
-            MaterialPageRoute(
-              builder: (context) => const PaymentMethodsPage(),
-            ),
+            MaterialPageRoute(builder: (context) => const PaymentMethodsPage()),
           );
         },
       ),
       _MenuItem(
-        icon: Icons.history, 
-        label: 'Lịch sử giao dịch', 
+        icon: Icons.history,
+        label: 'Lịch sử giao dịch',
         onTap: () => context.push('/trip-history'),
       ),
       _MenuItem(
         icon: Icons.notifications_outlined,
         label: 'Thông báo',
         onTap: () => context.push('/notifications'),
+      ),
+      _MenuItem(
+        icon: Icons.settings_outlined,
+        label: 'Cài đặt ứng dụng',
+        onTap: () => context.push('/settings'),
       ),
       _MenuItem(
         icon: Icons.help_outline,
@@ -524,9 +503,8 @@ class ProfilePage extends StatelessWidget {
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (dialogContext) => const Center(
-        child: CircularProgressIndicator(),
-      ),
+      builder: (dialogContext) =>
+          const Center(child: CircularProgressIndicator()),
     );
 
     try {
@@ -538,10 +516,7 @@ class ProfilePage extends StatelessWidget {
         ),
       });
 
-      await dioClient.post(
-        '/auth/upload-avatar',
-        data: formData,
-      );
+      await dioClient.post('/auth/upload-avatar', data: formData);
 
       if (context.mounted) {
         Navigator.pop(context); // Close loading dialog
@@ -689,7 +664,10 @@ class ProfilePage extends StatelessWidget {
             ),
             const SizedBox(height: 20),
             ListTile(
-              leading: const Icon(Icons.phone_outlined, color: AppColors.primary),
+              leading: const Icon(
+                Icons.phone_outlined,
+                color: AppColors.primary,
+              ),
               title: Text('Gọi điện thoại', style: GoogleFonts.poppins()),
               onTap: () async {
                 Navigator.pop(context);
@@ -700,7 +678,10 @@ class ProfilePage extends StatelessWidget {
               },
             ),
             ListTile(
-              leading: const Icon(Icons.email_outlined, color: AppColors.primary),
+              leading: const Icon(
+                Icons.email_outlined,
+                color: AppColors.primary,
+              ),
               title: Text('Gửi Email', style: GoogleFonts.poppins()),
               onTap: () async {
                 Navigator.pop(context);
@@ -711,7 +692,10 @@ class ProfilePage extends StatelessWidget {
               },
             ),
             ListTile(
-              leading: const Icon(Icons.chat_outlined, color: AppColors.primary),
+              leading: const Icon(
+                Icons.chat_outlined,
+                color: AppColors.primary,
+              ),
               title: Text('Chat với chúng tôi', style: GoogleFonts.poppins()),
               onTap: () {
                 Navigator.pop(context);

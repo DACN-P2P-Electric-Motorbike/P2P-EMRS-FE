@@ -40,6 +40,24 @@ class StorageService {
     return await _storage.read(key: StorageKeys.userId);
   }
 
+  Future<void> saveString(String key, String value) async {
+    await _storage.write(key: key, value: value);
+  }
+
+  Future<String?> getString(String key) async {
+    return _storage.read(key: key);
+  }
+
+  Future<void> saveBool(String key, bool value) async {
+    await _storage.write(key: key, value: value.toString());
+  }
+
+  Future<bool> getBool(String key, {bool defaultValue = false}) async {
+    final value = await _storage.read(key: key);
+    if (value == null) return defaultValue;
+    return value == 'true';
+  }
+
   /// Clear all stored data
   Future<void> clearAll() async {
     await _storage.deleteAll();

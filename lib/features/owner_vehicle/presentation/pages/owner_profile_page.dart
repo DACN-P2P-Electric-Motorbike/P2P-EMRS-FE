@@ -4,7 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../../../core/theme/app_theme.dart';
-import '../../../auth/domain/entities/user.dart';
+import '../../../../core/widgets/app_avatar.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
 import '../../../auth/presentation/bloc/auth_event.dart';
 import '../../../auth/presentation/bloc/auth_state.dart';
@@ -27,7 +27,7 @@ class OwnerProfilePage extends StatelessWidget {
             : (state is AuthAuthenticated ? state.user : null);
 
         return Scaffold(
-          backgroundColor: Colors.white,
+          backgroundColor: Theme.of(context).scaffoldBackgroundColor,
           body: SafeArea(
             child: SingleChildScrollView(
               padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -66,34 +66,12 @@ class OwnerProfilePage extends StatelessWidget {
   Widget _buildProfileHeader(BuildContext context, dynamic user) {
     return Row(
       children: [
-        // Avatar
-        Container(
-          width: 70,
-          height: 70,
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(12),
-            color: AppColors.inputBackground,
-            image: user?.avatarUrl != null
-                ? DecorationImage(
-                    image: NetworkImage(user.avatarUrl),
-                    fit: BoxFit.cover,
-                  )
-                : null,
-          ),
-          child: user?.avatarUrl == null
-              ? Center(
-                  child: Text(
-                    user?.fullName?.isNotEmpty == true
-                        ? user.fullName[0].toUpperCase()
-                        : 'U',
-                    style: GoogleFonts.poppins(
-                      fontSize: 28,
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.primary,
-                    ),
-                  ),
-                )
-              : null,
+        AppAvatar(
+          imageUrl: user?.avatarUrl,
+          fallbackText: user?.fullName ?? 'U',
+          size: 70,
+          borderRadius: BorderRadius.circular(12),
+          backgroundColor: AppColors.inputBackground,
         ),
 
         const SizedBox(width: 16),
@@ -232,7 +210,11 @@ class OwnerProfilePage extends StatelessWidget {
         label: 'Đặt xe của tôi',
         onTap: () => context.push('/bookings'),
       ),
-      _MenuItem(icon: Icons.settings_outlined, label: 'Cài đặt', onTap: () {}),
+      _MenuItem(
+        icon: Icons.settings_outlined,
+        label: 'Cài đặt',
+        onTap: () => context.push('/settings'),
+      ),
     ];
 
     return Column(

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../../../core/theme/app_theme.dart';
+import '../../../../../core/widgets/app_network_image.dart';
 
 class VehicleImageCarousel extends StatefulWidget {
   final List<String> images;
@@ -43,23 +44,13 @@ class _VehicleImageCarouselState extends State<VehicleImageCarousel> {
             },
             itemCount: widget.images.length,
             itemBuilder: (context, index) {
-              return Image.network(
-                widget.images[index],
+              return AppNetworkImage(
+                imageUrl: widget.images[index],
+                width: double.infinity,
+                height: widget.height,
                 fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) {
-                  return _buildPlaceholder();
-                },
-                loadingBuilder: (context, child, loadingProgress) {
-                  if (loadingProgress == null) return child;
-                  return Center(
-                    child: CircularProgressIndicator(
-                      value: loadingProgress.expectedTotalBytes != null
-                          ? loadingProgress.cumulativeBytesLoaded /
-                                loadingProgress.expectedTotalBytes!
-                          : null,
-                    ),
-                  );
-                },
+                cacheWidth: 1080,
+                errorWidget: _buildPlaceholder(),
               );
             },
           ),

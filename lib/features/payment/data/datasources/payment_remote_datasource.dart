@@ -20,7 +20,7 @@ abstract class PaymentRemoteDataSource {
 
   Future<Map<String, String>> initiateMoMo(String paymentId);
 
-  Future<PaymentModel> refund(String paymentId);
+  Future<PaymentModel> refund(String paymentId, String otp);
 
   Future<OwnerEarningsEntity> getOwnerEarnings();
 }
@@ -152,9 +152,12 @@ class PaymentRemoteDataSourceImpl implements PaymentRemoteDataSource {
   }
 
   @override
-  Future<PaymentModel> refund(String paymentId) async {
+  Future<PaymentModel> refund(String paymentId, String otp) async {
     try {
-      final response = await _dioClient.post('/payments/$paymentId/refund');
+      final response = await _dioClient.post(
+        '/payments/$paymentId/refund',
+        data: {'otp': otp},
+      );
       if (response.statusCode == 200) {
         return PaymentModel.fromJson(response.data as Map<String, dynamic>);
       }
@@ -185,4 +188,3 @@ class PaymentRemoteDataSourceImpl implements PaymentRemoteDataSource {
     }
   }
 }
-

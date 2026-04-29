@@ -1,6 +1,6 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/widgets/app_network_image.dart';
 import '../../domain/entities/vehicle_entity.dart';
 
 /// Card widget displaying vehicle information
@@ -29,19 +29,13 @@ class VehicleCard extends StatelessWidget {
                   height: 80,
                   color: AppColors.inputBackground,
                   child: vehicle.images.isNotEmpty
-                      ? Image.network(
-                          vehicle.thumbnailUrl,
+                      ? AppNetworkImage(
+                          imageUrl: vehicle.thumbnailUrl,
                           fit: BoxFit.cover,
-                          loadingBuilder: (context, child, loadingProgress) {
-                            if (loadingProgress == null) return child;
-                            return const Center(
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            );
-                          },
-                          errorBuilder: (_, error, __) {
-                            debugPrint('Vehicle card image error: $error');
-                            return _buildPlaceholder();
-                          },
+                          width: 100,
+                          height: 80,
+                          cacheWidth: 220,
+                          errorWidget: _buildPlaceholder(),
                         )
                       : _buildPlaceholder(),
                 ),

@@ -17,6 +17,7 @@ class ApiConstants {
   static const String authRegister = '/auth/register';
   static const String authLogin = '/auth/login';
   static const String authProfile = '/auth/profile';
+  static const String authSensitiveOtp = '/auth/request-sensitive-otp';
 
   /// Vehicle endpoints
   static const String vehicles = '/vehicles';
@@ -49,12 +50,16 @@ class ApiConstants {
   static String initiateMoMo(String id) => '/payments/$id/initiate-momo';
   static String refundPayment(String id) => '/payments/$id/refund';
 
+  /// Privacy endpoints
+  static const String privacyExport = '/privacy/export';
+  static const String privacyDeleteRequest = '/privacy/delete-request';
+  static const String privacyRequests = '/privacy/requests';
+
   /// Review endpoints
   static const String reviews = '/reviews';
   static const String myReviews = '/reviews/my-reviews';
   static const String trustScore = '/reviews/trust-score';
-  static String userTrustScore(String userId) =>
-      '/reviews/trust-score/$userId';
+  static String userTrustScore(String userId) => '/reviews/trust-score/$userId';
   static String vehicleReviews(String vehicleId) =>
       '/reviews/vehicle/$vehicleId';
 
@@ -73,4 +78,7 @@ class StorageKeys {
   static const String accessToken = 'access_token';
   static const String refreshToken = 'refresh_token';
   static const String userId = 'user_id';
+  static const String themeMode = 'theme_mode';
+  static const String localeCode = 'locale_code';
+  static const String dataSaverEnabled = 'data_saver_enabled';
 }

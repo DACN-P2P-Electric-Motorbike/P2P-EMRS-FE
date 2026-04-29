@@ -1,4 +1,3 @@
-import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -33,13 +32,15 @@ class _PaymentSandboxView extends StatefulWidget {
 class _PaymentSandboxViewState extends State<_PaymentSandboxView> {
   final _bookingIdController = TextEditingController();
   final _paymentIdController = TextEditingController();
+  final _otpController = TextEditingController();
   PaymentMethod _selectedMethod = PaymentMethod.payos;
 
   String _logString = '';
 
   void _log(String message) {
     setState(() {
-      _logString = '[${DateTime.now().toIso8601String().split('T').last}] $message\n\n$_logString';
+      _logString =
+          '[${DateTime.now().toIso8601String().split('T').last}] $message\n\n$_logString';
     });
   }
 
@@ -47,6 +48,7 @@ class _PaymentSandboxViewState extends State<_PaymentSandboxView> {
   void dispose() {
     _bookingIdController.dispose();
     _paymentIdController.dispose();
+    _otpController.dispose();
     super.dispose();
   }
 
@@ -57,7 +59,10 @@ class _PaymentSandboxViewState extends State<_PaymentSandboxView> {
       appBar: AppBar(
         title: Text(
           'Dev: Payment Sandbox',
-          style: GoogleFonts.poppins(color: Colors.white, fontWeight: FontWeight.bold),
+          style: GoogleFonts.poppins(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+          ),
         ),
         backgroundColor: AppColors.primary,
         iconTheme: const IconThemeData(color: Colors.white),
@@ -68,16 +73,26 @@ class _PaymentSandboxViewState extends State<_PaymentSandboxView> {
             _log('Status: Loading...');
           } else if (state is PaymentLoaded) {
             _paymentIdController.text = state.payment.id;
-            _log('Loaded Payment: ${state.payment.id}\nStatus: ${state.payment.status.name}\nAmount: ${state.payment.amount}');
+            _log(
+              'Loaded Payment: ${state.payment.id}\nStatus: ${state.payment.status.name}\nAmount: ${state.payment.amount}',
+            );
           } else if (state is PaymentCreated) {
             _paymentIdController.text = state.payment.id;
-            _log('Created Payment: ${state.payment.id}\nStatus: ${state.payment.status.name}');
+            _log(
+              'Created Payment: ${state.payment.id}\nStatus: ${state.payment.status.name}',
+            );
           } else if (state is PaymentSuccess) {
-            _log('Simulate Success: ${state.message}\nPayment ID: ${state.payment.id}\nStatus: ${state.payment.status.name}');
+            _log(
+              'Simulate Success: ${state.message}\nPayment ID: ${state.payment.id}\nStatus: ${state.payment.status.name}',
+            );
           } else if (state is PaymentRefunded) {
-            _log('Refunded Payment: ${state.payment.id}\nStatus: ${state.payment.status.name}');
+            _log(
+              'Refunded Payment: ${state.payment.id}\nStatus: ${state.payment.status.name}',
+            );
           } else if (state is PaymentUrlGenerated) {
-            _log('URL Generated:\nCheckout Url: ${state.paymentUrl}\nDeeplink: ${state.deeplink ?? 'N/A'}\nQRCode: ${state.qrCode != null ? 'Present' : 'None'}');
+            _log(
+              'URL Generated:\nCheckout Url: ${state.paymentUrl}\nDeeplink: ${state.deeplink ?? 'N/A'}\nQRCode: ${state.qrCode != null ? 'Present' : 'None'}',
+            );
           } else if (state is PaymentFailure) {
             _log('ERROR: ${state.message}');
           } else if (state is NoPaymentFound) {
@@ -142,20 +157,32 @@ class _PaymentSandboxViewState extends State<_PaymentSandboxView> {
                           runSpacing: 8,
                           children: [
                             ElevatedButton(
-                              onPressed: isLoading ? null : () {
-                                if (_bookingIdController.text.isEmpty) return _log('Missing Booking ID');
-                                context.read<PaymentBloc>().add(LoadPaymentByBookingEvent(_bookingIdController.text));
-                              },
+                              onPressed: isLoading
+                                  ? null
+                                  : () {
+                                      if (_bookingIdController.text.isEmpty)
+                                        return _log('Missing Booking ID');
+                                      context.read<PaymentBloc>().add(
+                                        LoadPaymentByBookingEvent(
+                                          _bookingIdController.text,
+                                        ),
+                                      );
+                                    },
                               child: const Text('Get by Booking ID'),
                             ),
                             ElevatedButton(
-                              onPressed: isLoading ? null : () {
-                                if (_bookingIdController.text.isEmpty) return _log('Missing Booking ID');
-                                context.read<PaymentBloc>().add(CreatePaymentEvent(
-                                  bookingId: _bookingIdController.text,
-                                  method: _selectedMethod,
-                                ));
-                              },
+                              onPressed: isLoading
+                                  ? null
+                                  : () {
+                                      if (_bookingIdController.text.isEmpty)
+                                        return _log('Missing Booking ID');
+                                      context.read<PaymentBloc>().add(
+                                        CreatePaymentEvent(
+                                          bookingId: _bookingIdController.text,
+                                          method: _selectedMethod,
+                                        ),
+                                      );
+                                    },
                               child: const Text('Create Payment'),
                             ),
                           ],
@@ -163,56 +190,108 @@ class _PaymentSandboxViewState extends State<_PaymentSandboxView> {
 
                         const SizedBox(height: 24),
                         _buildSectionHeader('Actions - Payment Related'),
+                        _buildTextField(
+                          controller: _otpController,
+                          label: 'Financial OTP',
+                          hint: 'Required for refund',
+                        ),
+                        const SizedBox(height: 12),
                         Wrap(
                           spacing: 8,
                           runSpacing: 8,
                           children: [
                             ElevatedButton(
-                              onPressed: isLoading ? null : () {
-                                if (_paymentIdController.text.isEmpty) return _log('Missing Payment ID');
-                                context.read<PaymentBloc>().add(GetPaymentByIdEvent(_paymentIdController.text));
-                              },
+                              onPressed: isLoading
+                                  ? null
+                                  : () {
+                                      if (_paymentIdController.text.isEmpty)
+                                        return _log('Missing Payment ID');
+                                      context.read<PaymentBloc>().add(
+                                        GetPaymentByIdEvent(
+                                          _paymentIdController.text,
+                                        ),
+                                      );
+                                    },
                               child: const Text('Get Payment by ID'),
                             ),
                             ElevatedButton(
-                              onPressed: isLoading ? null : () {
-                                if (_paymentIdController.text.isEmpty) return _log('Missing Payment ID');
-                                context.read<PaymentBloc>().add(InitiatePayOSEvent(_paymentIdController.text));
-                              },
+                              onPressed: isLoading
+                                  ? null
+                                  : () {
+                                      if (_paymentIdController.text.isEmpty)
+                                        return _log('Missing Payment ID');
+                                      context.read<PaymentBloc>().add(
+                                        InitiatePayOSEvent(
+                                          _paymentIdController.text,
+                                        ),
+                                      );
+                                    },
                               child: const Text('Initiate PayOS'),
                             ),
                             ElevatedButton(
-                              onPressed: isLoading ? null : () {
-                                if (_paymentIdController.text.isEmpty) return _log('Missing Payment ID');
-                                context.read<PaymentBloc>().add(InitiateMoMoEvent(_paymentIdController.text));
-                              },
+                              onPressed: isLoading
+                                  ? null
+                                  : () {
+                                      if (_paymentIdController.text.isEmpty)
+                                        return _log('Missing Payment ID');
+                                      context.read<PaymentBloc>().add(
+                                        InitiateMoMoEvent(
+                                          _paymentIdController.text,
+                                        ),
+                                      );
+                                    },
                               child: const Text('Initiate MoMo'),
                             ),
                             ElevatedButton(
-                              onPressed: isLoading ? null : () {
-                                if (_paymentIdController.text.isEmpty) return _log('Missing Payment ID');
-                                context.read<PaymentBloc>().add(SimulatePaymentSuccessEvent(_paymentIdController.text));
-                              },
+                              onPressed: isLoading
+                                  ? null
+                                  : () {
+                                      if (_paymentIdController.text.isEmpty)
+                                        return _log('Missing Payment ID');
+                                      context.read<PaymentBloc>().add(
+                                        SimulatePaymentSuccessEvent(
+                                          _paymentIdController.text,
+                                        ),
+                                      );
+                                    },
                               child: const Text('Simulate Success'),
                             ),
                             ElevatedButton(
-                              onPressed: isLoading ? null : () {
-                                if (_paymentIdController.text.isEmpty) return _log('Missing Payment ID');
-                                context.read<PaymentBloc>().add(RefundPaymentEvent(_paymentIdController.text));
-                              },
-                              style: ElevatedButton.styleFrom(backgroundColor: Colors.orange),
+                              onPressed: isLoading
+                                  ? null
+                                  : () {
+                                      if (_paymentIdController.text.isEmpty)
+                                        return _log('Missing Payment ID');
+                                      if (_otpController.text.isEmpty)
+                                        return _log('Missing OTP');
+                                      context.read<PaymentBloc>().add(
+                                        RefundPaymentEvent(
+                                          paymentId: _paymentIdController.text,
+                                          otp: _otpController.text,
+                                        ),
+                                      );
+                                    },
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.orange,
+                              ),
                               child: const Text('Refund Payment'),
                             ),
-                            if (state is PaymentUrlGenerated) ... [
+                            if (state is PaymentUrlGenerated) ...[
                               ElevatedButton(
                                 onPressed: () {
                                   final uri = Uri.tryParse(state.paymentUrl);
-                                  if (uri != null) launchUrl(uri, mode: LaunchMode.externalApplication);
+                                  if (uri != null)
+                                    launchUrl(
+                                      uri,
+                                      mode: LaunchMode.externalApplication,
+                                    );
                                 },
-                                style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.green,
+                                ),
                                 child: const Text('Open Payment Link'),
                               ),
-                            ]
+                            ],
                           ],
                         ),
                       ],
@@ -237,12 +316,14 @@ class _PaymentSandboxViewState extends State<_PaymentSandboxView> {
                           children: [
                             Text(
                               'Logs',
-                              style: GoogleFonts.robotoMono(fontWeight: FontWeight.bold),
+                              style: GoogleFonts.robotoMono(
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
                             IconButton(
                               icon: const Icon(Icons.clear, size: 20),
                               onPressed: () => setState(() => _logString = ''),
-                            )
+                            ),
                           ],
                         ),
                         Expanded(
@@ -275,6 +356,21 @@ class _PaymentSandboxViewState extends State<_PaymentSandboxView> {
           fontWeight: FontWeight.w600,
           color: AppColors.textPrimary,
         ),
+      ),
+    );
+  }
+
+  Widget _buildTextField({
+    required TextEditingController controller,
+    required String label,
+    required String hint,
+  }) {
+    return TextField(
+      controller: controller,
+      decoration: InputDecoration(
+        labelText: label,
+        hintText: hint,
+        border: const OutlineInputBorder(),
       ),
     );
   }

@@ -21,8 +21,7 @@ abstract class PaymentRepository {
 
   Future<Either<Failure, Map<String, String>>> initiateMoMo(String paymentId);
 
-  Future<Either<Failure, PaymentEntity>> refund(String paymentId);
+  Future<Either<Failure, PaymentEntity>> refund(String paymentId, String otp);
 
   Future<Either<Failure, OwnerEarningsEntity>> getOwnerEarnings();
 }
-

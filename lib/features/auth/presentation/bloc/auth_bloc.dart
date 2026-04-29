@@ -34,6 +34,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     on<AuthCheckRequested>(_onCheckRequested);
     on<AuthResetRequested>(_onResetRequested);
     on<UpdateProfileStarted>(_onUpdateProfile);
+    on<RequestSensitiveOtpStarted>(_onRequestSensitiveOtp);
   }
 
   /// Handle login event
@@ -120,14 +121,28 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   ) async {
     emit(const AuthLoading());
     final result = await _authRepository.updateProfile(
+      email: event.email,
       fullName: event.fullName,
       phone: event.phone,
       avatarUrl: event.avatarUrl,
       address: event.address,
+      otp: event.otp,
     );
     result.fold(
       (failure) => emit(AuthFailure(message: failure.message)),
       (user) => emit(ProfileUpdated(user: user)),
+    );
+  }
+
+  Future<void> _onRequestSensitiveOtp(
+    RequestSensitiveOtpStarted event,
+    Emitter<AuthState> emit,
+  ) async {
+    emit(const AuthLoading());
+    final result = await _authRepository.requestSensitiveOtp(event.purpose);
+    result.fold(
+      (failure) => emit(AuthFailure(message: failure.message)),
+      (message) => emit(SensitiveOtpSent(message: message)),
     );
   }
 }

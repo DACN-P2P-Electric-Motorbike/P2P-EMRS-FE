@@ -47,18 +47,31 @@ class AuthResetRequested extends AuthEvent {
 
 /// Event triggered when user updates their profile
 class UpdateProfileStarted extends AuthEvent {
+  final String? email;
   final String? fullName;
   final String? phone;
   final String? avatarUrl;
   final String? address;
+  final String? otp;
 
   const UpdateProfileStarted({
+    this.email,
     this.fullName,
     this.phone,
     this.avatarUrl,
     this.address,
+    this.otp,
   });
 
   @override
-  List<Object?> get props => [fullName, phone, avatarUrl, address];
+  List<Object?> get props => [email, fullName, phone, avatarUrl, address, otp];
+}
+
+class RequestSensitiveOtpStarted extends AuthEvent {
+  final String purpose;
+
+  const RequestSensitiveOtpStarted({required this.purpose});
+
+  @override
+  List<Object?> get props => [purpose];
 }
