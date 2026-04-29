@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../../../core/theme/app_theme.dart';
+import '../../../../../core/widgets/app_network_image.dart';
 import '../../domain/entities/vehicle_entity.dart';
 import 'booking_schedule_widget.dart';
 
@@ -49,14 +50,13 @@ class _VehicleCardState extends State<VehicleCard> {
                         top: Radius.circular(16),
                       ),
                       child: vehicle.images.isNotEmpty
-                          ? Image.network(
-                              vehicle.images.first,
+                          ? AppNetworkImage(
+                              imageUrl: vehicle.images.first,
                               height: 180,
                               width: double.infinity,
                               fit: BoxFit.cover,
-                              errorBuilder: (context, error, stackTrace) {
-                                return _buildPlaceholder();
-                              },
+                              cacheWidth: 720,
+                              errorWidget: _buildPlaceholder(),
                             )
                           : _buildPlaceholder(),
                     ),
@@ -277,7 +277,9 @@ class _VehicleCardState extends State<VehicleCard> {
                                         ? (vehicle.totalRating /
                                                   vehicle.reviewCount)
                                               .toStringAsFixed(1)
-                                        : vehicle.totalRating.toStringAsFixed(1),
+                                        : vehicle.totalRating.toStringAsFixed(
+                                            1,
+                                          ),
                                     style: GoogleFonts.poppins(
                                       fontSize: 13,
                                       fontWeight: FontWeight.w600,

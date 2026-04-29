@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/widgets/app_network_image.dart';
 import '../../domain/entities/vehicle_entity.dart';
 import '../bloc/vehicles_list_cubit.dart';
 
@@ -49,11 +50,14 @@ class NearbyVehiclesSheet extends StatelessWidget {
           // Header
           BlocBuilder<VehicleListCubit, VehicleListState>(
             builder: (context, state) {
-              final count =
-                  state is VehicleListLoaded ? state.vehicles.length : 0;
+              final count = state is VehicleListLoaded
+                  ? state.vehicles.length
+                  : 0;
               return Padding(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 4,
+                ),
                 child: Row(
                   children: [
                     Expanded(
@@ -66,11 +70,7 @@ class NearbyVehiclesSheet extends StatelessWidget {
                         ),
                       ),
                     ),
-                    Icon(
-                      Icons.sort,
-                      color: AppColors.textMuted,
-                      size: 20,
-                    ),
+                    Icon(Icons.sort, color: AppColors.textMuted, size: 20),
                     const SizedBox(width: 4),
                     Text(
                       'Gần nhất',
@@ -102,9 +102,11 @@ class NearbyVehiclesSheet extends StatelessWidget {
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Icon(Icons.error_outline,
-                              size: 48,
-                              color: AppColors.error.withOpacity(0.5)),
+                          Icon(
+                            Icons.error_outline,
+                            size: 48,
+                            color: AppColors.error.withOpacity(0.5),
+                          ),
                           const SizedBox(height: 12),
                           Text(
                             state.message,
@@ -116,9 +118,7 @@ class NearbyVehiclesSheet extends StatelessWidget {
                           const SizedBox(height: 16),
                           ElevatedButton.icon(
                             onPressed: () {
-                              context
-                                  .read<VehicleListCubit>()
-                                  .loadVehicles();
+                              context.read<VehicleListCubit>().loadVehicles();
                             },
                             icon: const Icon(Icons.refresh, size: 18),
                             label: const Text('Thử lại'),
@@ -165,7 +165,7 @@ class NearbyVehiclesSheet extends StatelessWidget {
                     controller: scrollController,
                     padding: const EdgeInsets.symmetric(vertical: 8),
                     itemCount: state.vehicles.length,
-                    separatorBuilder: (_, __) =>
+                    separatorBuilder: (context, index) =>
                         const Divider(height: 1, indent: 16, endIndent: 16),
                     itemBuilder: (context, index) {
                       return _NearbyVehicleListTile(
@@ -205,20 +205,23 @@ class _NearbyVehicleListTile extends StatelessWidget {
             // Vehicle image
             ClipRRect(
               borderRadius: BorderRadius.circular(12),
-              child: Image.network(
-                vehicle.thumbnailUrl,
+              child: AppNetworkImage(
+                imageUrl: vehicle.thumbnailUrl,
                 width: 70,
                 height: 70,
                 fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) => Container(
+                cacheWidth: 160,
+                errorWidget: Container(
                   width: 70,
                   height: 70,
                   decoration: BoxDecoration(
                     color: AppColors.surfaceVariant,
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: const Icon(Icons.electric_moped,
-                      color: AppColors.textMuted),
+                  child: const Icon(
+                    Icons.electric_moped,
+                    color: AppColors.textMuted,
+                  ),
                 ),
               ),
             ),
@@ -253,24 +256,35 @@ class _NearbyVehicleListTile extends StatelessWidget {
                   const SizedBox(height: 4),
                   Row(
                     children: [
-                      const Icon(Icons.star, size: 14, color: AppColors.warning),
+                      const Icon(
+                        Icons.star,
+                        size: 14,
+                        color: AppColors.warning,
+                      ),
                       const SizedBox(width: 2),
                       Text(
                         vehicle.reviewCount > 0
                             ? (vehicle.totalRating / vehicle.reviewCount)
-                                .toStringAsFixed(1)
+                                  .toStringAsFixed(1)
                             : '—',
                         style: GoogleFonts.poppins(
-                            fontSize: 12, color: AppColors.textSecondary),
+                          fontSize: 12,
+                          color: AppColors.textSecondary,
+                        ),
                       ),
                       const SizedBox(width: 8),
-                      Icon(Icons.battery_charging_full,
-                          size: 14, color: AppColors.success),
+                      Icon(
+                        Icons.battery_charging_full,
+                        size: 14,
+                        color: AppColors.success,
+                      ),
                       const SizedBox(width: 2),
                       Text(
                         '${vehicle.batteryLevel}%',
                         style: GoogleFonts.poppins(
-                            fontSize: 12, color: AppColors.textSecondary),
+                          fontSize: 12,
+                          color: AppColors.textSecondary,
+                        ),
                       ),
                     ],
                   ),
@@ -296,8 +310,10 @@ class _NearbyVehicleListTile extends StatelessWidget {
                 _buildDistanceBadge(),
                 const SizedBox(height: 4),
                 Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 2,
+                  ),
                   decoration: BoxDecoration(
                     color: isAvailable
                         ? AppColors.success.withOpacity(0.1)

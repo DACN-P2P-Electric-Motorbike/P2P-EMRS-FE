@@ -126,9 +126,12 @@ class PaymentRepositoryImpl implements PaymentRepository {
   }
 
   @override
-  Future<Either<Failure, PaymentEntity>> refund(String paymentId) async {
+  Future<Either<Failure, PaymentEntity>> refund(
+    String paymentId,
+    String otp,
+  ) async {
     try {
-      final payment = await _remoteDataSource.refund(paymentId);
+      final payment = await _remoteDataSource.refund(paymentId, otp);
       return Right(payment.toEntity());
     } on ServerException catch (e) {
       return Left(ServerFailure(message: e.message));

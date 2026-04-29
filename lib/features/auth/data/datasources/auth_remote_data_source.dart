@@ -18,11 +18,15 @@ abstract class AuthRemoteDataSource {
 
   /// Update user profile
   Future<AuthResponseModel> updateProfile({
+    String? email,
     String? fullName,
     String? phone,
     String? avatarUrl,
     String? address,
+    String? otp,
   });
+
+  Future<String> requestSensitiveOtp(String purpose);
 }
 
 /// Implementation of AuthRemoteDataSource using DioClient
@@ -103,17 +107,21 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
 
   @override
   Future<AuthResponseModel> updateProfile({
+    String? email,
     String? fullName,
     String? phone,
     String? avatarUrl,
     String? address,
+    String? otp,
   }) async {
     try {
       final data = <String, dynamic>{};
+      if (email != null) data['email'] = email;
       if (fullName != null) data['fullName'] = fullName;
       if (phone != null) data['phone'] = phone;
       if (avatarUrl != null) data['avatarUrl'] = avatarUrl;
       if (address != null) data['address'] = address;
+      if (otp != null) data['otp'] = otp;
 
       final response = await _dioClient.patch(
         ApiConstants.authProfile,
@@ -129,6 +137,28 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
 
       throw ServerException(
         message: 'Failed to update profile',
+        statusCode: response.statusCode,
+      );
+    } on DioException catch (e) {
+      throw _handleDioError(e);
+    }
+  }
+
+  @override
+  Future<String> requestSensitiveOtp(String purpose) async {
+    try {
+      final response = await _dioClient.post(
+        ApiConstants.authSensitiveOtp,
+        data: {'purpose': purpose},
+      );
+
+      if (response.statusCode == 200) {
+        final data = response.data as Map<String, dynamic>;
+        return data['message'] as String? ?? 'OTP sent';
+      }
+
+      throw ServerException(
+        message: 'Failed to request OTP',
         statusCode: response.statusCode,
       );
     } on DioException catch (e) {

@@ -104,19 +104,39 @@ class AuthRepositoryImpl implements AuthRepository {
 
   @override
   Future<Either<Failure, UserEntity>> updateProfile({
+    String? email,
     String? fullName,
     String? phone,
     String? avatarUrl,
     String? address,
+    String? otp,
   }) async {
     try {
       final response = await _remoteDataSource.updateProfile(
+        email: email,
         fullName: fullName,
         phone: phone,
         avatarUrl: avatarUrl,
         address: address,
+        otp: otp,
       );
       return Right(response.user.toEntity());
+    } on AuthenticationException catch (e) {
+      return Left(AuthenticationFailure(message: e.message));
+    } on NetworkException {
+      return const Left(ConnectionFailure());
+    } on ServerException catch (e) {
+      return Left(ServerFailure(message: e.message, statusCode: e.statusCode));
+    } catch (e) {
+      return Left(ServerFailure(message: e.toString()));
+    }
+  }
+
+  @override
+  Future<Either<Failure, String>> requestSensitiveOtp(String purpose) async {
+    try {
+      final message = await _remoteDataSource.requestSensitiveOtp(purpose);
+      return Right(message);
     } on AuthenticationException catch (e) {
       return Left(AuthenticationFailure(message: e.message));
     } on NetworkException {

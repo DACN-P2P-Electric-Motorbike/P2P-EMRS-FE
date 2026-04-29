@@ -12,7 +12,8 @@ class CreatePaymentParams {
   const CreatePaymentParams({required this.bookingId, required this.method});
 }
 
-class CreatePaymentUseCase implements UseCase<PaymentEntity, CreatePaymentParams> {
+class CreatePaymentUseCase
+    implements UseCase<PaymentEntity, CreatePaymentParams> {
   final PaymentRepository repository;
   CreatePaymentUseCase(this.repository);
 
@@ -72,7 +73,9 @@ class InitiatePayOSUseCase
   InitiatePayOSUseCase(this.repository);
 
   @override
-  Future<Either<Failure, Map<String, String>>> call(InitiatePayOSParams params) {
+  Future<Either<Failure, Map<String, String>>> call(
+    InitiatePayOSParams params,
+  ) {
     return repository.initiatePayOS(params.paymentId);
   }
 }
@@ -111,7 +114,9 @@ class GetPaymentByIdUseCase
 
 class RefundPaymentParams {
   final String paymentId;
-  const RefundPaymentParams(this.paymentId);
+  final String otp;
+
+  const RefundPaymentParams({required this.paymentId, required this.otp});
 }
 
 class RefundPaymentUseCase
@@ -121,7 +126,7 @@ class RefundPaymentUseCase
 
   @override
   Future<Either<Failure, PaymentEntity>> call(RefundPaymentParams params) {
-    return repository.refund(params.paymentId);
+    return repository.refund(params.paymentId, params.otp);
   }
 }
 
@@ -135,4 +140,3 @@ class GetOwnerEarningsUseCase
     return repository.getOwnerEarnings();
   }
 }
-

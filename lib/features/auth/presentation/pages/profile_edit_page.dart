@@ -19,27 +19,39 @@ class ProfileEditPage extends StatefulWidget {
 
 class _ProfileEditPageState extends State<ProfileEditPage> {
   final _formKey = GlobalKey<FormState>();
+  late final TextEditingController _emailCtrl;
   late final TextEditingController _fullNameCtrl;
   late final TextEditingController _phoneCtrl;
   late final TextEditingController _avatarCtrl;
   late final TextEditingController _addressCtrl;
+  late final TextEditingController _otpCtrl;
+  bool _otpRequested = false;
 
   @override
   void initState() {
     super.initState();
+    _emailCtrl = TextEditingController(text: widget.user.email);
     _fullNameCtrl = TextEditingController(text: widget.user.fullName);
     _phoneCtrl = TextEditingController(text: widget.user.phone);
     _avatarCtrl = TextEditingController(text: widget.user.avatarUrl ?? '');
     _addressCtrl = TextEditingController(text: widget.user.address ?? '');
+    _otpCtrl = TextEditingController();
   }
 
   @override
   void dispose() {
+    _emailCtrl.dispose();
     _fullNameCtrl.dispose();
     _phoneCtrl.dispose();
     _avatarCtrl.dispose();
     _addressCtrl.dispose();
+    _otpCtrl.dispose();
     super.dispose();
+  }
+
+  bool get _sensitiveChanged {
+    return _emailCtrl.text.trim() != widget.user.email ||
+        _phoneCtrl.text.trim() != widget.user.phone;
   }
 
   void _submit() {
@@ -47,6 +59,7 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
 
     context.read<AuthBloc>().add(
       UpdateProfileStarted(
+        email: _emailCtrl.text.trim(),
         fullName: _fullNameCtrl.text.trim(),
         phone: _phoneCtrl.text.trim(),
         avatarUrl: _avatarCtrl.text.trim().isEmpty
@@ -55,7 +68,14 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
         address: _addressCtrl.text.trim().isEmpty
             ? null
             : _addressCtrl.text.trim(),
+        otp: _sensitiveChanged ? _otpCtrl.text.trim() : null,
       ),
+    );
+  }
+
+  void _requestOtp() {
+    context.read<AuthBloc>().add(
+      const RequestSensitiveOtpStarted(purpose: 'SENSITIVE_PROFILE_CHANGE'),
     );
   }
 
@@ -74,6 +94,17 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
             ),
           );
           Navigator.of(context).pop(state.user);
+        } else if (state is SensitiveOtpSent) {
+          setState(() => _otpRequested = true);
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                state.message,
+                style: GoogleFonts.poppins(fontSize: 14),
+              ),
+              backgroundColor: AppColors.success,
+            ),
+          );
         } else if (state is AuthFailure) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
@@ -101,8 +132,11 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
           ),
           centerTitle: true,
           leading: IconButton(
-            icon: const Icon(Icons.arrow_back_ios_new_rounded,
-                color: AppColors.textPrimary, size: 20),
+            icon: const Icon(
+              Icons.arrow_back_ios_new_rounded,
+              color: AppColors.textPrimary,
+              size: 20,
+            ),
             onPressed: () => Navigator.of(context).pop(),
           ),
         ),
@@ -122,7 +156,7 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
                         children: [
                           ValueListenableBuilder<TextEditingValue>(
                             valueListenable: _avatarCtrl,
-                            builder: (_, value, __) {
+                            builder: (context, value, child) {
                               final url = value.text.trim();
                               return CircleAvatar(
                                 radius: 50,
@@ -134,7 +168,7 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
                                     ? Text(
                                         widget.user.fullName.isNotEmpty
                                             ? widget.user.fullName[0]
-                                                .toUpperCase()
+                                                  .toUpperCase()
                                             : '?',
                                         style: GoogleFonts.poppins(
                                           fontSize: 36,
@@ -153,6 +187,27 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
 
                     _buildSectionTitle('Thông tin cá nhân'),
                     const SizedBox(height: 12),
+
+                    _buildField(
+                      controller: _emailCtrl,
+                      label: 'Email',
+                      hint: 'Nhập email',
+                      icon: Icons.email_outlined,
+                      keyboardType: TextInputType.emailAddress,
+                      validator: (v) {
+                        if (v == null || v.trim().isEmpty) {
+                          return 'Vui lòng nhập email';
+                        }
+                        if (!RegExp(
+                          r'^[^@]+@[^@]+\.[^@]+$',
+                        ).hasMatch(v.trim())) {
+                          return 'Email không hợp lệ';
+                        }
+                        return null;
+                      },
+                      enabled: !isLoading,
+                    ),
+                    const SizedBox(height: 14),
 
                     _buildField(
                       controller: _fullNameCtrl,
@@ -188,6 +243,55 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
                       enabled: !isLoading,
                     ),
                     const SizedBox(height: 14),
+
+                    ValueListenableBuilder<TextEditingValue>(
+                      valueListenable: _phoneCtrl,
+                      builder: (context, phoneValue, child) {
+                        return ValueListenableBuilder<TextEditingValue>(
+                          valueListenable: _emailCtrl,
+                          builder: (context, emailValue, child) {
+                            if (!_sensitiveChanged) {
+                              return const SizedBox.shrink();
+                            }
+
+                            return Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                OutlinedButton.icon(
+                                  onPressed: isLoading ? null : _requestOtp,
+                                  icon: const Icon(Icons.password_outlined),
+                                  label: Text(
+                                    _otpRequested
+                                        ? 'Gửi lại mã OTP'
+                                        : 'Gửi mã OTP',
+                                  ),
+                                ),
+                                const SizedBox(height: 12),
+                                _buildField(
+                                  controller: _otpCtrl,
+                                  label: 'Mã OTP',
+                                  hint: 'Nhập mã 5 chữ số',
+                                  icon: Icons.lock_outline,
+                                  keyboardType: TextInputType.number,
+                                  validator: (v) {
+                                    if (!_sensitiveChanged) return null;
+                                    if (v == null ||
+                                        !RegExp(
+                                          r'^\d{5}$',
+                                        ).hasMatch(v.trim())) {
+                                      return 'Vui lòng nhập mã OTP 5 chữ số';
+                                    }
+                                    return null;
+                                  },
+                                  enabled: !isLoading,
+                                ),
+                                const SizedBox(height: 14),
+                              ],
+                            );
+                          },
+                        );
+                      },
+                    ),
 
                     _buildField(
                       controller: _addressCtrl,
@@ -312,8 +416,10 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
           fontSize: 13,
           color: AppColors.textMuted,
         ),
-        contentPadding:
-            const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 14,
+        ),
       ),
     );
   }

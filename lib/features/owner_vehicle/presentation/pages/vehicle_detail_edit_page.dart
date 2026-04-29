@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/widgets/app_network_image.dart';
 import '../../../../core/utils/open_external_map.dart';
 import '../../../../injection_container.dart';
 import '../../domain/entities/vehicle_entity.dart';
@@ -220,10 +221,13 @@ class _VehicleDetailContentState extends State<_VehicleDetailContent> {
           ? PageView.builder(
               itemCount: vehicle.images.length,
               itemBuilder: (context, index) {
-                return Image.network(
-                  vehicle.images[index],
+                return AppNetworkImage(
+                  imageUrl: vehicle.images[index],
+                  width: double.infinity,
+                  height: 250,
                   fit: BoxFit.cover,
-                  errorBuilder: (_, __, ___) => _buildPlaceholderImage(),
+                  cacheWidth: 1080,
+                  errorWidget: _buildPlaceholderImage(),
                 );
               },
             )

@@ -104,6 +104,9 @@ import 'features/notification/domain/usecases/notification_usecases.dart';
 // Notification Feature - Presentation Layer
 import 'features/notification/presentation/bloc/notification_bloc.dart';
 
+// Settings Feature
+import 'features/settings/data/privacy_remote_data_source.dart';
+
 /// Global service locator instance
 final sl = GetIt.instance;
 
@@ -133,6 +136,11 @@ Future<void> init() async {
 
   // Geocoding Service - Singleton (Nominatim / OSM, no API key required)
   sl.registerLazySingleton<GeocodingService>(() => GeocodingService());
+
+  // Privacy API - Singleton (depends on DioClient)
+  sl.registerLazySingleton<PrivacyRemoteDataSource>(
+    () => PrivacyRemoteDataSourceImpl(dioClient: sl()),
+  );
 
   //============================================================================
   // FEATURES - AUTH
@@ -219,10 +227,9 @@ Future<void> init() async {
   sl.registerLazySingleton(() => GetVehicleById(sl()));
 
   // Cubit - Factory
-  sl.registerFactory(() => VehicleListCubit(
-        getAvailableVehicles: sl(),
-        getNearbyVehicles: sl(),
-      ));
+  sl.registerFactory(
+    () => VehicleListCubit(getAvailableVehicles: sl(), getNearbyVehicles: sl()),
+  );
   sl.registerFactory(() => VehicleDetailCubit(getVehicleById: sl()));
 
   //============================================================================

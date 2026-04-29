@@ -28,9 +28,13 @@ abstract class AuthRepository {
 
   /// Update user profile (fullName, phone, avatarUrl, address)
   Future<Either<Failure, UserEntity>> updateProfile({
+    String? email,
     String? fullName,
     String? phone,
     String? avatarUrl,
     String? address,
+    String? otp,
   });
+
+  Future<Either<Failure, String>> requestSensitiveOtp(String purpose);
 }

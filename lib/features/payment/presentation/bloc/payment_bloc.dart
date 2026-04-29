@@ -67,8 +67,9 @@ class PaymentBloc extends Bloc<PaymentEvent, PaymentState> {
     );
     result.fold(
       (failure) => emit(PaymentFailure(failure.message)),
-      (payment) =>
-          payment != null ? emit(PaymentLoaded(payment)) : emit(const NoPaymentFound()),
+      (payment) => payment != null
+          ? emit(PaymentLoaded(payment))
+          : emit(const NoPaymentFound()),
     );
   }
 
@@ -94,10 +95,12 @@ class PaymentBloc extends Bloc<PaymentEvent, PaymentState> {
     final result = await _initiatePayOS(InitiatePayOSParams(event.paymentId));
     result.fold(
       (failure) => emit(PaymentFailure(failure.message)),
-      (data) => emit(PaymentUrlGenerated(
-        paymentUrl: data['checkoutUrl'] ?? '',
-        qrCode: data['qrCode'],
-      )),
+      (data) => emit(
+        PaymentUrlGenerated(
+          paymentUrl: data['checkoutUrl'] ?? '',
+          qrCode: data['qrCode'],
+        ),
+      ),
     );
   }
 
@@ -135,7 +138,9 @@ class PaymentBloc extends Bloc<PaymentEvent, PaymentState> {
     Emitter<PaymentState> emit,
   ) async {
     emit(const PaymentLoading());
-    final result = await _refundPayment(RefundPaymentParams(event.paymentId));
+    final result = await _refundPayment(
+      RefundPaymentParams(paymentId: event.paymentId, otp: event.otp),
+    );
     result.fold(
       (failure) => emit(PaymentFailure(failure.message)),
       (payment) => emit(PaymentRefunded(payment)),

@@ -1,5 +1,3 @@
-import 'dart:io';
-
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -324,21 +322,24 @@ class ProfilePage extends StatelessWidget {
         onTap: () {
           Navigator.push(
             context,
-            MaterialPageRoute(
-              builder: (context) => const PaymentMethodsPage(),
-            ),
+            MaterialPageRoute(builder: (context) => const PaymentMethodsPage()),
           );
         },
       ),
       _MenuItem(
-        icon: Icons.history, 
-        label: 'Lịch sử giao dịch', 
+        icon: Icons.history,
+        label: 'Lịch sử giao dịch',
         onTap: () => context.push('/trip-history'),
       ),
       _MenuItem(
         icon: Icons.notifications_outlined,
         label: 'Thông báo',
         onTap: () => context.push('/notifications'),
+      ),
+      _MenuItem(
+        icon: Icons.settings_outlined,
+        label: 'Cài đặt ứng dụng',
+        onTap: () => context.push('/settings'),
       ),
       _MenuItem(
         icon: Icons.help_outline,
@@ -524,9 +525,8 @@ class ProfilePage extends StatelessWidget {
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (dialogContext) => const Center(
-        child: CircularProgressIndicator(),
-      ),
+      builder: (dialogContext) =>
+          const Center(child: CircularProgressIndicator()),
     );
 
     try {
@@ -538,10 +538,7 @@ class ProfilePage extends StatelessWidget {
         ),
       });
 
-      await dioClient.post(
-        '/auth/upload-avatar',
-        data: formData,
-      );
+      await dioClient.post('/auth/upload-avatar', data: formData);
 
       if (context.mounted) {
         Navigator.pop(context); // Close loading dialog
@@ -689,7 +686,10 @@ class ProfilePage extends StatelessWidget {
             ),
             const SizedBox(height: 20),
             ListTile(
-              leading: const Icon(Icons.phone_outlined, color: AppColors.primary),
+              leading: const Icon(
+                Icons.phone_outlined,
+                color: AppColors.primary,
+              ),
               title: Text('Gọi điện thoại', style: GoogleFonts.poppins()),
               onTap: () async {
                 Navigator.pop(context);
@@ -700,7 +700,10 @@ class ProfilePage extends StatelessWidget {
               },
             ),
             ListTile(
-              leading: const Icon(Icons.email_outlined, color: AppColors.primary),
+              leading: const Icon(
+                Icons.email_outlined,
+                color: AppColors.primary,
+              ),
               title: Text('Gửi Email', style: GoogleFonts.poppins()),
               onTap: () async {
                 Navigator.pop(context);
@@ -711,7 +714,10 @@ class ProfilePage extends StatelessWidget {
               },
             ),
             ListTile(
-              leading: const Icon(Icons.chat_outlined, color: AppColors.primary),
+              leading: const Icon(
+                Icons.chat_outlined,
+                color: AppColors.primary,
+              ),
               title: Text('Chat với chúng tôi', style: GoogleFonts.poppins()),
               onTap: () {
                 Navigator.pop(context);

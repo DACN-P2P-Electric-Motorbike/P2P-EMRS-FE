@@ -4,7 +4,6 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../../../core/theme/app_theme.dart';
-import '../../../auth/domain/entities/user.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
 import '../../../auth/presentation/bloc/auth_event.dart';
 import '../../../auth/presentation/bloc/auth_state.dart';
@@ -232,7 +231,11 @@ class OwnerProfilePage extends StatelessWidget {
         label: 'Đặt xe của tôi',
         onTap: () => context.push('/bookings'),
       ),
-      _MenuItem(icon: Icons.settings_outlined, label: 'Cài đặt', onTap: () {}),
+      _MenuItem(
+        icon: Icons.settings_outlined,
+        label: 'Cài đặt',
+        onTap: () => context.push('/settings'),
+      ),
     ];
 
     return Column(
