@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/widgets/app_network_image.dart';
 import '../../../../injection_container.dart';
 import '../../data/models/create_vehicle_params.dart';
 import '../../domain/entities/vehicle_entity.dart';
@@ -443,39 +444,41 @@ class _RegisterVehicleContentState extends State<_RegisterVehicleContent> {
                   width: 100,
                   height: 100,
                   margin: const EdgeInsets.only(right: 12),
-                  decoration: BoxDecoration(
+                  child: ClipRRect(
                     borderRadius: BorderRadius.circular(12),
-                    image: DecorationImage(
-                      image: NetworkImage(entry.value),
-                      fit: BoxFit.cover,
-                    ),
-                  ),
-                  child: Stack(
-                    children: [
-                      Positioned(
-                        top: 4,
-                        right: 4,
-                        child: GestureDetector(
-                          onTap: () {
-                            setState(() {
-                              _mockImages.removeAt(entry.key);
-                            });
-                          },
-                          child: Container(
-                            padding: const EdgeInsets.all(4),
-                            decoration: BoxDecoration(
-                              color: AppColors.error,
-                              shape: BoxShape.circle,
-                            ),
-                            child: const Icon(
-                              Icons.close,
-                              color: Colors.white,
-                              size: 14,
+                    child: Stack(
+                      children: [
+                        AppNetworkImage(
+                          imageUrl: entry.value,
+                          width: 100,
+                          height: 100,
+                          semanticLabel: 'Vehicle registration image preview',
+                        ),
+                        Positioned(
+                          top: 4,
+                          right: 4,
+                          child: GestureDetector(
+                            onTap: () {
+                              setState(() {
+                                _mockImages.removeAt(entry.key);
+                              });
+                            },
+                            child: Container(
+                              padding: const EdgeInsets.all(4),
+                              decoration: BoxDecoration(
+                                color: AppColors.error,
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Icon(
+                                Icons.close,
+                                color: Colors.white,
+                                size: 14,
+                              ),
                             ),
                           ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 );
               }),

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../localization/app_localizations.dart';
 import '../settings/app_preferences_controller.dart';
 import '../theme/app_theme.dart';
 
@@ -13,6 +14,7 @@ class AppNetworkImage extends StatelessWidget {
   final Widget? errorWidget;
   final int? cacheWidth;
   final int? cacheHeight;
+  final String? semanticLabel;
 
   const AppNetworkImage({
     super.key,
@@ -25,6 +27,7 @@ class AppNetworkImage extends StatelessWidget {
     this.errorWidget,
     this.cacheWidth,
     this.cacheHeight,
+    this.semanticLabel,
   });
 
   @override
@@ -37,6 +40,7 @@ class AppNetworkImage extends StatelessWidget {
             width: width,
             height: height,
             fit: fit,
+            semanticLabel: semanticLabel,
             cacheWidth: cacheWidth,
             cacheHeight: cacheHeight,
             loadingBuilder: (context, child, loadingProgress) {
@@ -61,15 +65,24 @@ class AppNetworkImage extends StatelessWidget {
   }
 
   Widget _buildDataSaverPlaceholder(BuildContext context) {
-    return Container(
-      width: width,
-      height: height,
-      color: AppColors.surfaceVariant,
-      alignment: Alignment.center,
-      child: Icon(
-        Icons.image_not_supported_outlined,
-        size: 28,
-        color: Theme.of(context).colorScheme.onSurfaceVariant,
+    final l10n = Localizations.of<AppLocalizations>(context, AppLocalizations);
+
+    return Semantics(
+      label:
+          semanticLabel ??
+          l10n?.t('networkImageHidden') ??
+          'Network image hidden by data saver',
+      image: true,
+      child: Container(
+        width: width,
+        height: height,
+        color: AppColors.surfaceVariant,
+        alignment: Alignment.center,
+        child: Icon(
+          Icons.image_not_supported_outlined,
+          size: 28,
+          color: Theme.of(context).colorScheme.onSurfaceVariant,
+        ),
       ),
     );
   }

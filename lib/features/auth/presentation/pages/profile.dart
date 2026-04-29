@@ -8,6 +8,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../../../core/network/dio_client.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/widgets/app_avatar.dart';
 import '../../../../injection_container.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
 import '../../../auth/presentation/bloc/auth_event.dart';
@@ -32,7 +33,7 @@ class ProfilePage extends StatelessWidget {
             : (state is AuthAuthenticated ? state.user : null);
 
         return Scaffold(
-          backgroundColor: Colors.white,
+          backgroundColor: Theme.of(context).scaffoldBackgroundColor,
           body: SafeArea(
             child: SingleChildScrollView(
               padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -81,36 +82,13 @@ class ProfilePage extends StatelessWidget {
   Widget _buildProfileHeader(BuildContext context, dynamic user) {
     return Row(
       children: [
-        // Avatar
         GestureDetector(
           onTap: () => _uploadAvatar(context),
-          child: Container(
-            width: 80,
-            height: 80,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: AppColors.inputBackground,
-              image: user?.avatarUrl != null && user!.avatarUrl!.isNotEmpty
-                  ? DecorationImage(
-                      image: NetworkImage(user.avatarUrl!),
-                      fit: BoxFit.cover,
-                    )
-                  : null,
-            ),
-            child: user?.avatarUrl == null || user!.avatarUrl!.isEmpty
-                ? Center(
-                    child: Text(
-                      user?.fullName?.isNotEmpty == true
-                          ? user.fullName[0].toUpperCase()
-                          : 'U',
-                      style: GoogleFonts.poppins(
-                        fontSize: 36,
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.primary,
-                      ),
-                    ),
-                  )
-                : null,
+          child: AppAvatar(
+            imageUrl: user?.avatarUrl,
+            fallbackText: user?.fullName ?? 'U',
+            size: 80,
+            backgroundColor: AppColors.inputBackground,
           ),
         ),
 

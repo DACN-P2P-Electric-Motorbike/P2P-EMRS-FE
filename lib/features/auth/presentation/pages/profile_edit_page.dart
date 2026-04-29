@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/widgets/app_avatar.dart';
 import '../../../auth/domain/entities/user.dart';
 import '../bloc/auth_bloc.dart';
 import '../bloc/auth_event.dart';
@@ -158,25 +159,11 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
                             valueListenable: _avatarCtrl,
                             builder: (context, value, child) {
                               final url = value.text.trim();
-                              return CircleAvatar(
-                                radius: 50,
+                              return AppAvatar(
+                                imageUrl: url,
+                                fallbackText: widget.user.fullName,
+                                size: 100,
                                 backgroundColor: AppColors.surfaceVariant,
-                                backgroundImage: url.isNotEmpty
-                                    ? NetworkImage(url)
-                                    : null,
-                                child: url.isEmpty
-                                    ? Text(
-                                        widget.user.fullName.isNotEmpty
-                                            ? widget.user.fullName[0]
-                                                  .toUpperCase()
-                                            : '?',
-                                        style: GoogleFonts.poppins(
-                                          fontSize: 36,
-                                          fontWeight: FontWeight.w600,
-                                          color: AppColors.primary,
-                                        ),
-                                      )
-                                    : null,
                               );
                             },
                           ),

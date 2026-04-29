@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import '../../../../../core/theme/app_theme.dart';
 import '../../../../../core/utils/open_external_map.dart';
+import '../../../../../core/widgets/app_avatar.dart';
 import '../../../../../injection_container.dart';
 import '../../../review/domain/entities/review_entity.dart';
 import '../../../review/presentation/bloc/review_bloc.dart';
@@ -36,7 +37,6 @@ class VehicleDetailPage extends StatelessWidget {
     );
   }
 }
-
 
 class _VehicleDetailView extends StatelessWidget {
   const _VehicleDetailView();
@@ -776,14 +776,12 @@ class _VehicleReviewsSectionState extends State<_VehicleReviewsSection> {
           final filtered = _selectedRating == null
               ? state.reviews
               : state.reviews
-                  .where((r) => r.rating == _selectedRating)
-                  .toList();
+                    .where((r) => r.rating == _selectedRating)
+                    .toList();
 
           // Rating summary bar
-          final avg = state.reviews.fold<double>(
-                0,
-                (sum, r) => sum + r.rating,
-              ) /
+          final avg =
+              state.reviews.fold<double>(0, (sum, r) => sum + r.rating) /
               state.reviews.length;
 
           return Column(
@@ -809,8 +807,7 @@ class _VehicleReviewsSectionState extends State<_VehicleReviewsSection> {
                         child: _StarFilterChip(
                           label: '$star ★',
                           selected: _selectedRating == star,
-                          onTap: () =>
-                              setState(() => _selectedRating = star),
+                          onTap: () => setState(() => _selectedRating = star),
                         ),
                       );
                     }),
@@ -1016,21 +1013,11 @@ class _ReviewCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              CircleAvatar(
-                radius: 18,
+              AppAvatar(
+                imageUrl: review.userAvatarUrl,
+                fallbackText: review.userName ?? 'U',
+                size: 36,
                 backgroundColor: AppColors.primary.withOpacity(0.1),
-                backgroundImage: review.userAvatarUrl != null
-                    ? NetworkImage(review.userAvatarUrl!)
-                    : null,
-                child: review.userAvatarUrl == null
-                    ? Text(
-                        (review.userName ?? 'U')[0].toUpperCase(),
-                        style: GoogleFonts.poppins(
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.primary,
-                        ),
-                      )
-                    : null,
               ),
               const SizedBox(width: 10),
               Expanded(
