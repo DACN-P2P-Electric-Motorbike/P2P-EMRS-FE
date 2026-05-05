@@ -553,6 +553,7 @@ class _BookingDetailPageState extends State<BookingDetailPage> {
     // Renter actions for CONFIRMED bookings
     if (!widget.isOwnerView && booking.isConfirmed) {
       final canStartTrip = booking.isPaymentCompleted;
+      final isWithinStartWindow = booking.isWithinStartWindow;
       return Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16),
         child: Column(
@@ -595,10 +596,13 @@ class _BookingDetailPageState extends State<BookingDetailPage> {
             ] else ...[
               _buildPaidReadyCard(),
               const SizedBox(height: 12),
-              BlocProvider(
-                create: (_) => sl<TripBloc>(),
-                child: _StartTripButton(booking: booking),
-              ),
+              if (isWithinStartWindow)
+                BlocProvider(
+                  create: (_) => sl<TripBloc>(),
+                  child: _StartTripButton(booking: booking),
+                )
+              else
+                _buildStartWindowLockedButton(booking),
             ],
             const SizedBox(height: 12),
             // Cancel button
@@ -766,6 +770,28 @@ class _BookingDetailPageState extends State<BookingDetailPage> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildStartWindowLockedButton(BookingEntity booking) {
+    final now = DateTime.now();
+    final earliestStart = booking.startTime.subtract(
+      const Duration(minutes: 15),
+    );
+    final message = now.isBefore(earliestStart)
+        ? 'Có thể bắt đầu từ ${DateFormat('HH:mm dd/MM').format(earliestStart)}'
+        : 'Đã quá thời gian bắt đầu cho phép';
+
+    return SizedBox(
+      width: double.infinity,
+      child: OutlinedButton.icon(
+        onPressed: null,
+        icon: const Icon(Icons.schedule_outlined),
+        label: Text(
+          message,
+          style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
+        ),
       ),
     );
   }

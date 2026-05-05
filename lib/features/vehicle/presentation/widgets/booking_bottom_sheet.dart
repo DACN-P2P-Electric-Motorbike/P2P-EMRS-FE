@@ -45,6 +45,8 @@ class _EnhancedBookingContentState extends State<_EnhancedBookingContent> {
   String _rentalType = 'hourly'; // hourly or daily
   final _notesController = TextEditingController();
   bool _isProcessing = false;
+  static const _minRentalDuration = Duration(minutes: 30);
+  static const _maxRentalDuration = Duration(days: 30);
 
   @override
   void dispose() {
@@ -1040,6 +1042,7 @@ class _EnhancedBookingContentState extends State<_EnhancedBookingContent> {
     return BlocBuilder<BookingBloc, BookingState>(
       builder: (context, state) {
         final isLoading = state is BookingLoading || _isProcessing;
+        final validationMessage = _bookingValidationMessage;
 
         return Container(
           padding: const EdgeInsets.all(20),
@@ -1085,9 +1088,10 @@ class _EnhancedBookingContentState extends State<_EnhancedBookingContent> {
                           const Icon(Icons.check_circle_outline, size: 20),
                           const SizedBox(width: 8),
                           Text(
-                            _totalPrice > 0
-                                ? 'Xác nhận đặt xe - ${_formatPrice(_totalPrice)}'
-                                : 'Chọn thời gian thuê',
+                            validationMessage ??
+                                (_totalPrice > 0
+                                    ? 'Xác nhận đặt xe - ${_formatPrice(_totalPrice)}'
+                                    : 'Chọn thời gian thuê'),
                             style: GoogleFonts.poppins(
                               fontSize: 16,
                               fontWeight: FontWeight.w600,
@@ -1109,8 +1113,30 @@ class _EnhancedBookingContentState extends State<_EnhancedBookingContent> {
       return false;
     }
     if (_startDateTime == null || _endDateTime == null) return false;
-    if (_endDateTime!.isBefore(_startDateTime!)) return false;
-    return true;
+    return _bookingValidationMessage == null;
+  }
+
+  String? get _bookingValidationMessage {
+    final start = _startDateTime;
+    final end = _endDateTime;
+    if (start == null || end == null) {
+      return null;
+    }
+    if (!end.isAfter(start)) {
+      return 'Thời gian kết thúc phải sau thời gian bắt đầu';
+    }
+    if (start.isBefore(DateTime.now())) {
+      return 'Thời gian bắt đầu phải ở tương lai';
+    }
+
+    final duration = end.difference(start);
+    if (duration < _minRentalDuration) {
+      return 'Thời gian thuê tối thiểu là 30 phút';
+    }
+    if (duration > _maxRentalDuration) {
+      return 'Thời gian thuê tối đa là 30 ngày';
+    }
+    return null;
   }
 
   void _handleBooking() {
