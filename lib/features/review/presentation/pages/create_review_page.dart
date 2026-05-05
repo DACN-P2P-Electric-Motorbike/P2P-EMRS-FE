@@ -11,11 +11,13 @@ import '../bloc/review_state.dart';
 class CreateReviewPage extends StatelessWidget {
   final String vehicleId;
   final String vehicleName;
+  final String? bookingId;
 
   const CreateReviewPage({
     super.key,
     required this.vehicleId,
     required this.vehicleName,
+    this.bookingId,
   });
 
   @override
@@ -25,6 +27,7 @@ class CreateReviewPage extends StatelessWidget {
       child: _CreateReviewView(
         vehicleId: vehicleId,
         vehicleName: vehicleName,
+        bookingId: bookingId,
       ),
     );
   }
@@ -33,10 +36,12 @@ class CreateReviewPage extends StatelessWidget {
 class _CreateReviewView extends StatefulWidget {
   final String vehicleId;
   final String vehicleName;
+  final String? bookingId;
 
   const _CreateReviewView({
     required this.vehicleId,
     required this.vehicleName,
+    this.bookingId,
   });
 
   @override
@@ -250,7 +255,9 @@ class _CreateReviewViewState extends State<_CreateReviewView> {
             child: AnimatedSwitcher(
               duration: const Duration(milliseconds: 200),
               child: Icon(
-                star <= _rating ? Icons.star_rounded : Icons.star_outline_rounded,
+                star <= _rating
+                    ? Icons.star_rounded
+                    : Icons.star_outline_rounded,
                 key: ValueKey('$star-${star <= _rating}'),
                 size: 52,
                 color: star <= _rating
@@ -289,8 +296,8 @@ class _CreateReviewViewState extends State<_CreateReviewView> {
                 color: atLimit
                     ? AppColors.error
                     : nearLimit
-                        ? AppColors.warning
-                        : AppColors.textMuted,
+                    ? AppColors.warning
+                    : AppColors.textMuted,
               ),
             ),
           ],
@@ -300,8 +307,9 @@ class _CreateReviewViewState extends State<_CreateReviewView> {
           controller: _commentController,
           maxLines: 4,
           maxLength: _maxChars,
-          buildCounter: (_, {required currentLength, required isFocused, maxLength}) =>
-              const SizedBox.shrink(),
+          buildCounter:
+              (_, {required currentLength, required isFocused, maxLength}) =>
+                  const SizedBox.shrink(),
           decoration: InputDecoration(
             hintText: 'Chia sẻ trải nghiệm của bạn về xe...',
             hintStyle: GoogleFonts.poppins(
@@ -344,10 +352,7 @@ class _CreateReviewViewState extends State<_CreateReviewView> {
           Expanded(
             child: Text(
               'Để lại đánh giá giúp tăng Trust Score của bạn lên +1 điểm',
-              style: GoogleFonts.poppins(
-                fontSize: 13,
-                color: AppColors.info,
-              ),
+              style: GoogleFonts.poppins(fontSize: 13, color: AppColors.info),
             ),
           ),
         ],
@@ -395,6 +400,7 @@ class _CreateReviewViewState extends State<_CreateReviewView> {
         comment: _commentController.text.trim().isNotEmpty
             ? _commentController.text.trim()
             : null,
+        bookingId: widget.bookingId,
       ),
     );
   }

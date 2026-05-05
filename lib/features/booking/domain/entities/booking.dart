@@ -63,6 +63,12 @@ class BookingEntity extends Equatable {
   /// Check if booking is confirmed
   bool get isConfirmed => status == BookingStatus.CONFIRMED;
 
+  /// Check if booking has a completed payment
+  bool get isPaymentCompleted => paymentStatus?.toUpperCase() == 'COMPLETED';
+
+  /// Check if booking still needs payment before it can start
+  bool get needsPaymentBeforeStart => isConfirmed && !isPaymentCompleted;
+
   /// Check if booking is ongoing
   bool get isOngoing => status == BookingStatus.ONGOING;
 

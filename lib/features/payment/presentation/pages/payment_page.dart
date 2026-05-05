@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -56,7 +55,8 @@ class _PaymentView extends StatefulWidget {
   State<_PaymentView> createState() => _PaymentViewState();
 }
 
-class _PaymentViewState extends State<_PaymentView> with WidgetsBindingObserver {
+class _PaymentViewState extends State<_PaymentView>
+    with WidgetsBindingObserver {
   PaymentMethod _selectedMethod = PaymentMethod.payos;
   StreamSubscription<dynamic>? _webMessageSub;
 
@@ -364,9 +364,7 @@ class _PaymentViewState extends State<_PaymentView> with WidgetsBindingObserver 
           SizedBox(
             width: double.infinity,
             child: ElevatedButton(
-              onPressed: state is PaymentLoading
-                  ? null
-                  : () => _onPay(context),
+              onPressed: state is PaymentLoading ? null : () => _onPay(context),
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.primary,
                 padding: const EdgeInsets.symmetric(vertical: 18),
@@ -414,10 +412,7 @@ class _PaymentViewState extends State<_PaymentView> with WidgetsBindingObserver 
         children: [
           Text(
             'Tóm tắt thanh toán',
-            style: GoogleFonts.poppins(
-              color: Colors.white70,
-              fontSize: 13,
-            ),
+            style: GoogleFonts.poppins(color: Colors.white70, fontSize: 13),
           ),
           const SizedBox(height: 8),
           Text(
@@ -445,7 +440,10 @@ class _PaymentViewState extends State<_PaymentView> with WidgetsBindingObserver 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: GoogleFonts.poppins(color: Colors.white60, fontSize: 12)),
+        Text(
+          label,
+          style: GoogleFonts.poppins(color: Colors.white60, fontSize: 12),
+        ),
         Text(
           value,
           style: GoogleFonts.poppins(
@@ -546,8 +544,8 @@ class _PaymentViewState extends State<_PaymentView> with WidgetsBindingObserver 
   }
 
   Widget _buildRevenueBreakdown() {
-    final platformFee = (widget.totalAmount + widget.deposit) * 0.15;
-    final ownerAmount = (widget.totalAmount + widget.deposit) - platformFee;
+    final platformFee = widget.totalAmount * 0.15;
+    final ownerAmount = widget.totalAmount - platformFee;
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -585,6 +583,14 @@ class _PaymentViewState extends State<_PaymentView> with WidgetsBindingObserver 
             _formatter.format(platformFee),
             AppColors.textMuted,
           ),
+          if (widget.deposit > 0) ...[
+            const SizedBox(height: 8),
+            _revenueRow(
+              'Tiền cọc giữ tạm',
+              _formatter.format(widget.deposit),
+              AppColors.info,
+            ),
+          ],
         ],
       ),
     );
@@ -615,10 +621,7 @@ class _PaymentViewState extends State<_PaymentView> with WidgetsBindingObserver 
 
   void _onPay(BuildContext context) {
     context.read<PaymentBloc>().add(
-      CreatePaymentEvent(
-        bookingId: widget.bookingId,
-        method: _selectedMethod,
-      ),
+      CreatePaymentEvent(bookingId: widget.bookingId, method: _selectedMethod),
     );
   }
 }

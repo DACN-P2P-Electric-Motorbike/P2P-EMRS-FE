@@ -552,35 +552,54 @@ class _BookingDetailPageState extends State<BookingDetailPage> {
 
     // Renter actions for CONFIRMED bookings
     if (!widget.isOwnerView && booking.isConfirmed) {
+      final canStartTrip = booking.isPaymentCompleted;
       return Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16),
         child: Column(
           children: [
-            // Payment button
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton.icon(
-                onPressed: () => _navigateToPayment(context, booking),
-                icon: const Icon(Icons.payment),
-                label: Text(
-                  'Thanh toán',
-                  style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
-                ),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primary,
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
+            if (!canStartTrip) ...[
+              _buildPaymentRequiredCard(booking),
+              const SizedBox(height: 12),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  onPressed: () => _navigateToPayment(context, booking),
+                  icon: const Icon(Icons.payment),
+                  label: Text(
+                    booking.paymentStatus?.toUpperCase() == 'FAILED'
+                        ? 'Thanh toán lại'
+                        : 'Thanh toán',
+                    style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                   ),
                 ),
               ),
-            ),
-            const SizedBox(height: 12),
-            // Start trip button
-            BlocProvider(
-              create: (_) => sl<TripBloc>(),
-              child: _StartTripButton(booking: booking),
-            ),
+              const SizedBox(height: 12),
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: null,
+                  icon: const Icon(Icons.lock_outline),
+                  label: Text(
+                    'Hoàn tất thanh toán để bắt đầu',
+                    style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
+                  ),
+                ),
+              ),
+            ] else ...[
+              _buildPaidReadyCard(),
+              const SizedBox(height: 12),
+              BlocProvider(
+                create: (_) => sl<TripBloc>(),
+                child: _StartTripButton(booking: booking),
+              ),
+            ],
             const SizedBox(height: 12),
             // Cancel button
             SizedBox(
@@ -604,6 +623,31 @@ class _BookingDetailPageState extends State<BookingDetailPage> {
               ),
             ),
           ],
+        ),
+      );
+    }
+
+    if (!widget.isOwnerView && booking.isOngoing) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        child: SizedBox(
+          width: double.infinity,
+          child: ElevatedButton.icon(
+            onPressed: () => context.push('/active-trip'),
+            icon: const Icon(Icons.navigation_rounded),
+            label: Text(
+              'Theo dõi chuyến đi',
+              style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
+            ),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primary,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(vertical: 16),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+          ),
         ),
       );
     }
@@ -664,8 +708,73 @@ class _BookingDetailPageState extends State<BookingDetailPage> {
     return const SizedBox.shrink();
   }
 
-  void _navigateToPayment(BuildContext context, BookingEntity booking) {
-    Navigator.push(
+  Widget _buildPaymentRequiredCard(BookingEntity booking) {
+    final totalAmount = NumberFormat.currency(
+      locale: 'vi_VN',
+      symbol: 'đ',
+    ).format(booking.totalPrice + booking.deposit);
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: AppColors.warning.withOpacity(0.08),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.warning.withOpacity(0.3)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(Icons.info_outline, color: AppColors.warning, size: 20),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              'Bạn cần thanh toán $totalAmount trước khi bắt đầu chuyến đi. Tiền cọc sẽ được giữ tạm và hoàn lại sau khi trả xe nếu không có hư hỏng.',
+              style: GoogleFonts.poppins(
+                fontSize: 13,
+                color: AppColors.textSecondary,
+                height: 1.4,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPaidReadyCard() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: AppColors.success.withOpacity(0.08),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.success.withOpacity(0.25)),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.verified_outlined, color: AppColors.success, size: 20),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              'Đã thanh toán. Bạn có thể bắt đầu chuyến đi khi đến thời gian thuê.',
+              style: GoogleFonts.poppins(
+                fontSize: 13,
+                color: AppColors.textSecondary,
+                height: 1.4,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _navigateToPayment(
+    BuildContext context,
+    BookingEntity booking,
+  ) async {
+    final completed = await Navigator.push<bool>(
       context,
       MaterialPageRoute(
         builder: (_) => PaymentPage(
@@ -675,6 +784,10 @@ class _BookingDetailPageState extends State<BookingDetailPage> {
         ),
       ),
     );
+
+    if (completed == true && context.mounted) {
+      context.read<BookingBloc>().add(LoadBookingByIdEvent(booking.id));
+    }
   }
 
   void _navigateToReview(BuildContext context, BookingEntity booking) {
@@ -684,6 +797,7 @@ class _BookingDetailPageState extends State<BookingDetailPage> {
         builder: (_) => CreateReviewPage(
           vehicleId: booking.vehicleId,
           vehicleName: booking.vehicleName ?? 'Xe đã thuê',
+          bookingId: booking.id,
         ),
       ),
     );
@@ -796,7 +910,10 @@ class _BookingDetailPageState extends State<BookingDetailPage> {
     );
   }
 
-  void _showCancelDialog(BuildContext dialogBookingContext, BookingEntity booking) {
+  void _showCancelDialog(
+    BuildContext dialogBookingContext,
+    BookingEntity booking,
+  ) {
     final reasonController = TextEditingController();
     final formKey = GlobalKey<FormState>();
 
@@ -890,7 +1007,8 @@ class _StartTripButtonState extends State<_StartTripButton> {
         lng = position.longitude;
         // Build a simple address string from coords (reverse geocode not
         // needed here — backend stores raw coords for distance calc)
-        address = '${position.latitude.toStringAsFixed(5)}, '
+        address =
+            '${position.latitude.toStringAsFixed(5)}, '
             '${position.longitude.toStringAsFixed(5)}';
       }
     } catch (_) {
@@ -926,10 +1044,7 @@ class _StartTripButtonState extends State<_StartTripButton> {
           );
         } else if (state is TripFailure) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(state.message),
-              backgroundColor: Colors.red,
-            ),
+            SnackBar(content: Text(state.message), backgroundColor: Colors.red),
           );
         }
       },
@@ -950,9 +1065,7 @@ class _StartTripButtonState extends State<_StartTripButton> {
                   )
                 : const Icon(Icons.play_circle_outline),
             label: Text(
-              _isGettingLocation
-                  ? 'Đang lấy vị trí...'
-                  : 'Bắt đầu chuyến đi',
+              _isGettingLocation ? 'Đang lấy vị trí...' : 'Bắt đầu chuyến đi',
               style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
             ),
             style: ElevatedButton.styleFrom(
