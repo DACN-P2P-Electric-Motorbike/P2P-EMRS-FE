@@ -17,8 +17,7 @@ class TripHistoryPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (_) =>
-          sl<TripBloc>()..add(const LoadTripHistoryEvent()),
+      create: (_) => sl<TripBloc>()..add(const LoadTripHistoryEvent()),
       child: const _TripHistoryView(),
     );
   }
@@ -122,12 +121,12 @@ class _TripHistoryViewState extends State<_TripHistoryView> {
                           itemBuilder: (context, index) {
                             if (index == _visibleCount) {
                               return Padding(
-                                padding:
-                                    const EdgeInsets.symmetric(vertical: 8),
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 8,
+                                ),
                                 child: TextButton(
-                                  onPressed: () => setState(
-                                    () => _visibleCount += 10,
-                                  ),
+                                  onPressed: () =>
+                                      setState(() => _visibleCount += 10),
                                   child: Text(
                                     'Xem thêm (${filtered.length - _visibleCount} chuyến đi)',
                                     style: GoogleFonts.poppins(
@@ -380,6 +379,7 @@ class _TripCard extends StatelessWidget {
                   builder: (_) => CreateReviewPage(
                     vehicleId: trip.vehicleId,
                     vehicleName: trip.vehicleName ?? 'Xe đã thuê',
+                    bookingId: trip.bookingId,
                   ),
                 ),
               ),
@@ -423,10 +423,7 @@ class _TripCard extends StatelessWidget {
         ),
         Text(
           label,
-          style: GoogleFonts.poppins(
-            fontSize: 11,
-            color: AppColors.textMuted,
-          ),
+          style: GoogleFonts.poppins(fontSize: 11, color: AppColors.textMuted),
         ),
       ],
     );

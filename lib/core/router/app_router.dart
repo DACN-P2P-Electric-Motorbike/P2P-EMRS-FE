@@ -6,6 +6,7 @@ import 'package:fe_capstone_project/features/owner_vehicle/presentation/pages/ow
 import 'package:fe_capstone_project/features/renter/presentation/pages/become_owner_page.dart';
 import 'package:fe_capstone_project/features/review/presentation/pages/trust_score_page.dart';
 import 'package:fe_capstone_project/features/settings/presentation/pages/app_settings_page.dart';
+import 'package:fe_capstone_project/features/trip/presentation/pages/active_trip_page.dart';
 import 'package:fe_capstone_project/features/trip/presentation/pages/trip_history_page.dart';
 import 'package:fe_capstone_project/features/vehicle/presentation/pages/browse_vehices_page.dart';
 import 'package:fe_capstone_project/features/vehicle/presentation/pages/vehicle_detail_page.dart';
@@ -356,6 +357,12 @@ class AppRouter {
         path: '/trip-history',
         name: 'trip-history',
         builder: (context, state) => const TripHistoryPage(),
+      ),
+
+      GoRoute(
+        path: '/active-trip',
+        name: 'active-trip',
+        builder: (context, state) => const ActiveTripPage(),
       ),
 
       // Trust score detail (fullscreen)

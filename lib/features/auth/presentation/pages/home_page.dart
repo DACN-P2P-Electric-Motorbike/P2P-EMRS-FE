@@ -3,6 +3,11 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../../injection_container.dart';
+import '../../../trip/domain/entities/trip_entity.dart';
+import '../../../trip/presentation/bloc/trip_bloc.dart';
+import '../../../trip/presentation/bloc/trip_event.dart';
+import '../../../trip/presentation/bloc/trip_state.dart';
 import '../bloc/auth_bloc.dart';
 import '../bloc/auth_event.dart';
 import '../bloc/auth_state.dart';
@@ -118,6 +123,11 @@ class HomePage extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(height: 16),
+                      BlocProvider(
+                        create: (_) =>
+                            sl<TripBloc>()..add(const LoadActiveTripEvent()),
+                        child: const _ActiveTripResumeCard(),
+                      ),
 
                       // Owner row
                       if (user?.isOwner == true || user?.isAdmin == true) ...[
@@ -345,6 +355,101 @@ class HomePage extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+class _ActiveTripResumeCard extends StatelessWidget {
+  const _ActiveTripResumeCard();
+
+  @override
+  Widget build(BuildContext context) {
+    return BlocBuilder<TripBloc, TripState>(
+      builder: (context, state) {
+        if (state is! TripLoaded || state.trip.status != TripStatus.ongoing) {
+          return const SizedBox.shrink();
+        }
+
+        final trip = state.trip;
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 16),
+          child: Container(
+            width: double.infinity,
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: [Color(0xFF00D2FF), Color(0xFF3A7BD5)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                  color: AppColors.primary.withOpacity(0.18),
+                  blurRadius: 14,
+                  offset: const Offset(0, 6),
+                ),
+              ],
+            ),
+            child: Material(
+              color: Colors.transparent,
+              borderRadius: BorderRadius.circular(16),
+              child: InkWell(
+                onTap: () => context.push('/active-trip'),
+                borderRadius: BorderRadius.circular(16),
+                child: Padding(
+                  padding: const EdgeInsets.all(18),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 46,
+                        height: 46,
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.18),
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                        child: const Icon(
+                          Icons.navigation_rounded,
+                          color: Colors.white,
+                        ),
+                      ),
+                      const SizedBox(width: 14),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Tiếp tục theo dõi chuyến đi',
+                              style: GoogleFonts.poppins(
+                                color: Colors.white,
+                                fontSize: 15,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              trip.vehicleName ?? 'Chuyến đi đang diễn ra',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: GoogleFonts.poppins(
+                                color: Colors.white.withOpacity(0.82),
+                                fontSize: 12,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const Icon(
+                        Icons.chevron_right_rounded,
+                        color: Colors.white,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 }

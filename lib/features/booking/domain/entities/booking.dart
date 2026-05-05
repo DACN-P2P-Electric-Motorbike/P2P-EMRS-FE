@@ -63,6 +63,24 @@ class BookingEntity extends Equatable {
   /// Check if booking is confirmed
   bool get isConfirmed => status == BookingStatus.CONFIRMED;
 
+  /// Check if booking has a completed payment
+  bool get isPaymentCompleted => paymentStatus?.toUpperCase() == 'COMPLETED';
+
+  /// Check if booking still needs payment before it can start
+  bool get needsPaymentBeforeStart => isConfirmed && !isPaymentCompleted;
+
+  /// Check if the current time is inside the pickup window.
+  bool get isWithinStartWindow {
+    final now = DateTime.now();
+    final earliestStart = startTime.subtract(const Duration(minutes: 15));
+    final latestStart = startTime.add(const Duration(hours: 2));
+    return !now.isBefore(earliestStart) && !now.isAfter(latestStart);
+  }
+
+  /// Check if a paid confirmed booking can be started from the client.
+  bool get canStartTripNow =>
+      isConfirmed && isPaymentCompleted && isWithinStartWindow;
+
   /// Check if booking is ongoing
   bool get isOngoing => status == BookingStatus.ONGOING;
 

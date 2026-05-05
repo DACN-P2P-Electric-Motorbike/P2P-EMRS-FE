@@ -16,29 +16,27 @@ import '../bloc/trip_state.dart';
 
 /// Active trip tracking page
 class ActiveTripPage extends StatelessWidget {
-  final String tripId;
-  final String bookingId;
+  final String? tripId;
+  final String? bookingId;
 
-  const ActiveTripPage({
-    super.key,
-    required this.tripId,
-    required this.bookingId,
-  });
+  const ActiveTripPage({super.key, this.tripId, this.bookingId});
 
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (_) =>
-          sl<TripBloc>()..add(LoadTripByIdEvent(tripId)),
-      child: _ActiveTripView(tripId: tripId),
+      create: (_) => sl<TripBloc>()
+        ..add(
+          tripId != null
+              ? LoadTripByIdEvent(tripId!)
+              : const LoadActiveTripEvent(),
+        ),
+      child: const _ActiveTripView(),
     );
   }
 }
 
 class _ActiveTripView extends StatefulWidget {
-  final String tripId;
-
-  const _ActiveTripView({required this.tripId});
+  const _ActiveTripView();
 
   @override
   State<_ActiveTripView> createState() => _ActiveTripViewState();
@@ -163,6 +161,9 @@ class _ActiveTripViewState extends State<_ActiveTripView> {
             );
           }
           if (state is TripLoaded) {
+            if (state.trip.status == TripStatus.completed) {
+              return _buildCompletedView(context, state.trip);
+            }
             return _buildContent(context, state.trip);
           }
           if (state is TripEnded) {
@@ -176,10 +177,69 @@ class _ActiveTripViewState extends State<_ActiveTripView> {
               ),
             );
           }
+          if (state is NoActiveTrip) {
+            return _buildNoActiveTripView(context);
+          }
           return const Center(
             child: CircularProgressIndicator(color: Colors.white),
           );
         },
+      ),
+    );
+  }
+
+  Widget _buildNoActiveTripView(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 82,
+              height: 82,
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.08),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.route_outlined,
+                color: Colors.white70,
+                size: 40,
+              ),
+            ),
+            const SizedBox(height: 20),
+            Text(
+              'Không có chuyến đi đang diễn ra',
+              textAlign: TextAlign.center,
+              style: GoogleFonts.poppins(
+                color: Colors.white,
+                fontSize: 20,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Khi bạn bắt đầu chuyến đi, màn hình theo dõi sẽ luôn có thể mở lại từ trang chủ hoặc booking đang thuê.',
+              textAlign: TextAlign.center,
+              style: GoogleFonts.poppins(color: Colors.white60, height: 1.45),
+            ),
+            const SizedBox(height: 24),
+            OutlinedButton.icon(
+              onPressed: () => Navigator.pop(context),
+              icon: const Icon(Icons.arrow_back),
+              label: const Text('Quay lại'),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: Colors.white,
+                side: const BorderSide(color: Colors.white24),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 14,
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -229,10 +289,7 @@ class _ActiveTripViewState extends State<_ActiveTripView> {
         children: [
           Text(
             'Thời gian di chuyển',
-            style: GoogleFonts.poppins(
-              color: Colors.white70,
-              fontSize: 14,
-            ),
+            style: GoogleFonts.poppins(color: Colors.white70, fontSize: 14),
           ),
           const SizedBox(height: 12),
           Text(
@@ -333,10 +390,7 @@ class _ActiveTripViewState extends State<_ActiveTripView> {
           ),
           Text(
             label,
-            style: GoogleFonts.poppins(
-              color: Colors.white54,
-              fontSize: 12,
-            ),
+            style: GoogleFonts.poppins(color: Colors.white54, fontSize: 12),
           ),
         ],
       ),
@@ -403,10 +457,7 @@ class _ActiveTripViewState extends State<_ActiveTripView> {
               const SizedBox(width: 8),
               Text(
                 'Pin lúc xuất phát: ${battery.toStringAsFixed(0)}%',
-                style: GoogleFonts.poppins(
-                  color: Colors.white70,
-                  fontSize: 14,
-                ),
+                style: GoogleFonts.poppins(color: Colors.white70, fontSize: 14),
               ),
             ],
           ),
@@ -437,17 +488,11 @@ class _ActiveTripViewState extends State<_ActiveTripView> {
             children: [
               Text(
                 label,
-                style: GoogleFonts.poppins(
-                  color: Colors.white38,
-                  fontSize: 12,
-                ),
+                style: GoogleFonts.poppins(color: Colors.white38, fontSize: 12),
               ),
               Text(
                 value,
-                style: GoogleFonts.poppins(
-                  color: Colors.white,
-                  fontSize: 14,
-                ),
+                style: GoogleFonts.poppins(color: Colors.white, fontSize: 14),
               ),
             ],
           ),
@@ -464,10 +509,7 @@ class _ActiveTripViewState extends State<_ActiveTripView> {
         icon: const Icon(Icons.stop_circle_outlined),
         label: Text(
           'Kết thúc chuyến đi',
-          style: GoogleFonts.poppins(
-            fontSize: 16,
-            fontWeight: FontWeight.w600,
-          ),
+          style: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.w600),
         ),
         style: ElevatedButton.styleFrom(
           backgroundColor: AppColors.error,
@@ -544,8 +586,8 @@ class _ActiveTripViewState extends State<_ActiveTripView> {
                 double? endLng;
                 String? endAddress;
                 try {
-                  final position =
-                      await sl<LocationService>().getCurrentPosition();
+                  final position = await sl<LocationService>()
+                      .getCurrentPosition();
                   if (position != null) {
                     endLat = position.latitude;
                     endLng = position.longitude;
@@ -567,14 +609,12 @@ class _ActiveTripViewState extends State<_ActiveTripView> {
                     hasIssues: hasIssues,
                     issueDescription:
                         hasIssues && issueController.text.isNotEmpty
-                            ? issueController.text.trim()
-                            : null,
+                        ? issueController.text.trim()
+                        : null,
                   ),
                 );
               },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.error,
-              ),
+              style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
               child: const Text('Kết thúc'),
             ),
           ],
@@ -597,9 +637,16 @@ class _ActiveTripViewState extends State<_ActiveTripView> {
             decoration: BoxDecoration(
               color: AppColors.success.withOpacity(0.15),
               shape: BoxShape.circle,
-              border: Border.all(color: AppColors.success.withOpacity(0.4), width: 2),
+              border: Border.all(
+                color: AppColors.success.withOpacity(0.4),
+                width: 2,
+              ),
             ),
-            child: Icon(Icons.check_circle_rounded, color: AppColors.success, size: 56),
+            child: Icon(
+              Icons.check_circle_rounded,
+              color: AppColors.success,
+              size: 56,
+            ),
           ),
           const SizedBox(height: 20),
 
@@ -688,7 +735,11 @@ class _ActiveTripViewState extends State<_ActiveTripView> {
               ),
               child: Row(
                 children: [
-                  Icon(Icons.warning_amber_rounded, color: AppColors.error, size: 20),
+                  Icon(
+                    Icons.warning_amber_rounded,
+                    color: AppColors.error,
+                    size: 20,
+                  ),
                   const SizedBox(width: 10),
                   Expanded(
                     child: Text(
@@ -716,6 +767,7 @@ class _ActiveTripViewState extends State<_ActiveTripView> {
                   builder: (_) => CreateReviewPage(
                     vehicleId: trip.vehicleId,
                     vehicleName: trip.vehicleName ?? 'Xe điện',
+                    bookingId: trip.bookingId,
                   ),
                 ),
               ),
@@ -753,10 +805,7 @@ class _ActiveTripViewState extends State<_ActiveTripView> {
               ),
               child: Text(
                 'Đánh giá sau',
-                style: GoogleFonts.poppins(
-                  fontSize: 15,
-                  color: Colors.white60,
-                ),
+                style: GoogleFonts.poppins(fontSize: 15, color: Colors.white60),
               ),
             ),
           ),
