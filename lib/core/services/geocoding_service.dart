@@ -1,5 +1,5 @@
 import 'package:dio/dio.dart';
-import 'package:flutter_map/flutter_map.dart';
+// import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 
 /// Geocoding service backed by OpenStreetMap Nominatim.
@@ -8,7 +8,8 @@ class GeocodingService {
   final Dio _dio;
 
   GeocodingService({Dio? dio})
-    : _dio = dio ??
+    : _dio =
+          dio ??
           Dio(
             BaseOptions(
               baseUrl: 'https://nominatim.openstreetmap.org',

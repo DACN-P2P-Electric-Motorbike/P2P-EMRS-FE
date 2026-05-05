@@ -3,21 +3,22 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:logger/logger.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../injection_container.dart';
 import '../bloc/auth_bloc.dart';
 import '../bloc/auth_event.dart';
 import '../bloc/auth_state.dart';
 
+final _logger = Logger();
+
 class LoginPage extends StatelessWidget {
   const LoginPage({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return BlocProvider(
-      create: (_) => sl<AuthBloc>(),
-      child: const _LoginPageContent(),
-    );
+    // Use existing AuthBloc from parent (main.dart) instead of creating new one
+    return const _LoginPageContent();
   }
 }
 
@@ -58,9 +59,12 @@ class _LoginPageContentState extends State<_LoginPageContent> {
       backgroundColor: Colors.white,
       body: BlocConsumer<AuthBloc, AuthState>(
         listener: (context, state) {
+          _logger.d('🔐 Login state: ${state.runtimeType}');
           if (state is AuthSuccess || state is AuthAuthenticated) {
+            _logger.i('✅ Auth successful, navigating to /home');
             context.go('/home');
           } else if (state is AuthFailure) {
+            _logger.e('❌ Login failed: ${state.message}');
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: Text(state.message),
@@ -146,7 +150,9 @@ class _LoginPageContentState extends State<_LoginPageContent> {
                             size: 20,
                           ),
                           onPressed: () {
-                            setState(() => _obscurePassword = !_obscurePassword);
+                            setState(
+                              () => _obscurePassword = !_obscurePassword,
+                            );
                           },
                         ),
                         validator: (value) {
@@ -322,7 +328,10 @@ class _LoginPageContentState extends State<_LoginPageContent> {
       style: GoogleFonts.poppins(fontSize: 14, color: AppColors.textPrimary),
       decoration: InputDecoration(
         hintText: hintText,
-        hintStyle: GoogleFonts.poppins(color: AppColors.textMuted, fontSize: 14),
+        hintStyle: GoogleFonts.poppins(
+          color: AppColors.textMuted,
+          fontSize: 14,
+        ),
         prefixIcon: Icon(prefixIcon, color: AppColors.primary, size: 20),
         suffixIcon: suffixIcon,
         filled: true,

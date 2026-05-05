@@ -2,7 +2,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
-import 'package:google_fonts/google_fonts.dart';
+// import 'package:google_fonts/google_fonts.dart';
 
 import '../../../../core/network/dio_client.dart';
 import '../../../../core/theme/app_theme.dart';
@@ -78,7 +78,8 @@ class _EditProfilePageState extends State<EditProfilePage> {
       if (mounted) {
         String errorMessage = 'Đã có lỗi xảy ra';
         final responseData = e.response?.data;
-        if (responseData is Map<String, dynamic> && responseData['message'] != null) {
+        if (responseData is Map<String, dynamic> &&
+            responseData['message'] != null) {
           errorMessage = responseData['message'];
         }
         ScaffoldMessenger.of(context).showSnackBar(
@@ -91,10 +92,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Lỗi: $e'),
-            backgroundColor: AppColors.error,
-          ),
+          SnackBar(content: Text('Lỗi: $e'), backgroundColor: AppColors.error),
         );
       }
     } finally {
@@ -121,9 +119,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Chỉnh sửa thông tin'),
-      ),
+      appBar: AppBar(title: const Text('Chỉnh sửa thông tin')),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(20),

@@ -24,6 +24,7 @@ import 'features/notification/domain/usecases/notification_usecases.dart';
 import 'injection_container.dart' as di;
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:sentry_flutter/sentry_flutter.dart';
 
 // Global logger instance
 final Logger _logger = Logger(
@@ -38,17 +39,52 @@ final Logger _logger = Logger(
 );
 
 void main() async {
+  // MUST be the very first call before anything else
+  WidgetsFlutterBinding.ensureInitialized();
+
+  try {
+    await SentryFlutter.init((options) {
+      options.dsn =
+          'https://2ef5d655413d89931cb3808290c64541@o4510500035297280.ingest.us.sentry.io/4511327880282112';
+      options.tracesSampleRate = 1.0;
+      options.profilesSampleRate = 1.0;
+    }, appRunner: () => _appMain());
+  } catch (e) {
+    // If Sentry fails to init, run the app anyway
+    _logger.e('Sentry init failed, running app without Sentry', error: e);
+    await _appMain();
+  }
+}
+
+Future<void> _appMain() async {
+  // Ensure binding is initialized (safe to call multiple times)
   WidgetsFlutterBinding.ensureInitialized();
 
   try {
     _logger.i('🚀 Starting application initialization');
 
-    // Initialize Firebase
+    // Initialize Firebase (check if already initialized)
     _logger.d('Initializing Firebase');
-    await Firebase.initializeApp(
-      options: DefaultFirebaseOptions.currentPlatform,
-    );
-    _logger.i('✅ Firebase initialized successfully');
+    try {
+      // Check if Firebase app already exists to avoid duplicate-app error
+      Firebase.app();
+      _logger.i('✅ Firebase already initialized');
+    } catch (e) {
+      // Firebase app doesn't exist, initialize it
+      try {
+        await Firebase.initializeApp(
+          options: DefaultFirebaseOptions.currentPlatform,
+        );
+        _logger.i('✅ Firebase initialized successfully');
+      } catch (e, stackTrace) {
+        _logger.e(
+          '❌ Firebase initialization failed',
+          error: e,
+          stackTrace: stackTrace,
+        );
+        rethrow;
+      }
+    }
 
     // Set preferred orientations (skip on web)
     if (!kIsWeb) {
@@ -72,22 +108,39 @@ void main() async {
 
     // Initialize dependency injection
     _logger.d('Initializing dependency injection');
-    await di.init();
-    _logger.i('✅ Dependency injection initialized');
+    try {
+      await di.init();
+      _logger.i('✅ Dependency injection initialized');
+    } catch (e, stackTrace) {
+      _logger.e(
+        '❌ Dependency injection initialization failed',
+        error: e,
+        stackTrace: stackTrace,
+      );
+      rethrow;
+    }
 
     final appPreferences = AppPreferencesController(di.sl<StorageService>());
     await appPreferences.load();
 
     // Initialize FCM (mobile only)
     if (!kIsWeb) {
-      await di.sl<FcmService>().initialize();
-      _logger.i('✅ FCM initialized');
+      try {
+        await di.sl<FcmService>().initialize();
+        _logger.i('✅ FCM initialized');
+      } catch (e, stackTrace) {
+        _logger.w(
+          '⚠️ FCM initialization warning (non-critical)',
+          error: e,
+          stackTrace: stackTrace,
+        );
+      }
     } else {
       _logger.i('⚠️ Running on WEB - FCM skipped, using WebSocket only');
     }
 
     _logger.i('🎉 Application initialization complete');
-    runApp(MyApp(appPreferences: appPreferences));
+    runApp(SentryWidget(child: MyApp(appPreferences: appPreferences)));
   } catch (e, stackTrace) {
     _logger.e(
       '❌ Fatal error during app initialization',
@@ -216,12 +269,16 @@ class _MyAppState extends State<MyApp> {
         ],
         child: BlocListener<AuthBloc, AuthState>(
           listener: (context, state) async {
-            if (state is AuthAuthenticated) {
-              _logger.i('✅ User authenticated: ${state.user.email}');
+            // Handle both AuthAuthenticated (from app startup) and AuthSuccess (from login)
+            if (state is AuthAuthenticated || state is AuthSuccess) {
+              final userEmail = state is AuthAuthenticated
+                  ? (state).user.email
+                  : (state as AuthSuccess).user.email;
+              _logger.i('✅ User authenticated: $userEmail');
 
               if (!_socketService.isConnected) {
                 _logger.d('Socket not connected, attempting connection');
-                const serverUrl = 'http://localhost:3000';
+                const serverUrl = 'https://p2p-emrs.onrender.com';
                 await _socketService.connect(serverUrl);
               } else {
                 _logger.d('Socket already connected');
@@ -237,12 +294,6 @@ class _MyAppState extends State<MyApp> {
               context.read<NotificationBloc>().add(
                 const LoadNotificationsEvent(),
               );
-            } else if (state is AuthSuccess) {
-              _logger.i('✅ Login succeeded: ${state.user.email}');
-              if (!kIsWeb && _fcmService != null) {
-                _setupFcmCallbacks();
-                await _registerFcmToken();
-              }
             } else if (state is AuthUnauthenticated) {
               _logger.i('User unauthenticated, disconnecting socket');
               _socketService.disconnect();

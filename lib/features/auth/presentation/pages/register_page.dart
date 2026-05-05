@@ -33,10 +33,8 @@ class RegisterPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return BlocProvider(
-      create: (_) => sl<AuthBloc>(),
-      child: const _RegisterPageContent(),
-    );
+    // Use existing AuthBloc from parent (main.dart) instead of creating new one
+    return const _RegisterPageContent();
   }
 }
 
@@ -627,11 +625,7 @@ class _RegisterPageContentState extends State<_RegisterPageContent> {
           color: AppColors.textMuted,
           fontSize: 14,
         ),
-        prefixIcon: Icon(
-          prefixIcon,
-          color: AppColors.primary,
-          size: 20,
-        ),
+        prefixIcon: Icon(prefixIcon, color: AppColors.primary, size: 20),
         suffixIcon: suffixIcon,
         filled: true,
         fillColor: AppColors.inputBackground,

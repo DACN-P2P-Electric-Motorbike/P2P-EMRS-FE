@@ -8,6 +8,7 @@ environment:
   sdk: ^3.10.1
 
 dependencies:
+  sentry_flutter: ^9.19.0
   flutter:
     sdk: flutter
   flutter_localizations:
@@ -31,7 +32,7 @@ dependencies:
   firebase_messaging: 14.7.10
   firebase_core_web: 2.10.0
   firebase_messaging_web: 3.5.18
-  flutter_local_notifications: ^16.3.0
+  flutter_local_notifications: ^17.0.0
 
   # Secure Storage
   flutter_secure_storage: ^9.2.2
@@ -72,6 +73,7 @@ dependencies:
   latlong2: ^0.9.1
 
 dev_dependencies:
+  sentry_dart_plugin: ^3.3.0
   flutter_test:
     sdk: flutter
 
@@ -82,3 +84,9 @@ dev_dependencies:
 flutter:
   uses-material-design: true
   # Using Google Fonts package for Poppins font (loaded from internet)
+
+sentry:
+  upload_debug_symbols: true
+  upload_source_maps: true
+  project: flutter
+  org: ho-chi-minh-city-university-la

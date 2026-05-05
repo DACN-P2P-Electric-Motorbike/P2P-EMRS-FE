@@ -19,6 +19,7 @@ import 'package:go_router/go_router.dart';
 import '../../features/auth/domain/entities/user.dart';
 import '../../features/auth/presentation/bloc/auth_bloc.dart';
 import '../../features/auth/presentation/bloc/auth_state.dart';
+import '../../features/auth/presentation/pages/splash_page.dart';
 
 import '../../features/auth/presentation/pages/forgot_password_page.dart';
 import '../../features/auth/presentation/pages/login_page.dart';
@@ -45,25 +46,34 @@ class AppRouter {
 
   static final GoRouter router = GoRouter(
     navigatorKey: rootNavigatorKey,
-    initialLocation: '/login',
+    initialLocation: '/splash',
     debugLogDiagnostics: true,
     redirect: (context, state) {
       final authState = context.read<AuthBloc>().state;
+
+      // While auth check is still in progress, don't redirect at all.
+      // This prevents the white screen / flicker on release builds where
+      // the auth check completes slightly later than in debug mode.
+      if (authState is AuthInitial || authState is AuthLoading) {
+        return null;
+      }
 
       // If user is accessing owner routes, verify role
       final isOwnerRoute =
           state.uri.path.startsWith('/owner') ||
           state.uri.path == '/owner-earnings';
 
-      if (isOwnerRoute && authState is AuthAuthenticated) {
-        if (!authState.user.isOwner && !authState.user.isAdmin) {
+      if (isOwnerRoute &&
+          (authState is AuthAuthenticated || authState is AuthSuccess)) {
+        final user = authState is AuthAuthenticated
+            ? authState.user
+            : (authState as AuthSuccess).user;
+        if (!user.isOwner && !user.isAdmin) {
           // If not owner/admin, redirect to become-owner page
           return '/become-owner';
         }
       }
 
-      // Redirect to login if unauthenticated and trying to access protected routes
-      // (Simplified: assuming all routes except auth ones are protected)
       final isAuthRoute =
           state.uri.path == '/login' ||
           state.uri.path == '/register' ||
@@ -71,14 +81,38 @@ class AppRouter {
           state.uri.path.startsWith('/reset-password') ||
           state.uri.path.startsWith('/otp-verify');
 
-      if (!isAuthRoute &&
-          (authState is AuthInitial || authState is AuthUnauthenticated)) {
+      // Once auth is determined, redirect away from splash screen
+      final isSplash = state.uri.path == '/splash';
+      if (isSplash) {
+        if (authState is AuthAuthenticated || authState is AuthSuccess) {
+          return '/home';
+        }
+        if (authState is AuthUnauthenticated || authState is AuthFailure) {
+          return '/login';
+        }
+      }
+
+      // Only redirect to login when we KNOW the user is unauthenticated
+      if (!isAuthRoute && !isSplash && authState is AuthUnauthenticated) {
         return '/login';
+      }
+
+      // Redirect authenticated users away from auth pages
+      if (isAuthRoute &&
+          (authState is AuthAuthenticated || authState is AuthSuccess)) {
+        return '/home';
       }
 
       return null;
     },
     routes: [
+      // ==================== SPLASH ROUTE ====================
+      GoRoute(
+        path: '/splash',
+        name: 'splash',
+        builder: (context, state) => const SplashPage(),
+      ),
+
       // ==================== AUTH ROUTES (No navbar) ====================
       GoRoute(
         path: '/login',
