@@ -10,6 +10,10 @@ import '../../../../core/utils/open_external_map.dart';
 import '../../../../injection_container.dart';
 import '../../domain/entities/vehicle_entity.dart';
 import '../bloc/owner_vehicle_bloc.dart';
+import '../../data/models/update_vehicle_params.dart';
+import 'dart:typed_data'; // Cần cho Uint8List
+import 'package:file_picker/file_picker.dart'; // Cần cho FilePicker
+import '../../../../core/services/upload_service.dart'; // Cần cho UploadService
 
 /// Vehicle Detail & Edit Page
 class VehicleDetailEditPage extends StatelessWidget {
@@ -31,6 +35,50 @@ class _VehicleDetailContent extends StatefulWidget {
 
   @override
   State<_VehicleDetailContent> createState() => _VehicleDetailContentState();
+}
+
+// Widget phụ trợ hiển thị ảnh có nút xóa
+class _ImagePreview extends StatelessWidget {
+  final ImageProvider image;
+  final VoidCallback onDelete;
+
+  const _ImagePreview({required this.image, required this.onDelete});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 100,
+      margin: const EdgeInsets.only(right: 10),
+      child: Stack(
+        children: [
+          ClipRRect(
+            borderRadius: BorderRadius.circular(12),
+            child: Image(
+              image: image,
+              width: 100,
+              height: 100,
+              fit: BoxFit.cover,
+            ),
+          ),
+          Positioned(
+            top: 4,
+            right: 4,
+            child: GestureDetector(
+              onTap: onDelete,
+              child: Container(
+                padding: const EdgeInsets.all(4),
+                decoration: const BoxDecoration(
+                  color: Colors.black54,
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.close, size: 14, color: Colors.white),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 class _VehicleDetailContentState extends State<_VehicleDetailContent> {
@@ -205,8 +253,16 @@ class _VehicleDetailContentState extends State<_VehicleDetailContent> {
         IconButton(
           icon: const Icon(Icons.edit_outlined, color: AppColors.primary),
           onPressed: () {
-            // TODO: Navigate to full edit page
-          },
+            // Lấy vehicle mới nhất từ state của Bloc hiện tại
+            final vehicle = context
+                .read<OwnerVehicleBloc>()
+                .state
+                .selectedVehicle;
+
+            if (vehicle != null) {
+              _showEditVehicleSheet(context, vehicle);
+            }
+          }, // Truyền vehicle hiện tại vào
         ),
       ],
     );
@@ -753,6 +809,293 @@ class _VehicleDetailContentState extends State<_VehicleDetailContent> {
           fontWeight: FontWeight.w600,
           color: _getStatusColor(status),
         ),
+      ),
+    );
+  }
+
+  void _showEditVehicleSheet(BuildContext context, VehicleEntity vehicle) {
+    final ownerVehicleBloc = context.read<OwnerVehicleBloc>();
+    // 1. Khởi tạo các Controller với dữ liệu hiện tại
+    final nameController = TextEditingController(text: vehicle.model);
+    final priceController = TextEditingController(
+      text: vehicle.pricePerHour.toString(),
+    );
+    final descriptionController = TextEditingController(
+      text: vehicle.description,
+    );
+    final formKey = GlobalKey<FormState>();
+
+    // 2. Quản lý danh sách ảnh: Tách biệt ảnh cũ (URL) và ảnh mới (Bytes)
+    List<String> existingUrls = List.from(vehicle.images);
+    List<Uint8List> newImageBytes = [];
+    List<String> newImageNames = [];
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
+      ),
+      builder: (sheetContext) => StatefulBuilder(
+        builder: (context, setSheetState) {
+          bool isUploading = false; // Trạng thái loading riêng trong popup
+
+          // Hàm chọn ảnh từ thiết bị (Logic từ file register_vehicle_page)
+          Future<void> _pickImage() async {
+            final result = await FilePicker.platform.pickFiles(
+              type: FileType.image,
+              allowMultiple: true,
+              withData: true,
+            );
+
+            if (result != null) {
+              setSheetState(() {
+                for (var file in result.files) {
+                  if (file.bytes != null) {
+                    newImageBytes.add(file.bytes!);
+                    newImageNames.add(file.name);
+                  }
+                }
+              });
+            }
+          }
+
+          // Hàm xử lý tổng hợp: Upload ảnh mới -> Gộp URL -> Cập nhật API
+          Future<void> _handleUpdate() async {
+            if (!formKey.currentState!.validate()) return;
+
+            setSheetState(() => isUploading = true);
+
+            try {
+              List<String> finalImageUrls = List.from(existingUrls);
+
+              // Bước 1: Upload các ảnh mới lên S3 (nếu có) bằng UploadService
+              if (newImageBytes.isNotEmpty) {
+                final uploadService = sl<UploadService>();
+                for (int i = 0; i < newImageBytes.length; i++) {
+                  final result = await uploadService.uploadVehicleImage(
+                    fileBytes: newImageBytes[i],
+                    fileName: newImageNames[i],
+                  );
+                  finalImageUrls.add(result.url);
+                }
+              }
+
+              // Bước 2: Tạo Params và gửi event cập nhật cho Bloc
+              final updateParams = UpdateVehicleParams(
+                model: nameController.text.trim(),
+                pricePerHour: double.tryParse(priceController.text.trim()),
+                description: descriptionController.text.trim(),
+                images:
+                    finalImageUrls, // Danh sách bao gồm URL cũ giữ lại và URL mới vừa upload
+              );
+
+              // if (context.mounted) {
+              //   context.read<OwnerVehicleBloc>().add(
+              //     UpdateVehicleDetails(
+              //       vehicleId: vehicle.id,
+              //       params: updateParams,
+              //     ),
+              //   );
+              //   Navigator.pop(sheetContext);
+              // }
+
+              // 2. SỬ DỤNG BIẾN ownerVehicleBloc ĐÃ LẤY Ở TRÊN
+              // Không dùng context.read ở đây nữa vì context này là sheetContext
+              ownerVehicleBloc.add(
+                UpdateVehicleDetails(
+                  vehicleId: vehicle.id,
+                  params: updateParams,
+                ),
+              );
+              if (sheetContext.mounted) {
+                Navigator.pop(sheetContext);
+              }
+            } catch (e) {
+              // Hiển thị lỗi dùng context của Sheet
+              ScaffoldMessenger.of(sheetContext).showSnackBar(
+                SnackBar(
+                  content: Text('Lỗi: $e'),
+                  backgroundColor: AppColors.error,
+                ),
+              );
+            } finally {
+              setSheetState(() => isUploading = false);
+            }
+          }
+
+          return Padding(
+            padding: EdgeInsets.only(
+              bottom: MediaQuery.of(sheetContext).viewInsets.bottom + 20,
+              left: 20,
+              right: 20,
+              top: 20,
+            ),
+            child: Form(
+              key: formKey,
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Thanh kéo trang trí
+                    Center(
+                      child: Container(
+                        width: 40,
+                        height: 4,
+                        decoration: BoxDecoration(
+                          color: Colors.grey[300],
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    Text(
+                      'Chỉnh sửa thông tin xe',
+                      style: GoogleFonts.poppins(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+
+                    // Nhập Tên Model
+                    TextFormField(
+                      controller: nameController,
+                      decoration: InputDecoration(
+                        labelText: 'Tên dòng xe',
+                        prefixIcon: const Icon(Icons.motorcycle),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      validator: (v) =>
+                          v!.isEmpty ? 'Không được để trống' : null,
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Nhập Giá thuê
+                    TextFormField(
+                      controller: priceController,
+                      decoration: InputDecoration(
+                        labelText: 'Giá thuê mỗi giờ',
+                        prefixIcon: const Icon(Icons.payments_outlined),
+                        suffixText: 'đ',
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      keyboardType: TextInputType.number,
+                      validator: (v) => v!.isEmpty ? 'Vui lòng nhập giá' : null,
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Nhập Mô tả
+                    TextFormField(
+                      controller: descriptionController,
+                      decoration: InputDecoration(
+                        labelText: 'Mô tả xe',
+                        alignLabelWithHint: true,
+                        prefixIcon: const Icon(Icons.description_outlined),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      maxLines: 3,
+                    ),
+                    const SizedBox(height: 24),
+
+                    // QUẢN LÝ HÌNH ẢNH
+                    Text(
+                      'Hình ảnh xe (${existingUrls.length + newImageBytes.length})',
+                      style: GoogleFonts.poppins(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    SizedBox(
+                      height: 100,
+                      child: ListView(
+                        scrollDirection: Axis.horizontal,
+                        children: [
+                          // Nút thêm ảnh mới
+                          GestureDetector(
+                            onTap: isUploading ? null : _pickImage,
+                            child: _buildAddImageButton(),
+                          ),
+                          // Previews ảnh hiện tại từ Server (URL)
+                          ...existingUrls.asMap().entries.map(
+                            (entry) => _ImagePreview(
+                              image: NetworkImage(entry.value),
+                              onDelete: () => setSheetState(
+                                () => existingUrls.removeAt(entry.key),
+                              ),
+                            ),
+                          ),
+                          // Previews ảnh mới vừa chọn từ thiết bị (Bytes)
+                          ...newImageBytes.asMap().entries.map(
+                            (entry) => _ImagePreview(
+                              image: MemoryImage(entry.value),
+                              onDelete: () => setSheetState(() {
+                                newImageBytes.removeAt(entry.key);
+                                newImageNames.removeAt(entry.key);
+                              }),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    const SizedBox(height: 32),
+
+                    // Nút hành động chính
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        onPressed: isUploading ? null : _handleUpdate,
+                        style: ElevatedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        child: isUploading
+                            ? const SpinKitThreeBounce(
+                                color: Colors.white,
+                                size: 20,
+                              )
+                            : const Text('Cập nhật thay đổi'),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  // Widget phụ trợ để hiển thị preview ảnh với nút xóa
+  Widget _buildAddImageButton() {
+    return Container(
+      width: 100,
+      height: 100,
+      margin: const EdgeInsets.only(right: 12),
+      decoration: BoxDecoration(
+        color: AppColors.inputBackground,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.border, style: BorderStyle.solid),
+      ),
+      child: const Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.add_a_photo_outlined, color: AppColors.primary),
+          Text('Thêm ảnh', style: TextStyle(fontSize: 11)),
+        ],
       ),
     );
   }
