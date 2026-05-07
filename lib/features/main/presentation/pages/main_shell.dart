@@ -87,20 +87,19 @@ class _MainShellState extends State<MainShell> {
 
   @override
   Widget build(BuildContext context) {
-    return BlocProvider(
-      create: (_) => sl<AuthBloc>()..add(const AuthCheckRequested()),
-      child: BlocBuilder<AuthBloc, AuthState>(
-        builder: (context, state) {
-          final user = state is AuthAuthenticated ? state.user : null;
-          final isOwner = user?.isOwner == true || user?.isAdmin == true;
+    // Use the AuthBloc provided at app level (in main.dart)
+    // Don't create a new instance here as it causes desynchronization during logout
+    return BlocBuilder<AuthBloc, AuthState>(
+      builder: (context, state) {
+        final user = state is AuthAuthenticated ? state.user : null;
+        final isOwner = user?.isOwner == true || user?.isAdmin == true;
 
-          return Scaffold(
-            // Use child from ShellRoute if provided, otherwise use IndexedStack fallback
-            body: widget.child ?? _buildFallbackBody(isOwner),
-            bottomNavigationBar: _buildBottomNavBar(isOwner),
-          );
-        },
-      ),
+        return Scaffold(
+          // Use child from ShellRoute if provided, otherwise use IndexedStack fallback
+          body: widget.child ?? _buildFallbackBody(isOwner),
+          bottomNavigationBar: _buildBottomNavBar(isOwner),
+        );
+      },
     );
   }
 

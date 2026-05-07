@@ -305,6 +305,17 @@ class _MyAppState extends State<MyApp> {
                   await unregisterUseCase(UnregisterFcmTokenParams(fcmToken));
                 }
               }
+
+              // Force navigation to login screen when user logs out
+              if (context.mounted) {
+                _logger.i('🔐 Logging out: navigating to login screen');
+                // Schedule navigation on next frame to ensure proper cleanup
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  if (context.mounted) {
+                    AppRouter.router.go('/login');
+                  }
+                });
+              }
             }
           },
           child: AnimatedBuilder(
