@@ -116,7 +116,9 @@ class _VehicleMapPageState extends State<VehicleMapPage> {
   }
 
   Set<gmaps.Marker> _buildGoogleMarkers(List<VehicleEntity> vehicles) {
-    return vehicles.map((vehicle) {
+    return vehicles
+        .where((vehicle) => vehicle.latitude != null && vehicle.longitude != null)
+        .map((vehicle) {
       final isAvailable =
           vehicle.isAvailable && vehicle.status == VehicleStatus.available;
       return gmaps.Marker(
@@ -154,7 +156,9 @@ class _VehicleMapPageState extends State<VehicleMapPage> {
   }
 
   List<fm.Marker> _buildOsmVehicleMarkers(List<VehicleEntity> vehicles) {
-    return vehicles.map((vehicle) {
+    return vehicles
+        .where((vehicle) => vehicle.latitude != null && vehicle.longitude != null)
+        .map((vehicle) {
       final isAvailable =
           vehicle.isAvailable && vehicle.status == VehicleStatus.available;
       return fm.Marker(

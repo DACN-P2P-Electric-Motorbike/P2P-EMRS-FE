@@ -48,6 +48,11 @@ class _EnhancedBookingContentState extends State<_EnhancedBookingContent> {
   static const _minRentalDuration = Duration(minutes: 30);
   static const _maxRentalDuration = Duration(days: 30);
 
+  // Normalize DateTime to midnight (00:00:00)
+  DateTime _normalizeToMidnight(DateTime date) {
+    return DateTime(date.year, date.month, date.day);
+  }
+
   @override
   void dispose() {
     _notesController.dispose();
@@ -574,11 +579,12 @@ class _EnhancedBookingContentState extends State<_EnhancedBookingContent> {
           date: _startDate,
           time: _startTime,
           onDateTap: () async {
+            final today = _normalizeToMidnight(DateTime.now());
             final date = await showDatePicker(
               context: context,
-              initialDate: _startDate ?? DateTime.now(),
-              firstDate: DateTime.now(),
-              lastDate: DateTime.now().add(const Duration(days: 365)),
+              initialDate: _startDate ?? today,
+              firstDate: today,
+              lastDate: today.add(const Duration(days: 365)),
               builder: (context, child) {
                 return Theme(
                   data: Theme.of(context).copyWith(
@@ -625,11 +631,13 @@ class _EnhancedBookingContentState extends State<_EnhancedBookingContent> {
           date: _endDate,
           time: _endTime,
           onDateTap: () async {
+            final today = _normalizeToMidnight(DateTime.now());
+            final minDate = _startDate ?? today;
             final date = await showDatePicker(
               context: context,
-              initialDate: _endDate ?? _startDate ?? DateTime.now(),
-              firstDate: _startDate ?? DateTime.now(),
-              lastDate: DateTime.now().add(const Duration(days: 365)),
+              initialDate: _endDate ?? minDate,
+              firstDate: minDate,
+              lastDate: today.add(const Duration(days: 365)),
               builder: (context, child) {
                 return Theme(
                   data: Theme.of(context).copyWith(
@@ -1125,8 +1133,16 @@ class _EnhancedBookingContentState extends State<_EnhancedBookingContent> {
     if (!end.isAfter(start)) {
       return 'Thời gian kết thúc phải sau thời gian bắt đầu';
     }
-    if (start.isBefore(DateTime.now())) {
+
+    // For hourly rentals, the start time must be in the future
+    // For daily rentals, the start date must be today or later
+    if (_rentalType == 'hourly' && start.isBefore(DateTime.now())) {
       return 'Thời gian bắt đầu phải ở tương lai';
+    } else if (_rentalType == 'daily') {
+      final todayMidnight = _normalizeToMidnight(DateTime.now());
+      if (start.isBefore(todayMidnight)) {
+        return 'Ngày bắt đầu phải từ hôm nay trở đi';
+      }
     }
 
     final duration = end.difference(start);

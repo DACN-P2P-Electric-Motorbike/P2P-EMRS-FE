@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:fe_capstone_project/core/services/notification_toast_service.dart';
 import 'package:fe_capstone_project/core/services/socket_service.dart';
+import 'package:fe_capstone_project/core/router/app_router.dart';
 import 'package:fe_capstone_project/features/booking/presentation/pages/booking_detail_page.dart';
 import 'package:fe_capstone_project/features/notification/presentation/bloc/notification_bloc.dart';
 import 'package:fe_capstone_project/features/notification/presentation/bloc/notification_event.dart';
@@ -83,8 +84,8 @@ class _NotificationListenerWidgetState
     // Determine if owner view based on notification type
     final isOwnerView = type == 'BOOKING_REQUEST';
 
-    Navigator.push(
-      context,
+    // Use root navigator key to navigate from notification
+    rootNavigatorKey.currentState?.push(
       MaterialPageRoute(
         builder: (_) =>
             BookingDetailPage(bookingId: bookingId, isOwnerView: isOwnerView),

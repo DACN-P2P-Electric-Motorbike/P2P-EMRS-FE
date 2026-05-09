@@ -96,9 +96,9 @@ class _VehicleListViewState extends State<_VehicleListView> {
         _minBatteryLevel != null ||
         _selectedFeatures.isNotEmpty ||
         _sortBy != 'default' ||
-          _searchController.text.trim().isNotEmpty ||
-          _desiredStartTime != null ||
-          _desiredEndTime != null;
+        _searchController.text.trim().isNotEmpty ||
+        _desiredStartTime != null ||
+        _desiredEndTime != null;
   }
 
   @override
@@ -182,9 +182,11 @@ class _VehicleListViewState extends State<_VehicleListView> {
                               );
 
                           if (result != null) {
-                            final newStartTime = result['startTime'] as DateTime?;
+                            final newStartTime =
+                                result['startTime'] as DateTime?;
                             final newEndTime = result['endTime'] as DateTime?;
-                            final timeChanged = newStartTime != _desiredStartTime ||
+                            final timeChanged =
+                                newStartTime != _desiredStartTime ||
                                 newEndTime != _desiredEndTime;
 
                             setState(() {
@@ -532,13 +534,7 @@ class _VehicleListViewState extends State<_VehicleListView> {
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () {
-          // TODO: Navigate to map view
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Bản đồ đang được phát triển'),
-              backgroundColor: AppColors.primary,
-            ),
-          );
+          context.push('/vehicle/map');
         },
         icon: const Icon(Icons.map),
         label: const Text('Xem bản đồ'),
