@@ -14,8 +14,8 @@ class TripRepositoryImpl implements TripRepository {
   @override
   Future<Either<Failure, TripEntity>> startTrip({
     required String bookingId,
-    double? startLatitude,
-    double? startLongitude,
+    required double startLatitude,
+    required double startLongitude,
     String? startAddress,
     double? startBattery,
   }) async {
@@ -40,10 +40,10 @@ class TripRepositoryImpl implements TripRepository {
   @override
   Future<Either<Failure, TripEntity>> endTrip({
     required String tripId,
-    double? endLatitude,
-    double? endLongitude,
+    required double endLatitude,
+    required double endLongitude,
     String? endAddress,
-    double? endBattery,
+    required double endBattery,
     bool hasIssues = false,
     String? issueDescription,
   }) async {
