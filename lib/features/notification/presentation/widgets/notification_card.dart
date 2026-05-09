@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:intl/intl.dart';
 
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/utils/vietnam_time.dart';
 import '../../domain/entities/notification.dart';
 
 /// Notification Card Widget
@@ -267,7 +267,7 @@ class NotificationCard extends StatelessWidget {
     } else if (difference.inDays < 7) {
       return '${difference.inDays} ngày trước';
     } else {
-      return DateFormat('dd/MM/yyyy').format(dateTime);
+      return VietnamTime.format(dateTime, 'dd/MM/yyyy');
     }
   }
 }

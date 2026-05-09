@@ -5,7 +5,12 @@ class ApiConstants {
   /// Base URL for the API
   /// Use 'http://10.0.2.2:3000' for Android emulator
   /// Use 'http://localhost:3000' for iOS simulator or web
-  static const String baseUrl = 'https://p2p-emrs.onrender.com';
+  /// Override locally with:
+  ///   flutter run -d chrome --dart-define=API_BASE_URL=http://localhost:3000
+  static const String baseUrl = String.fromEnvironment(
+    'API_BASE_URL',
+    defaultValue: 'https://p2p-emrs.onrender.com',
+  );
 
   /// Connection timeout in milliseconds
   static const int connectTimeout = 30000;

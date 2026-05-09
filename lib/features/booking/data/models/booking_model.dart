@@ -43,6 +43,11 @@ class BookingModel {
 
   /// Parse from JSON response
   factory BookingModel.fromJson(Map<String, dynamic> json) {
+    final nestedPayment = json['payment'];
+    final nestedPaymentStatus = nestedPayment is Map
+        ? nestedPayment['status'] as String?
+        : null;
+
     return BookingModel(
       id: json['id'] as String,
       renterId: json['renterId'] as String,
@@ -63,8 +68,9 @@ class BookingModel {
       cancelledAt: json['cancelledAt'] != null
           ? DateTime.parse(json['cancelledAt'] as String)
           : null,
-      vehicleName: (json['vehicle'] as Map<String, dynamic>?)?['name'] as String?,
-      paymentStatus: json['paymentStatus'] as String?,
+      vehicleName:
+          (json['vehicle'] as Map<String, dynamic>?)?['name'] as String?,
+      paymentStatus: json['paymentStatus'] as String? ?? nestedPaymentStatus,
     );
   }
 

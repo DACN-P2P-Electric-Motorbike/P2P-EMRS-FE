@@ -20,8 +20,9 @@ class ServerException extends AppException {
     String message = 'An unexpected error occurred.';
     int? statusCode = e.response?.statusCode;
 
-    if (e.response?.data is Map<String, dynamic>) {
-      final data = e.response!.data as Map<String, dynamic>;
+    final responseData = e.response?.data;
+    if (responseData is Map<String, dynamic> || responseData is Map) {
+      final data = Map<String, dynamic>.from(responseData as Map);
       if (data.containsKey('message')) {
         final msg = data['message'];
         if (msg is String) {
@@ -31,6 +32,8 @@ class ServerException extends AppException {
           message = msg.map((m) => m.toString()).join(', ');
         }
       }
+    } else if (responseData is String && responseData.trim().isNotEmpty) {
+      message = responseData;
     } else {
       switch (e.type) {
         case DioExceptionType.connectionTimeout:

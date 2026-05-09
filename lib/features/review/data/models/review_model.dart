@@ -5,6 +5,8 @@ class ReviewModel extends ReviewEntity {
     required super.id,
     required super.userId,
     required super.vehicleId,
+    super.tripId,
+    super.bookingId,
     required super.rating,
     super.comment,
     super.userName,
@@ -19,11 +21,14 @@ class ReviewModel extends ReviewEntity {
   factory ReviewModel.fromJson(Map<String, dynamic> json) {
     final user = json['user'] as Map<String, dynamic>?;
     final vehicle = json['vehicle'] as Map<String, dynamic>?;
+    final trip = json['trip'] as Map<String, dynamic>?;
     final images = vehicle?['images'] as List<dynamic>?;
     return ReviewModel(
       id: json['id'] as String,
       userId: json['userId'] as String,
       vehicleId: json['vehicleId'] as String,
+      tripId: json['tripId'] as String?,
+      bookingId: json['bookingId'] as String? ?? trip?['bookingId'] as String?,
       rating: json['rating'] as int,
       comment: json['comment'] as String?,
       userName: user?['fullName'] as String?,
@@ -42,6 +47,8 @@ class ReviewModel extends ReviewEntity {
     id: id,
     userId: userId,
     vehicleId: vehicleId,
+    tripId: tripId,
+    bookingId: bookingId,
     rating: rating,
     comment: comment,
     userName: userName,

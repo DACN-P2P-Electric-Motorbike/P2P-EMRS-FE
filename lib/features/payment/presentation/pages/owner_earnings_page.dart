@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/utils/vietnam_time.dart';
 import '../../../../injection_container.dart';
 import '../../domain/entities/owner_earnings_entity.dart';
 import '../bloc/payment_bloc.dart';
@@ -60,9 +61,9 @@ class _OwnerEarningsView extends StatelessWidget {
                   ),
                   const SizedBox(height: 16),
                   ElevatedButton(
-                    onPressed: () => context
-                        .read<PaymentBloc>()
-                        .add(const LoadOwnerEarningsEvent()),
+                    onPressed: () => context.read<PaymentBloc>().add(
+                      const LoadOwnerEarningsEvent(),
+                    ),
                     child: const Text('Thử lại'),
                   ),
                 ],
@@ -80,7 +81,6 @@ class _OwnerEarningsView extends StatelessWidget {
 
   Widget _buildContent(BuildContext context, OwnerEarningsEntity earnings) {
     final currencyFormat = NumberFormat('#,###', 'vi_VN');
-    final dateFormat = DateFormat('dd/MM/yyyy HH:mm');
 
     return RefreshIndicator(
       onRefresh: () async {
@@ -216,7 +216,7 @@ class _OwnerEarningsView extends StatelessWidget {
               )
             else
               ...earnings.bookings.map(
-                (booking) => _buildBookingCard(booking, currencyFormat, dateFormat),
+                (booking) => _buildBookingCard(booking, currencyFormat),
               ),
           ],
         ),
@@ -285,7 +285,6 @@ class _OwnerEarningsView extends StatelessWidget {
   Widget _buildBookingCard(
     EarningsBookingItem booking,
     NumberFormat currencyFormat,
-    DateFormat dateFormat,
   ) {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
@@ -316,7 +315,8 @@ class _OwnerEarningsView extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  booking.vehicleName ?? 'Booking #${booking.bookingId.substring(0, 8)}',
+                  booking.vehicleName ??
+                      'Booking #${booking.bookingId.substring(0, 8)}',
                   style: GoogleFonts.poppins(
                     fontWeight: FontWeight.w600,
                     fontSize: 14,
@@ -325,7 +325,7 @@ class _OwnerEarningsView extends StatelessWidget {
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  '${dateFormat.format(booking.paidAt)} • ${booking.method}',
+                  '${VietnamTime.format(booking.paidAt, 'dd/MM/yyyy HH:mm')} • ${booking.method}',
                   style: GoogleFonts.poppins(
                     fontSize: 12,
                     color: AppColors.textSecondary,

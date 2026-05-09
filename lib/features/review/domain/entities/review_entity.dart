@@ -4,6 +4,8 @@ class ReviewEntity extends Equatable {
   final String id;
   final String userId;
   final String vehicleId;
+  final String? tripId;
+  final String? bookingId;
   final int rating;
   final String? comment;
   final String? userName;
@@ -18,6 +20,8 @@ class ReviewEntity extends Equatable {
     required this.id,
     required this.userId,
     required this.vehicleId,
+    this.tripId,
+    this.bookingId,
     required this.rating,
     this.comment,
     this.userName,
@@ -34,6 +38,8 @@ class ReviewEntity extends Equatable {
     id,
     userId,
     vehicleId,
+    tripId,
+    bookingId,
     rating,
     comment,
     userName,

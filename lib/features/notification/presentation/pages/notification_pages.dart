@@ -4,14 +4,13 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/utils/vietnam_time.dart';
 import '../../../../injection_container.dart';
 import '../../domain/entities/notification.dart';
 import '../bloc/notification_bloc.dart';
 import '../bloc/notification_event.dart';
 import '../bloc/notification_state.dart';
 import '../widgets/notification_card.dart';
-import '../../../booking/presentation/bloc/booking_bloc.dart';
-import '../../../booking/presentation/bloc/booking_event.dart';
 import '../../../booking/presentation/pages/booking_detail_page.dart';
 
 /// Notifications Page
@@ -188,7 +187,7 @@ class _NotificationsContentState extends State<_NotificationsContent> {
   }
 
   String _getDateKey(DateTime date) {
-    return DateFormat('yyyy-MM-dd').format(date);
+    return VietnamTime.format(date, 'yyyy-MM-dd');
   }
 
   String _getDateLabel(String dateKey) {

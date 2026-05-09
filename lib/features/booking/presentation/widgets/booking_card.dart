@@ -3,6 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/utils/vietnam_time.dart';
 import '../../domain/entities/booking.dart';
 
 /// Returns a synthetic payment status label when no payment record exists yet
@@ -59,17 +60,21 @@ class BookingCard extends StatelessWidget {
                 Row(
                   children: [
                     _StatusBadge(status: booking.status),
-                    Builder(builder: (_) {
-                      final ps = booking.paymentStatus ?? _defaultPaymentStatus(booking.status);
-                      if (ps == null) return const SizedBox.shrink();
-                      return Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const SizedBox(width: 6),
-                          _PaymentBadge(paymentStatus: ps),
-                        ],
-                      );
-                    }),
+                    Builder(
+                      builder: (_) {
+                        final ps =
+                            booking.paymentStatus ??
+                            _defaultPaymentStatus(booking.status);
+                        if (ps == null) return const SizedBox.shrink();
+                        return Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const SizedBox(width: 6),
+                            _PaymentBadge(paymentStatus: ps),
+                          ],
+                        );
+                      },
+                    ),
                     const Spacer(),
                     Text(
                       '#${booking.id.substring(0, 8)}',
@@ -116,7 +121,7 @@ class BookingCard extends StatelessWidget {
                             overflow: TextOverflow.ellipsis,
                           ),
                           Text(
-                            '${booking.durationDisplayText} · ${DateFormat('dd/MM/yyyy').format(booking.startTime)}',
+                            '${booking.durationDisplayText} · ${VietnamTime.format(booking.startTime, 'dd/MM/yyyy')}',
                             style: GoogleFonts.poppins(
                               fontSize: 12,
                               color: AppColors.textMuted,
@@ -140,7 +145,10 @@ class BookingCard extends StatelessWidget {
                       child: _TimeChip(
                         icon: Icons.login_rounded,
                         label: 'Nhận xe',
-                        value: DateFormat('dd/MM  HH:mm').format(booking.startTime),
+                        value: VietnamTime.format(
+                          booking.startTime,
+                          'dd/MM  HH:mm',
+                        ),
                       ),
                     ),
                     Container(
@@ -153,7 +161,10 @@ class BookingCard extends StatelessWidget {
                       child: _TimeChip(
                         icon: Icons.logout_rounded,
                         label: 'Trả xe',
-                        value: DateFormat('dd/MM  HH:mm').format(booking.endTime),
+                        value: VietnamTime.format(
+                          booking.endTime,
+                          'dd/MM  HH:mm',
+                        ),
                         alignRight: true,
                       ),
                     ),
@@ -210,41 +221,41 @@ class _StatusBadge extends StatelessWidget {
   Widget build(BuildContext context) {
     final (Color bg, Color fg, IconData icon, String label) = switch (status) {
       BookingStatus.PENDING => (
-          AppColors.warning.withOpacity(0.12),
-          AppColors.warning,
-          Icons.schedule_rounded,
-          'Chờ xác nhận',
-        ),
+        AppColors.warning.withOpacity(0.12),
+        AppColors.warning,
+        Icons.schedule_rounded,
+        'Chờ xác nhận',
+      ),
       BookingStatus.CONFIRMED => (
-          AppColors.success.withOpacity(0.12),
-          AppColors.success,
-          Icons.check_circle_outline_rounded,
-          'Đã xác nhận',
-        ),
+        AppColors.success.withOpacity(0.12),
+        AppColors.success,
+        Icons.check_circle_outline_rounded,
+        'Đã xác nhận',
+      ),
       BookingStatus.ONGOING => (
-          AppColors.info.withOpacity(0.12),
-          AppColors.info,
-          Icons.directions_bike_rounded,
-          'Đang thuê',
-        ),
+        AppColors.info.withOpacity(0.12),
+        AppColors.info,
+        Icons.directions_bike_rounded,
+        'Đang thuê',
+      ),
       BookingStatus.COMPLETED => (
-          AppColors.success.withOpacity(0.12),
-          AppColors.success,
-          Icons.task_alt_rounded,
-          'Hoàn thành',
-        ),
+        AppColors.success.withOpacity(0.12),
+        AppColors.success,
+        Icons.task_alt_rounded,
+        'Hoàn thành',
+      ),
       BookingStatus.CANCELLED => (
-          AppColors.error.withOpacity(0.12),
-          AppColors.error,
-          Icons.cancel_outlined,
-          'Đã hủy',
-        ),
+        AppColors.error.withOpacity(0.12),
+        AppColors.error,
+        Icons.cancel_outlined,
+        'Đã hủy',
+      ),
       BookingStatus.REJECTED => (
-          AppColors.error.withOpacity(0.12),
-          AppColors.error,
-          Icons.block_rounded,
-          'Bị từ chối',
-        ),
+        AppColors.error.withOpacity(0.12),
+        AppColors.error,
+        Icons.block_rounded,
+        'Bị từ chối',
+      ),
     };
 
     return Container(
@@ -278,49 +289,54 @@ class _PaymentBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final (Color bg, Color fg, IconData icon, String label) = switch (paymentStatus) {
+    final (
+      Color bg,
+      Color fg,
+      IconData icon,
+      String label,
+    ) = switch (paymentStatus) {
       'AWAITING' => (
-          Colors.grey.withOpacity(0.10),
-          Colors.grey.shade600,
-          Icons.credit_card_outlined,
-          'Chưa TT',
-        ),
+        Colors.grey.withOpacity(0.10),
+        Colors.grey.shade600,
+        Icons.credit_card_outlined,
+        'Chưa TT',
+      ),
       'COMPLETED' => (
-          const Color(0xFF00C853).withOpacity(0.10),
-          const Color(0xFF00873E),
-          Icons.check_circle_outline,
-          'Đã TT',
-        ),
+        const Color(0xFF00C853).withOpacity(0.10),
+        const Color(0xFF00873E),
+        Icons.check_circle_outline,
+        'Đã TT',
+      ),
       'PENDING' => (
-          Colors.orange.withOpacity(0.10),
-          Colors.orange.shade700,
-          Icons.hourglass_top_rounded,
-          'Chờ TT',
-        ),
+        Colors.orange.withOpacity(0.10),
+        Colors.orange.shade700,
+        Icons.hourglass_top_rounded,
+        'Chờ TT',
+      ),
       'PROCESSING' => (
-          Colors.blue.withOpacity(0.10),
-          Colors.blue.shade700,
-          Icons.sync_rounded,
-          'Đang TT',
-        ),
+        Colors.blue.withOpacity(0.10),
+        Colors.blue.shade700,
+        Icons.sync_rounded,
+        'Đang TT',
+      ),
       'REFUNDED' => (
-          Colors.purple.withOpacity(0.10),
-          Colors.purple.shade600,
-          Icons.replay_rounded,
-          'Hoàn tiền',
-        ),
+        Colors.purple.withOpacity(0.10),
+        Colors.purple.shade600,
+        Icons.replay_rounded,
+        'Hoàn tiền',
+      ),
       'FAILED' => (
-          AppColors.error.withOpacity(0.10),
-          AppColors.error,
-          Icons.error_outline_rounded,
-          'TT thất bại',
-        ),
+        AppColors.error.withOpacity(0.10),
+        AppColors.error,
+        Icons.error_outline_rounded,
+        'TT thất bại',
+      ),
       _ => (
-          Colors.grey.withOpacity(0.10),
-          Colors.grey.shade600,
-          Icons.help_outline_rounded,
-          paymentStatus,
-        ),
+        Colors.grey.withOpacity(0.10),
+        Colors.grey.shade600,
+        Icons.help_outline_rounded,
+        paymentStatus,
+      ),
     };
 
     return Container(
@@ -365,8 +381,9 @@ class _TimeChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Column(
-      crossAxisAlignment:
-          alignRight ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+      crossAxisAlignment: alignRight
+          ? CrossAxisAlignment.end
+          : CrossAxisAlignment.start,
       children: [
         Row(
           mainAxisSize: MainAxisSize.min,

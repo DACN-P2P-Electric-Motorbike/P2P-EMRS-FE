@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:intl/intl.dart';
 
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/usecases/usecase.dart';
+import '../../../../core/utils/vietnam_time.dart';
 import '../../../../injection_container.dart';
+import '../../../review/domain/usecases/review_usecases.dart';
 import '../../../review/presentation/pages/create_review_page.dart';
 import '../../domain/entities/trip_entity.dart';
 import '../bloc/trip_bloc.dart';
@@ -35,6 +37,28 @@ class _TripHistoryView extends StatefulWidget {
 class _TripHistoryViewState extends State<_TripHistoryView> {
   _TripFilter _filter = _TripFilter.all;
   int _visibleCount = 10;
+  late Future<Set<String>> _reviewedBookingIdsFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _reviewedBookingIdsFuture = _loadReviewedBookingIds();
+  }
+
+  Future<Set<String>> _loadReviewedBookingIds() async {
+    final result = await sl<GetMyReviewsUseCase>()(const NoParams());
+    return result.fold(
+      (_) => <String>{},
+      (reviews) =>
+          reviews.map((review) => review.bookingId).whereType<String>().toSet(),
+    );
+  }
+
+  void _refreshReviewedBookingIds() {
+    setState(() {
+      _reviewedBookingIdsFuture = _loadReviewedBookingIds();
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -111,36 +135,54 @@ class _TripHistoryViewState extends State<_TripHistoryView> {
                   ),
                 ),
                 Expanded(
-                  child: filtered.isEmpty
-                      ? _buildEmptyState(_filter)
-                      : ListView.builder(
-                          padding: const EdgeInsets.all(16),
-                          itemCount: filtered.length > _visibleCount
-                              ? _visibleCount + 1
-                              : filtered.length,
-                          itemBuilder: (context, index) {
-                            if (index == _visibleCount) {
-                              return Padding(
-                                padding: const EdgeInsets.symmetric(
-                                  vertical: 8,
-                                ),
-                                child: TextButton(
-                                  onPressed: () =>
-                                      setState(() => _visibleCount += 10),
-                                  child: Text(
-                                    'Xem thêm (${filtered.length - _visibleCount} chuyến đi)',
-                                    style: GoogleFonts.poppins(
-                                      fontSize: 14,
-                                      color: AppColors.primary,
-                                      fontWeight: FontWeight.w500,
+                  child: FutureBuilder<Set<String>>(
+                    future: _reviewedBookingIdsFuture,
+                    builder: (context, reviewSnapshot) {
+                      final reviewedBookingIds =
+                          reviewSnapshot.data ?? <String>{};
+                      final isCheckingReviews =
+                          reviewSnapshot.connectionState !=
+                          ConnectionState.done;
+                      return filtered.isEmpty
+                          ? _buildEmptyState(_filter)
+                          : ListView.builder(
+                              padding: const EdgeInsets.all(16),
+                              itemCount: filtered.length > _visibleCount
+                                  ? _visibleCount + 1
+                                  : filtered.length,
+                              itemBuilder: (context, index) {
+                                if (index == _visibleCount) {
+                                  return Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                      vertical: 8,
                                     ),
+                                    child: TextButton(
+                                      onPressed: () =>
+                                          setState(() => _visibleCount += 10),
+                                      child: Text(
+                                        'Xem thêm (${filtered.length - _visibleCount} chuyến đi)',
+                                        style: GoogleFonts.poppins(
+                                          fontSize: 14,
+                                          color: AppColors.primary,
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                      ),
+                                    ),
+                                  );
+                                }
+                                final trip = filtered[index];
+                                return _TripCard(
+                                  trip: trip,
+                                  hasReviewed: reviewedBookingIds.contains(
+                                    trip.bookingId,
                                   ),
-                                ),
-                              );
-                            }
-                            return _TripCard(trip: filtered[index]);
-                          },
-                        ),
+                                  isCheckingReview: isCheckingReviews,
+                                  onReviewCreated: _refreshReviewedBookingIds,
+                                );
+                              },
+                            );
+                    },
+                  ),
                 ),
               ],
             );
@@ -264,8 +306,16 @@ class _FilterChip extends StatelessWidget {
 
 class _TripCard extends StatelessWidget {
   final TripEntity trip;
+  final bool hasReviewed;
+  final bool isCheckingReview;
+  final VoidCallback onReviewCreated;
 
-  const _TripCard({required this.trip});
+  const _TripCard({
+    required this.trip,
+    required this.hasReviewed,
+    required this.isCheckingReview,
+    required this.onReviewCreated,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -303,7 +353,7 @@ class _TripCard extends StatelessWidget {
                   children: [
                     Text(
                       trip.completedAt != null
-                          ? DateFormat('dd/MM/yyyy').format(trip.completedAt!)
+                          ? VietnamTime.format(trip.completedAt!, 'dd/MM/yyyy')
                           : 'N/A',
                       style: GoogleFonts.poppins(
                         fontSize: 15,
@@ -313,7 +363,7 @@ class _TripCard extends StatelessWidget {
                     ),
                     if (trip.startedAt != null)
                       Text(
-                        '${DateFormat('HH:mm').format(trip.startedAt!)} - ${trip.completedAt != null ? DateFormat('HH:mm').format(trip.completedAt!) : '--'}',
+                        '${VietnamTime.format(trip.startedAt!, 'HH:mm')} - ${trip.completedAt != null ? VietnamTime.format(trip.completedAt!, 'HH:mm') : '--'}',
                         style: GoogleFonts.poppins(
                           fontSize: 13,
                           color: AppColors.textMuted,
@@ -373,24 +423,47 @@ class _TripCard extends StatelessWidget {
           SizedBox(
             width: double.infinity,
             child: OutlinedButton.icon(
-              onPressed: () => Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => CreateReviewPage(
-                    vehicleId: trip.vehicleId,
-                    vehicleName: trip.vehicleName ?? 'Xe đã thuê',
-                    bookingId: trip.bookingId,
-                  ),
-                ),
+              onPressed: hasReviewed || isCheckingReview
+                  ? null
+                  : () async {
+                      final created = await Navigator.push<bool>(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => CreateReviewPage(
+                            vehicleId: trip.vehicleId,
+                            vehicleName: trip.vehicleName ?? 'Xe đã thuê',
+                            bookingId: trip.bookingId,
+                          ),
+                        ),
+                      );
+                      if (created == true) {
+                        onReviewCreated();
+                      }
+                    },
+              icon: Icon(
+                hasReviewed
+                    ? Icons.check_circle_outline_rounded
+                    : Icons.star_outline_rounded,
+                size: 16,
               ),
-              icon: const Icon(Icons.star_outline_rounded, size: 16),
               label: Text(
-                'Đánh giá chuyến đi',
+                hasReviewed
+                    ? 'Đã đánh giá'
+                    : isCheckingReview
+                    ? 'Đang kiểm tra...'
+                    : 'Đánh giá chuyến đi',
                 style: GoogleFonts.poppins(fontSize: 13),
               ),
               style: OutlinedButton.styleFrom(
-                foregroundColor: AppColors.warning,
-                side: const BorderSide(color: AppColors.warning),
+                foregroundColor: hasReviewed
+                    ? AppColors.success
+                    : AppColors.warning,
+                disabledForegroundColor: hasReviewed
+                    ? AppColors.success
+                    : AppColors.textMuted,
+                side: BorderSide(
+                  color: hasReviewed ? AppColors.success : AppColors.warning,
+                ),
                 padding: const EdgeInsets.symmetric(vertical: 10),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(10),
