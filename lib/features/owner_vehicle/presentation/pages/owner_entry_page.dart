@@ -16,8 +16,9 @@ class OwnerEntryPage extends StatelessWidget {
           return const Center(child: CircularProgressIndicator());
         }
 
-        if (state is AuthAuthenticated) {
-          final isOwner = state.user.isOwner || state.user.isAdmin;
+        if (state is AuthAuthenticated || state is AuthSuccess) {
+          final user = state is AuthAuthenticated ? state.user : (state as AuthSuccess).user;
+          final isOwner = user.isOwner || user.isAdmin;
 
           return isOwner ? const OwnerDashboardPage() : const BecomeOwnerPage();
         }

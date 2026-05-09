@@ -91,7 +91,11 @@ class _MainShellState extends State<MainShell> {
     // Don't create a new instance here as it causes desynchronization during logout
     return BlocBuilder<AuthBloc, AuthState>(
       builder: (context, state) {
-        final user = state is AuthAuthenticated ? state.user : null;
+        final user = (state is AuthAuthenticated || state is AuthSuccess)
+            ? (state is AuthAuthenticated
+                  ? state.user
+                  : (state as AuthSuccess).user)
+            : null;
         final isOwner = user?.isOwner == true || user?.isAdmin == true;
 
         return Scaffold(

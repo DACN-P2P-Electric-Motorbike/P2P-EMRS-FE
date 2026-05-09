@@ -36,9 +36,10 @@ class _UnifiedBookingsPageState extends State<UnifiedBookingsPage>
 
   void _checkUserRole() {
     final authState = context.read<AuthBloc>().state;
-    if (authState is AuthAuthenticated) {
+    if (authState is AuthAuthenticated || authState is AuthSuccess) {
+      final user = authState is AuthAuthenticated ? authState.user : (authState as AuthSuccess).user;
       setState(() {
-        _isOwner = authState.user.isOwner || authState.user.isAdmin;
+        _isOwner = user.isOwner || user.isAdmin;
       });
     }
   }
@@ -54,8 +55,9 @@ class _UnifiedBookingsPageState extends State<UnifiedBookingsPage>
     return BlocBuilder<AuthBloc, AuthState>(
       builder: (context, authState) {
         final isOwner =
-            authState is AuthAuthenticated &&
-            (authState.user.isOwner || authState.user.isAdmin);
+            (authState is AuthAuthenticated || authState is AuthSuccess) &&
+            ((authState is AuthAuthenticated ? authState.user : (authState as AuthSuccess).user).isOwner ||
+             (authState is AuthAuthenticated ? authState.user : (authState as AuthSuccess).user).isAdmin);
 
         return Scaffold(
           backgroundColor: const Color(0xFFF8F9FD),
