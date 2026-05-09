@@ -194,7 +194,12 @@ class PaymentRemoteDataSourceImpl implements PaymentRemoteDataSource {
         statusCode: response.statusCode,
       );
     } on DioException catch (e) {
-      throw ServerException.fromDioException(e);
+      final exception = ServerException.fromDioException(e);
+      if (exception.statusCode == 404 &&
+          exception.message.toLowerCase().contains('payment not found')) {
+        return const OwnerEarningsEntity.empty();
+      }
+      throw exception;
     }
   }
 

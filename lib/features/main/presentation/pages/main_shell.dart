@@ -8,9 +8,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/theme/app_theme.dart';
-import '../../../../injection_container.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
-import '../../../auth/presentation/bloc/auth_event.dart';
 import '../../../auth/presentation/bloc/auth_state.dart';
 import '../../../owner_vehicle/presentation/pages/owner_dashboard_page.dart';
 
@@ -91,7 +89,12 @@ class _MainShellState extends State<MainShell> {
     // Don't create a new instance here as it causes desynchronization during logout
     return BlocBuilder<AuthBloc, AuthState>(
       builder: (context, state) {
-        final user = state is AuthAuthenticated ? state.user : null;
+        final user = switch (state) {
+          AuthAuthenticated(:final user) => user,
+          AuthSuccess(:final user) => user,
+          ProfileUpdated(:final user) => user,
+          _ => null,
+        };
         final isOwner = user?.isOwner == true || user?.isAdmin == true;
 
         return Scaffold(

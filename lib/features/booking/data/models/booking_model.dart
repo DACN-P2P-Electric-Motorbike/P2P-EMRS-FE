@@ -92,6 +92,8 @@ class BookingModel {
       'updatedAt': updatedAt.toIso8601String(),
       'confirmedAt': confirmedAt?.toIso8601String(),
       'cancelledAt': cancelledAt?.toIso8601String(),
+      if (vehicleName != null) 'vehicle': {'name': vehicleName},
+      'paymentStatus': paymentStatus,
     };
   }
 

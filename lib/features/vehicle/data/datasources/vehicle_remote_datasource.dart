@@ -1,5 +1,8 @@
+import 'dart:async';
+
 import 'package:dio/dio.dart';
 import '../../../../../core/constants/api_constants.dart';
+import '../../../../../core/cache/hive_cache_service.dart';
 import '../../../../../core/error/exceptions.dart';
 import '../../../../../core/network/dio_client.dart';
 import '../../../../../core/utils/vietnam_time.dart';
@@ -31,49 +34,45 @@ abstract class VehicleRemoteDataSource {
 
 class VehicleRemoteDataSourceImpl implements VehicleRemoteDataSource {
   final DioClient _dioClient;
+  final HiveCacheService _cache;
 
-  VehicleRemoteDataSourceImpl({required DioClient dioClient})
-    : _dioClient = dioClient;
+  VehicleRemoteDataSourceImpl({
+    required DioClient dioClient,
+    required HiveCacheService cache,
+  }) : _dioClient = dioClient,
+       _cache = cache;
 
   @override
   Future<List<VehicleModel>> getAvailableVehicles({
     DateTime? startTime,
     DateTime? endTime,
   }) async {
-    try {
-      final queryParameters = <String, dynamic>{};
-      if (startTime != null) {
-        queryParameters['startTime'] = VietnamTime.toApiIsoString(startTime);
-      }
-      if (endTime != null) {
-        queryParameters['endTime'] = VietnamTime.toApiIsoString(endTime);
-      }
-
-      final response = await _dioClient.get(
-        ApiConstants.availableVehicles,
-        queryParameters: queryParameters.isEmpty ? null : queryParameters,
-      );
-
-      final data = response.data;
-
-      if (data is Map<String, dynamic> && data['vehicles'] is List) {
-        return (data['vehicles'] as List)
-            .map((json) => VehicleModel.fromJson(json))
-            .toList();
-      }
-
-      throw const ServerException(message: 'Invalid response format');
-    } on DioException catch (e) {
-      throw ServerException.fromDioException(e);
+    final queryParameters = _availabilityQuery(startTime, endTime);
+    final cacheKey = 'vehicles.available:${_cacheSuffix(queryParameters)}';
+    final cached = await _cachedVehicleList(cacheKey);
+    if (cached != null) {
+      unawaited(_refreshVehicleList(cacheKey, queryParameters));
+      return cached;
     }
+
+    return _fetchAndCacheVehicleList(cacheKey, queryParameters);
   }
 
   @override
   Future<VehicleModel> getVehicleById(String id) async {
+    final cacheKey = 'vehicles.detail:$id';
+    final cached = await _cache.read<Map<dynamic, dynamic>>(cacheKey);
+    if (cached != null) {
+      unawaited(_refreshVehicleDetail(cacheKey, id));
+      return VehicleModel.fromJson(Map<String, dynamic>.from(cached));
+    }
+
     try {
       final response = await _dioClient.get(ApiConstants.vehicleById(id));
-
-      return VehicleModel.fromJson(response.data);
+      final data = Map<String, dynamic>.from(response.data as Map);
+      final vehicle = VehicleModel.fromJson(data);
+      await _cache.write(cacheKey, vehicle.toJson());
+      return vehicle;
     } on DioException catch (e) {
       throw ServerException.fromDioException(e);
     }
@@ -88,31 +87,22 @@ class VehicleRemoteDataSourceImpl implements VehicleRemoteDataSource {
     double? longitude,
     double? radius,
   }) async {
-    try {
-      final queryParameters = <String, dynamic>{};
+    final queryParameters = <String, dynamic>{};
+    if (brand != null) queryParameters['brand'] = brand;
+    if (model != null) queryParameters['model'] = model;
+    if (maxPrice != null) queryParameters['maxPrice'] = maxPrice;
+    if (latitude != null) queryParameters['latitude'] = latitude;
+    if (longitude != null) queryParameters['longitude'] = longitude;
+    if (radius != null) queryParameters['radius'] = radius;
 
-      if (brand != null) queryParameters['brand'] = brand;
-      if (model != null) queryParameters['model'] = model;
-      if (maxPrice != null) queryParameters['maxPrice'] = maxPrice;
-      if (latitude != null) queryParameters['latitude'] = latitude;
-      if (longitude != null) queryParameters['longitude'] = longitude;
-      if (radius != null) queryParameters['radius'] = radius;
-
-      final response = await _dioClient.get(
-        '${ApiConstants.vehicles}/search',
-        queryParameters: queryParameters,
-      );
-
-      if (response.data is List) {
-        return (response.data as List)
-            .map((json) => VehicleModel.fromJson(json))
-            .toList();
-      }
-
-      throw const ServerException(message: 'Invalid response format');
-    } on DioException catch (e) {
-      throw ServerException.fromDioException(e);
+    final cacheKey = 'vehicles.search:${_cacheSuffix(queryParameters)}';
+    final cached = await _cachedVehicleList(cacheKey);
+    if (cached != null) {
+      unawaited(_refreshSearchVehicleList(cacheKey, queryParameters));
+      return cached;
     }
+
+    return _fetchAndCacheSearchList(cacheKey, queryParameters);
   }
 
   @override
@@ -123,34 +113,136 @@ class VehicleRemoteDataSourceImpl implements VehicleRemoteDataSource {
     DateTime? startTime,
     DateTime? endTime,
   }) async {
-    try {
-      final queryParameters = <String, dynamic>{
-        'latitude': latitude,
-        'longitude': longitude,
-        'radiusKm': radius,
-      };
-      if (startTime != null) {
-        queryParameters['startTime'] = VietnamTime.toApiIsoString(startTime);
-      }
-      if (endTime != null) {
-        queryParameters['endTime'] = VietnamTime.toApiIsoString(endTime);
-      }
+    final queryParameters = <String, dynamic>{
+      'latitude': latitude,
+      'longitude': longitude,
+      'radiusKm': radius,
+    };
+    if (startTime != null) {
+      queryParameters['startTime'] = VietnamTime.toApiIsoString(startTime);
+    }
+    if (endTime != null) {
+      queryParameters['endTime'] = VietnamTime.toApiIsoString(endTime);
+    }
 
+    final cacheKey = 'vehicles.nearby:${_cacheSuffix(queryParameters)}';
+    final cached = await _cachedVehicleList(cacheKey);
+    if (cached != null) {
+      unawaited(_refreshVehicleList(cacheKey, queryParameters));
+      return cached;
+    }
+
+    return _fetchAndCacheVehicleList(cacheKey, queryParameters);
+  }
+
+  Map<String, dynamic> _availabilityQuery(
+    DateTime? startTime,
+    DateTime? endTime,
+  ) {
+    final queryParameters = <String, dynamic>{};
+    if (startTime != null) {
+      queryParameters['startTime'] = VietnamTime.toApiIsoString(startTime);
+    }
+    if (endTime != null) {
+      queryParameters['endTime'] = VietnamTime.toApiIsoString(endTime);
+    }
+    return queryParameters;
+  }
+
+  Future<List<VehicleModel>?> _cachedVehicleList(String cacheKey) async {
+    final cached = await _cache.read<List<dynamic>>(cacheKey);
+    if (cached == null) return null;
+    return cached
+        .whereType<Map>()
+        .map((json) => VehicleModel.fromJson(Map<String, dynamic>.from(json)))
+        .toList();
+  }
+
+  Future<List<VehicleModel>> _fetchAndCacheVehicleList(
+    String cacheKey,
+    Map<String, dynamic> queryParameters,
+  ) async {
+    try {
       final response = await _dioClient.get(
         ApiConstants.availableVehicles,
         queryParameters: queryParameters,
       );
 
-      final data = response.data;
-      if (data is Map<String, dynamic> && data['vehicles'] is List) {
-        return (data['vehicles'] as List)
-            .map((json) => VehicleModel.fromJson(json))
-            .toList();
-      }
-
-      throw const ServerException(message: 'Invalid response format');
+      final vehicles = _vehicleListFromEnvelope(response.data);
+      await _cache.write(cacheKey, vehicles.map((v) => v.toJson()).toList());
+      return vehicles;
     } on DioException catch (e) {
       throw ServerException.fromDioException(e);
     }
+  }
+
+  Future<List<VehicleModel>> _fetchAndCacheSearchList(
+    String cacheKey,
+    Map<String, dynamic> queryParameters,
+  ) async {
+    try {
+      final response = await _dioClient.get(
+        '${ApiConstants.vehicles}/search',
+        queryParameters: queryParameters,
+      );
+
+      if (response.data is! List) {
+        throw const ServerException(message: 'Invalid response format');
+      }
+
+      final vehicles = (response.data as List)
+          .whereType<Map>()
+          .map((json) => VehicleModel.fromJson(Map<String, dynamic>.from(json)))
+          .toList();
+      await _cache.write(cacheKey, vehicles.map((v) => v.toJson()).toList());
+      return vehicles;
+    } on DioException catch (e) {
+      throw ServerException.fromDioException(e);
+    }
+  }
+
+  List<VehicleModel> _vehicleListFromEnvelope(dynamic data) {
+    if (data is Map<String, dynamic> && data['vehicles'] is List) {
+      return (data['vehicles'] as List)
+          .whereType<Map>()
+          .map((json) => VehicleModel.fromJson(Map<String, dynamic>.from(json)))
+          .toList();
+    }
+
+    throw const ServerException(message: 'Invalid response format');
+  }
+
+  Future<void> _refreshVehicleList(
+    String cacheKey,
+    Map<String, dynamic> queryParameters,
+  ) async {
+    try {
+      await _fetchAndCacheVehicleList(cacheKey, queryParameters);
+    } catch (_) {}
+  }
+
+  Future<void> _refreshSearchVehicleList(
+    String cacheKey,
+    Map<String, dynamic> queryParameters,
+  ) async {
+    try {
+      await _fetchAndCacheSearchList(cacheKey, queryParameters);
+    } catch (_) {}
+  }
+
+  Future<void> _refreshVehicleDetail(String cacheKey, String id) async {
+    try {
+      final response = await _dioClient.get(ApiConstants.vehicleById(id));
+      final vehicle = VehicleModel.fromJson(
+        Map<String, dynamic>.from(response.data as Map),
+      );
+      await _cache.write(cacheKey, vehicle.toJson());
+    } catch (_) {}
+  }
+
+  String _cacheSuffix(Map<String, dynamic> params) {
+    if (params.isEmpty) return 'all';
+    final keys = params.keys.toList()..sort();
+    return keys.map((key) => '$key=${params[key]}').join('&');
   }
 }

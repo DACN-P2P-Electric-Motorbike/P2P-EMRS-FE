@@ -1,6 +1,10 @@
+import 'dart:async';
+
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:equatable/equatable.dart';
 import 'package:geolocator/geolocator.dart';
+import '../../../../core/cache/hive_cache_service.dart';
+import '../../../../core/utils/vietnam_time.dart';
 import '../../domain/entities/vehicle_entity.dart';
 import '../../domain/usecases/get_available_vehicles.dart';
 import '../../domain/usecases/get_nearby_vehicles.dart';
@@ -39,13 +43,25 @@ class VehicleListError extends VehicleListState {
 class VehicleListCubit extends Cubit<VehicleListState> {
   final GetAvailableVehicles _getAvailableVehicles;
   final GetNearbyVehicles _getNearbyVehicles;
+  final HiveCacheService _cache;
+  late final StreamSubscription<String> _cacheSubscription;
+  String? _activeCacheKey;
+  DateTime? _activeStartTime;
+  DateTime? _activeEndTime;
+  double? _activeNearbyLat;
+  double? _activeNearbyLng;
+  double? _activeNearbyRadius;
 
   VehicleListCubit({
     required GetAvailableVehicles getAvailableVehicles,
     required GetNearbyVehicles getNearbyVehicles,
-  })  : _getAvailableVehicles = getAvailableVehicles,
-        _getNearbyVehicles = getNearbyVehicles,
-        super(VehicleListInitial());
+    required HiveCacheService cache,
+  }) : _getAvailableVehicles = getAvailableVehicles,
+       _getNearbyVehicles = getNearbyVehicles,
+       _cache = cache,
+       super(VehicleListInitial()) {
+    _cacheSubscription = _cache.changes.listen(_onCacheChanged);
+  }
 
   Future<void> loadVehicles({DateTime? startTime, DateTime? endTime}) async {
     emit(VehicleListLoading());
@@ -54,10 +70,17 @@ class VehicleListCubit extends Cubit<VehicleListState> {
       GetAvailableVehiclesParams(startTime: startTime, endTime: endTime),
     );
 
-    result.fold(
-      (failure) => emit(VehicleListError(failure.message)),
-      (vehicles) => emit(VehicleListLoaded(vehicles)),
-    );
+    result.fold((failure) => emit(VehicleListError(failure.message)), (
+      vehicles,
+    ) {
+      _activeStartTime = startTime;
+      _activeEndTime = endTime;
+      _activeNearbyLat = null;
+      _activeNearbyLng = null;
+      _activeNearbyRadius = null;
+      _activeCacheKey = _availableCacheKey(startTime, endTime);
+      emit(VehicleListLoaded(vehicles));
+    });
   }
 
   void filterVehicles(
@@ -186,10 +209,23 @@ class VehicleListCubit extends Cubit<VehicleListState> {
       ),
     );
 
-    result.fold(
-      (failure) => emit(VehicleListError(failure.message)),
-      (vehicles) => emit(VehicleListLoaded(vehicles)),
-    );
+    result.fold((failure) => emit(VehicleListError(failure.message)), (
+      vehicles,
+    ) {
+      _activeStartTime = startTime;
+      _activeEndTime = endTime;
+      _activeNearbyLat = userLat;
+      _activeNearbyLng = userLng;
+      _activeNearbyRadius = radiusKm;
+      _activeCacheKey = _nearbyCacheKey(
+        userLat,
+        userLng,
+        radiusKm,
+        startTime,
+        endTime,
+      );
+      emit(VehicleListLoaded(vehicles));
+    });
   }
 
   /// Re-filter an existing list of vehicles with a new radius.
@@ -229,10 +265,84 @@ class VehicleListCubit extends Cubit<VehicleListState> {
       }
     }
 
-    nearby.sort((a, b) =>
-        (a.distanceFromUser ?? double.infinity)
-            .compareTo(b.distanceFromUser ?? double.infinity));
+    nearby.sort(
+      (a, b) => (a.distanceFromUser ?? double.infinity).compareTo(
+        b.distanceFromUser ?? double.infinity,
+      ),
+    );
 
     return nearby;
+  }
+
+  void _onCacheChanged(String key) {
+    if (key != _activeCacheKey || state is! VehicleListLoaded) return;
+    unawaited(_reloadActiveCacheSilently());
+  }
+
+  Future<void> _reloadActiveCacheSilently() async {
+    final result = _activeNearbyLat != null && _activeNearbyLng != null
+        ? await _getNearbyVehicles(
+            NearbyVehicleParams(
+              latitude: _activeNearbyLat!,
+              longitude: _activeNearbyLng!,
+              radiusKm: _activeNearbyRadius ?? 5.0,
+              startTime: _activeStartTime,
+              endTime: _activeEndTime,
+            ),
+          )
+        : await _getAvailableVehicles(
+            GetAvailableVehiclesParams(
+              startTime: _activeStartTime,
+              endTime: _activeEndTime,
+            ),
+          );
+
+    result.fold((_) {}, (vehicles) {
+      if (!isClosed) emit(VehicleListLoaded(vehicles));
+    });
+  }
+
+  String _availableCacheKey(DateTime? startTime, DateTime? endTime) {
+    final queryParameters = <String, dynamic>{};
+    if (startTime != null) {
+      queryParameters['startTime'] = VietnamTime.toApiIsoString(startTime);
+    }
+    if (endTime != null) {
+      queryParameters['endTime'] = VietnamTime.toApiIsoString(endTime);
+    }
+    return 'vehicles.available:${_cacheSuffix(queryParameters)}';
+  }
+
+  String _nearbyCacheKey(
+    double latitude,
+    double longitude,
+    double radius,
+    DateTime? startTime,
+    DateTime? endTime,
+  ) {
+    final queryParameters = <String, dynamic>{
+      'latitude': latitude,
+      'longitude': longitude,
+      'radiusKm': radius,
+    };
+    if (startTime != null) {
+      queryParameters['startTime'] = VietnamTime.toApiIsoString(startTime);
+    }
+    if (endTime != null) {
+      queryParameters['endTime'] = VietnamTime.toApiIsoString(endTime);
+    }
+    return 'vehicles.nearby:${_cacheSuffix(queryParameters)}';
+  }
+
+  String _cacheSuffix(Map<String, dynamic> params) {
+    if (params.isEmpty) return 'all';
+    final keys = params.keys.toList()..sort();
+    return keys.map((key) => '$key=${params[key]}').join('&');
+  }
+
+  @override
+  Future<void> close() {
+    _cacheSubscription.cancel();
+    return super.close();
   }
 }

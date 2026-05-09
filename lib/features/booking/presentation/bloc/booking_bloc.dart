@@ -1,5 +1,9 @@
+import 'dart:async';
+
 import 'package:flutter_bloc/flutter_bloc.dart';
+import '../../../../core/cache/hive_cache_service.dart';
 import '../../../../core/usecases/usecase.dart';
+import '../../domain/entities/booking.dart';
 import '../../domain/usecases/booking_usecases.dart';
 import '../../domain/usecases/create_booking_usecase.dart';
 import 'booking_event.dart';
@@ -15,6 +19,13 @@ class BookingBloc extends Bloc<BookingEvent, BookingState> {
   final CancelBookingUseCase _cancelBookingUseCase;
   final ApproveBookingUseCase _approveBookingUseCase;
   final RejectBookingUseCase _rejectBookingUseCase;
+  final HiveCacheService _cache;
+  late final StreamSubscription<String> _cacheSubscription;
+  String? _activeCacheKey;
+  BookingStatus? _activeStatus;
+  bool _activeOwnerList = false;
+  bool _activePendingList = false;
+  String? _activeBookingId;
 
   BookingBloc({
     required CreateBookingUseCase createBookingUseCase,
@@ -25,6 +36,7 @@ class BookingBloc extends Bloc<BookingEvent, BookingState> {
     required CancelBookingUseCase cancelBookingUseCase,
     required ApproveBookingUseCase approveBookingUseCase,
     required RejectBookingUseCase rejectBookingUseCase,
+    required HiveCacheService cache,
   }) : _createBookingUseCase = createBookingUseCase,
        _getRenterBookingsUseCase = getRenterBookingsUseCase,
        _getOwnerBookingsUseCase = getOwnerBookingsUseCase,
@@ -33,7 +45,9 @@ class BookingBloc extends Bloc<BookingEvent, BookingState> {
        _cancelBookingUseCase = cancelBookingUseCase,
        _approveBookingUseCase = approveBookingUseCase,
        _rejectBookingUseCase = rejectBookingUseCase,
+       _cache = cache,
        super(const BookingInitial()) {
+    _cacheSubscription = _cache.changes.listen(_onCacheChanged);
     on<CreateBookingEvent>(_onCreateBooking);
     on<LoadRenterBookingsEvent>(_onLoadRenterBookings);
     on<LoadOwnerBookingsEvent>(_onLoadOwnerBookings);
@@ -75,10 +89,10 @@ class BookingBloc extends Bloc<BookingEvent, BookingState> {
     final params = GetRenterBookingsParams(status: event.status);
     final result = await _getRenterBookingsUseCase(params);
 
-    result.fold(
-      (failure) => emit(BookingFailure(failure.message)),
-      (bookings) => emit(BookingsLoaded(bookings)),
-    );
+    result.fold((failure) => emit(BookingFailure(failure.message)), (bookings) {
+      _rememberListKey(owner: false, status: event.status);
+      emit(BookingsLoaded(bookings));
+    });
   }
 
   Future<void> _onLoadOwnerBookings(
@@ -90,10 +104,10 @@ class BookingBloc extends Bloc<BookingEvent, BookingState> {
     final params = GetOwnerBookingsParams(status: event.status);
     final result = await _getOwnerBookingsUseCase(params);
 
-    result.fold(
-      (failure) => emit(BookingFailure(failure.message)),
-      (bookings) => emit(BookingsLoaded(bookings)),
-    );
+    result.fold((failure) => emit(BookingFailure(failure.message)), (bookings) {
+      _rememberListKey(owner: true, status: event.status);
+      emit(BookingsLoaded(bookings));
+    });
   }
 
   Future<void> _onLoadPendingBookings(
@@ -104,10 +118,14 @@ class BookingBloc extends Bloc<BookingEvent, BookingState> {
 
     final result = await _getPendingBookingsUseCase(const NoParams());
 
-    result.fold(
-      (failure) => emit(BookingFailure(failure.message)),
-      (bookings) => emit(BookingsLoaded(bookings)),
-    );
+    result.fold((failure) => emit(BookingFailure(failure.message)), (bookings) {
+      _activeCacheKey = 'bookings.owner.pending';
+      _activeOwnerList = true;
+      _activePendingList = true;
+      _activeStatus = null;
+      _activeBookingId = null;
+      emit(BookingsLoaded(bookings));
+    });
   }
 
   Future<void> _onLoadBookingById(
@@ -119,10 +137,14 @@ class BookingBloc extends Bloc<BookingEvent, BookingState> {
     final params = GetBookingByIdParams(event.bookingId);
     final result = await _getBookingByIdUseCase(params);
 
-    result.fold(
-      (failure) => emit(BookingFailure(failure.message)),
-      (booking) => emit(BookingLoaded(booking)),
-    );
+    result.fold((failure) => emit(BookingFailure(failure.message)), (booking) {
+      _activeCacheKey = 'bookings.detail:${event.bookingId}';
+      _activeBookingId = event.bookingId;
+      _activeOwnerList = false;
+      _activePendingList = false;
+      _activeStatus = null;
+      emit(BookingLoaded(booking));
+    });
   }
 
   Future<void> _onCancelBooking(
@@ -183,5 +205,41 @@ class BookingBloc extends Bloc<BookingEvent, BookingState> {
 
   void _onResetState(ResetBookingStateEvent event, Emitter<BookingState> emit) {
     emit(const BookingInitial());
+  }
+
+  void _rememberListKey({required bool owner, BookingStatus? status}) {
+    final statusKey = status?.name ?? 'all';
+    _activeCacheKey = owner
+        ? 'bookings.owner:$statusKey'
+        : 'bookings.renter:$statusKey';
+    _activeOwnerList = owner;
+    _activePendingList = false;
+    _activeStatus = status;
+    _activeBookingId = null;
+  }
+
+  void _onCacheChanged(String key) {
+    if (key != _activeCacheKey ||
+        (state is! BookingsLoaded && state is! BookingLoaded)) {
+      return;
+    }
+    if (_activeBookingId != null) {
+      add(LoadBookingByIdEvent(_activeBookingId!));
+      return;
+    }
+
+    if (_activePendingList) {
+      add(const LoadPendingBookingsEvent());
+    } else if (_activeOwnerList) {
+      add(LoadOwnerBookingsEvent(status: _activeStatus));
+    } else {
+      add(LoadRenterBookingsEvent(status: _activeStatus));
+    }
+  }
+
+  @override
+  Future<void> close() {
+    _cacheSubscription.cancel();
+    return super.close();
   }
 }

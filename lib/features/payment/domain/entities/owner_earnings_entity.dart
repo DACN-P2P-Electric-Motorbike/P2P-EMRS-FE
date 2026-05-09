@@ -33,7 +33,15 @@ class EarningsBookingItem extends Equatable {
   }
 
   @override
-  List<Object?> get props => [bookingId, amount, platformFee, ownerAmount, method, paidAt, vehicleName];
+  List<Object?> get props => [
+    bookingId,
+    amount,
+    platformFee,
+    ownerAmount,
+    method,
+    paidAt,
+    vehicleName,
+  ];
 }
 
 /// Owner earnings summary entity.
@@ -52,6 +60,13 @@ class OwnerEarningsEntity extends Equatable {
     required this.bookings,
   });
 
+  const OwnerEarningsEntity.empty()
+    : totalEarned = 0,
+      totalPlatformFee = 0,
+      netEarnings = 0,
+      completedBookings = 0,
+      bookings = const [];
+
   factory OwnerEarningsEntity.fromJson(Map<String, dynamic> json) {
     return OwnerEarningsEntity(
       totalEarned: (json['totalEarned'] as num).toDouble(),
@@ -65,5 +80,11 @@ class OwnerEarningsEntity extends Equatable {
   }
 
   @override
-  List<Object?> get props => [totalEarned, totalPlatformFee, netEarnings, completedBookings, bookings];
+  List<Object?> get props => [
+    totalEarned,
+    totalPlatformFee,
+    netEarnings,
+    completedBookings,
+    bookings,
+  ];
 }

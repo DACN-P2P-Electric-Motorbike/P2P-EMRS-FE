@@ -1,5 +1,8 @@
+import 'dart:async';
+
 import 'package:dio/dio.dart';
 import '../../../../core/constants/api_constants.dart';
+import '../../../../core/cache/hive_cache_service.dart';
 import '../../../../core/error/exceptions.dart';
 import '../../../../core/network/dio_client.dart';
 import '../models/vehicle_model.dart';
@@ -30,25 +33,24 @@ abstract class OwnerVehicleRemoteDataSource {
 /// Implementation of OwnerVehicleRemoteDataSource
 class OwnerVehicleRemoteDataSourceImpl implements OwnerVehicleRemoteDataSource {
   final DioClient _dioClient;
+  final HiveCacheService _cache;
 
-  OwnerVehicleRemoteDataSourceImpl({required DioClient dioClient})
-    : _dioClient = dioClient;
+  OwnerVehicleRemoteDataSourceImpl({
+    required DioClient dioClient,
+    required HiveCacheService cache,
+  }) : _dioClient = dioClient,
+       _cache = cache;
 
   @override
   Future<List<VehicleModel>> getMyVehicles() async {
-    try {
-      final response = await _dioClient.get(ApiConstants.myVehicles);
-
-      if (response.data is List) {
-        return (response.data as List)
-            .map((json) => VehicleModel.fromJson(json as Map<String, dynamic>))
-            .toList();
-      }
-
-      return [];
-    } on DioException catch (e) {
-      throw ServerException.fromDioException(e);
+    const cacheKey = 'owner.vehicles';
+    final cached = await _cachedVehicleList(cacheKey);
+    if (cached != null) {
+      unawaited(_refreshMyVehicles(cacheKey));
+      return cached;
     }
+
+    return _fetchAndCacheMyVehicles(cacheKey);
   }
 
   @override
@@ -59,7 +61,12 @@ class OwnerVehicleRemoteDataSourceImpl implements OwnerVehicleRemoteDataSource {
         data: params.toJson(),
       );
 
-      return VehicleModel.fromJson(response.data as Map<String, dynamic>);
+      final vehicle = VehicleModel.fromJson(
+        response.data as Map<String, dynamic>,
+      );
+      await _cache.write('owner.vehicle:${vehicle.id}', vehicle.toJson());
+      await _cache.delete('owner.vehicles');
+      return vehicle;
     } on DioException catch (e) {
       throw ServerException.fromDioException(e);
     }
@@ -67,10 +74,20 @@ class OwnerVehicleRemoteDataSourceImpl implements OwnerVehicleRemoteDataSource {
 
   @override
   Future<VehicleModel> getVehicleById(String id) async {
+    final cacheKey = 'owner.vehicle:$id';
+    final cached = await _cache.read<Map<dynamic, dynamic>>(cacheKey);
+    if (cached != null) {
+      unawaited(_refreshVehicleDetail(cacheKey, id));
+      return VehicleModel.fromJson(Map<String, dynamic>.from(cached));
+    }
+
     try {
       final response = await _dioClient.get(ApiConstants.vehicleById(id));
-
-      return VehicleModel.fromJson(response.data as Map<String, dynamic>);
+      final vehicle = VehicleModel.fromJson(
+        response.data as Map<String, dynamic>,
+      );
+      await _cache.write(cacheKey, vehicle.toJson());
+      return vehicle;
     } on DioException catch (e) {
       throw ServerException.fromDioException(e);
     }
@@ -87,7 +104,12 @@ class OwnerVehicleRemoteDataSourceImpl implements OwnerVehicleRemoteDataSource {
         data: params.toJson(),
       );
 
-      return VehicleModel.fromJson(response.data as Map<String, dynamic>);
+      final vehicle = VehicleModel.fromJson(
+        response.data as Map<String, dynamic>,
+      );
+      await _cache.write('owner.vehicle:$id', vehicle.toJson());
+      await _cache.delete('owner.vehicles');
+      return vehicle;
     } on DioException catch (e) {
       throw ServerException.fromDioException(e);
     }
@@ -100,7 +122,12 @@ class OwnerVehicleRemoteDataSourceImpl implements OwnerVehicleRemoteDataSource {
         ApiConstants.toggleVehicleAvailability(id),
       );
 
-      return VehicleModel.fromJson(response.data as Map<String, dynamic>);
+      final vehicle = VehicleModel.fromJson(
+        response.data as Map<String, dynamic>,
+      );
+      await _cache.write('owner.vehicle:$id', vehicle.toJson());
+      await _cache.delete('owner.vehicles');
+      return vehicle;
     } on DioException catch (e) {
       throw ServerException.fromDioException(e);
     }
@@ -110,8 +137,51 @@ class OwnerVehicleRemoteDataSourceImpl implements OwnerVehicleRemoteDataSource {
   Future<void> deleteVehicle(String id) async {
     try {
       await _dioClient.delete(ApiConstants.vehicleById(id));
+      await _cache.delete('owner.vehicle:$id');
+      await _cache.delete('owner.vehicles');
     } on DioException catch (e) {
       throw ServerException.fromDioException(e);
     }
+  }
+
+  Future<List<VehicleModel>?> _cachedVehicleList(String cacheKey) async {
+    final cached = await _cache.read<List<dynamic>>(cacheKey);
+    if (cached == null) return null;
+    return cached
+        .whereType<Map>()
+        .map((json) => VehicleModel.fromJson(Map<String, dynamic>.from(json)))
+        .toList();
+  }
+
+  Future<List<VehicleModel>> _fetchAndCacheMyVehicles(String cacheKey) async {
+    try {
+      final response = await _dioClient.get(ApiConstants.myVehicles);
+      if (response.data is! List) return [];
+
+      final vehicles = (response.data as List)
+          .whereType<Map>()
+          .map((json) => VehicleModel.fromJson(Map<String, dynamic>.from(json)))
+          .toList();
+      await _cache.write(cacheKey, vehicles.map((v) => v.toJson()).toList());
+      return vehicles;
+    } on DioException catch (e) {
+      throw ServerException.fromDioException(e);
+    }
+  }
+
+  Future<void> _refreshMyVehicles(String cacheKey) async {
+    try {
+      await _fetchAndCacheMyVehicles(cacheKey);
+    } catch (_) {}
+  }
+
+  Future<void> _refreshVehicleDetail(String cacheKey, String id) async {
+    try {
+      final response = await _dioClient.get(ApiConstants.vehicleById(id));
+      final vehicle = VehicleModel.fromJson(
+        response.data as Map<String, dynamic>,
+      );
+      await _cache.write(cacheKey, vehicle.toJson());
+    } catch (_) {}
   }
 }

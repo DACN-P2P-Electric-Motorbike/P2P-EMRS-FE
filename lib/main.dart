@@ -14,6 +14,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:logger/logger.dart';
 import 'core/localization/app_localizations.dart';
+import 'core/cache/hive_cache_service.dart';
 import 'core/constants/api_constants.dart';
 import 'core/settings/app_preferences_controller.dart';
 import 'core/storage/storage_service.dart';
@@ -111,6 +112,7 @@ Future<void> _appMain() async {
     _logger.d('Initializing dependency injection');
     try {
       await di.init();
+      await di.sl<HiveCacheService>().init();
       _logger.i('✅ Dependency injection initialized');
     } catch (e, stackTrace) {
       _logger.e(
