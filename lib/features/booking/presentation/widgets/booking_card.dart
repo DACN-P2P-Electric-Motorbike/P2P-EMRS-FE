@@ -116,7 +116,7 @@ class BookingCard extends StatelessWidget {
                             overflow: TextOverflow.ellipsis,
                           ),
                           Text(
-                            '${booking.durationInHours}h · ${DateFormat('dd/MM/yyyy').format(booking.startTime)}',
+                            '${booking.durationDisplayText} · ${DateFormat('dd/MM/yyyy').format(booking.startTime)}',
                             style: GoogleFonts.poppins(
                               fontSize: 12,
                               color: AppColors.textMuted,

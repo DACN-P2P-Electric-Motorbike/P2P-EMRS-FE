@@ -6,15 +6,15 @@ import '../repositories/trip_repository.dart';
 
 class StartTripParams {
   final String bookingId;
-  final double? startLatitude;
-  final double? startLongitude;
+  final double startLatitude;
+  final double startLongitude;
   final String? startAddress;
   final double? startBattery;
 
   const StartTripParams({
     required this.bookingId,
-    this.startLatitude,
-    this.startLongitude,
+    required this.startLatitude,
+    required this.startLongitude,
     this.startAddress,
     this.startBattery,
   });
@@ -22,19 +22,19 @@ class StartTripParams {
 
 class EndTripParams {
   final String tripId;
-  final double? endLatitude;
-  final double? endLongitude;
+  final double endLatitude;
+  final double endLongitude;
   final String? endAddress;
-  final double? endBattery;
+  final double endBattery;
   final bool hasIssues;
   final String? issueDescription;
 
   const EndTripParams({
     required this.tripId,
-    this.endLatitude,
-    this.endLongitude,
+    required this.endLatitude,
+    required this.endLongitude,
     this.endAddress,
-    this.endBattery,
+    required this.endBattery,
     this.hasIssues = false,
     this.issueDescription,
   });

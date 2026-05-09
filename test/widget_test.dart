@@ -3,6 +3,7 @@ import 'package:fe_capstone_project/core/storage/storage_service.dart';
 import 'package:fe_capstone_project/core/widgets/app_avatar.dart';
 import 'package:fe_capstone_project/core/widgets/app_network_image.dart';
 import 'package:fe_capstone_project/core/localization/app_localizations.dart';
+import 'package:fe_capstone_project/features/booking/domain/entities/booking.dart';
 import 'package:fe_capstone_project/features/settings/data/privacy_remote_data_source.dart';
 import 'package:fe_capstone_project/features/settings/presentation/pages/app_settings_page.dart';
 import 'package:flutter/material.dart';
@@ -42,6 +43,26 @@ void main() {
       expect(find.byType(Image), findsNothing);
     },
   );
+
+  test('BookingEntity displays sub-hour durations in minutes', () {
+    final now = DateTime.utc(2026, 5, 9, 8);
+    final booking = BookingEntity(
+      id: 'booking-id',
+      renterId: 'renter-id',
+      ownerId: 'owner-id',
+      vehicleId: 'vehicle-id',
+      status: BookingStatus.CONFIRMED,
+      startTime: now,
+      endTime: now.add(const Duration(minutes: 30)),
+      totalPrice: 25000,
+      deposit: 200000,
+      createdAt: now,
+      updatedAt: now,
+    );
+
+    expect(booking.durationInHours, 0);
+    expect(booking.durationDisplayText, '30 phút');
+  });
 
   testWidgets('AppAvatar does not load network images in data saver mode', (
     tester,

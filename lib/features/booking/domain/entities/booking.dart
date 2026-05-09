@@ -96,9 +96,30 @@ class BookingEntity extends Equatable {
   /// Check if booking can be cancelled
   bool get canBeCancelled => isPending || isConfirmed;
 
-  /// Get duration in hours
+  /// Get duration in whole hours.
   int get durationInHours {
     return endTime.difference(startTime).inHours;
+  }
+
+  /// Get a human-readable duration without rounding sub-hour bookings to zero.
+  String get durationDisplayText {
+    final duration = endTime.difference(startTime);
+    final totalMinutes = duration.inMinutes;
+
+    if (totalMinutes <= 0) {
+      return '0 phút';
+    }
+
+    final hours = totalMinutes ~/ 60;
+    final minutes = totalMinutes % 60;
+
+    if (hours == 0) {
+      return '$minutes phút';
+    }
+    if (minutes == 0) {
+      return '$hours giờ';
+    }
+    return '$hours giờ $minutes phút';
   }
 
   /// Get status display text

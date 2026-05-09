@@ -6,18 +6,18 @@ import '../models/trip_model.dart';
 abstract class TripRemoteDataSource {
   Future<TripModel> startTrip({
     required String bookingId,
-    double? startLatitude,
-    double? startLongitude,
+    required double startLatitude,
+    required double startLongitude,
     String? startAddress,
     double? startBattery,
   });
 
   Future<TripModel> endTrip({
     required String tripId,
-    double? endLatitude,
-    double? endLongitude,
+    required double endLatitude,
+    required double endLongitude,
     String? endAddress,
-    double? endBattery,
+    required double endBattery,
     bool hasIssues = false,
     String? issueDescription,
   });
@@ -38,8 +38,8 @@ class TripRemoteDataSourceImpl implements TripRemoteDataSource {
   @override
   Future<TripModel> startTrip({
     required String bookingId,
-    double? startLatitude,
-    double? startLongitude,
+    required double startLatitude,
+    required double startLongitude,
     String? startAddress,
     double? startBattery,
   }) async {
@@ -48,8 +48,8 @@ class TripRemoteDataSourceImpl implements TripRemoteDataSource {
         '/trips/start',
         data: {
           'bookingId': bookingId,
-          if (startLatitude != null) 'startLatitude': startLatitude,
-          if (startLongitude != null) 'startLongitude': startLongitude,
+          'startLatitude': startLatitude,
+          'startLongitude': startLongitude,
           if (startAddress != null) 'startAddress': startAddress,
           if (startBattery != null) 'startBattery': startBattery,
         },
@@ -69,10 +69,10 @@ class TripRemoteDataSourceImpl implements TripRemoteDataSource {
   @override
   Future<TripModel> endTrip({
     required String tripId,
-    double? endLatitude,
-    double? endLongitude,
+    required double endLatitude,
+    required double endLongitude,
     String? endAddress,
-    double? endBattery,
+    required double endBattery,
     bool hasIssues = false,
     String? issueDescription,
   }) async {
@@ -80,10 +80,10 @@ class TripRemoteDataSourceImpl implements TripRemoteDataSource {
       final response = await _dioClient.patch(
         '/trips/$tripId/end',
         data: {
-          if (endLatitude != null) 'endLatitude': endLatitude,
-          if (endLongitude != null) 'endLongitude': endLongitude,
+          'endLatitude': endLatitude,
+          'endLongitude': endLongitude,
           if (endAddress != null) 'endAddress': endAddress,
-          if (endBattery != null) 'endBattery': endBattery,
+          'endBattery': endBattery,
           'hasIssues': hasIssues,
           if (issueDescription != null) 'issueDescription': issueDescription,
         },

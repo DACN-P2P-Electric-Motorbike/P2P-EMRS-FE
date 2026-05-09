@@ -47,6 +47,7 @@ class _ActiveTripViewState extends State<_ActiveTripView> {
   Timer? _gpsTimer;
   Duration _elapsed = Duration.zero;
   DateTime? _startedAt;
+  TripEntity? _currentTrip;
 
   /// Live distance in km computed from start coords → current GPS position.
   double _liveDistanceKm = 0.0;
@@ -112,6 +113,19 @@ class _ActiveTripViewState extends State<_ActiveTripView> {
     return '$h:$m:$s';
   }
 
+  String _friendlyTripError(String message) {
+    if (message.contains('endBattery')) {
+      return 'Vui lòng nhập mức pin khi trả xe từ 0 đến 100%.';
+    }
+    if (message.contains('endLatitude') || message.contains('endLongitude')) {
+      return 'Không lấy được vị trí trả xe. Vui lòng bật định vị và thử lại.';
+    }
+    if (message.contains('less than 2 minutes')) {
+      return 'Chuyến đi cần diễn ra ít nhất 2 phút trước khi kết thúc.';
+    }
+    return message;
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -136,6 +150,7 @@ class _ActiveTripViewState extends State<_ActiveTripView> {
         listener: (context, state) {
           if (state is TripLoaded && state.trip.startedAt != null) {
             setState(() {
+              _currentTrip = state.trip;
               _startedAt = state.trip.startedAt;
               _elapsed = DateTime.now().difference(_startedAt!);
               _startLat = state.trip.startLatitude;
@@ -148,7 +163,7 @@ class _ActiveTripViewState extends State<_ActiveTripView> {
           if (state is TripFailure) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: Text(state.message),
+                content: Text(_friendlyTripError(state.message)),
                 backgroundColor: AppColors.error,
               ),
             );
@@ -161,21 +176,22 @@ class _ActiveTripViewState extends State<_ActiveTripView> {
             );
           }
           if (state is TripLoaded) {
+            _currentTrip = state.trip;
             if (state.trip.status == TripStatus.completed) {
               return _buildCompletedView(context, state.trip);
             }
             return _buildContent(context, state.trip);
           }
           if (state is TripEnded) {
+            _currentTrip = state.trip;
             return _buildCompletedView(context, state.trip);
           }
           if (state is TripFailure) {
-            return Center(
-              child: Text(
-                state.message,
-                style: GoogleFonts.poppins(color: Colors.white70),
-              ),
-            );
+            final trip = _currentTrip;
+            if (trip != null && trip.status != TripStatus.completed) {
+              return _buildContent(context, trip);
+            }
+            return _buildNoActiveTripView(context);
           }
           if (state is NoActiveTrip) {
             return _buildNoActiveTripView(context);
@@ -525,6 +541,10 @@ class _ActiveTripViewState extends State<_ActiveTripView> {
 
   void _showEndTripDialog(BuildContext context, TripEntity trip) {
     bool hasIssues = false;
+    String? batteryError;
+    final batteryController = TextEditingController(
+      text: trip.startBattery?.clamp(0, 100).toStringAsFixed(0) ?? '',
+    );
     final issueController = TextEditingController();
 
     showDialog(
@@ -547,6 +567,27 @@ class _ActiveTripViewState extends State<_ActiveTripView> {
                 style: GoogleFonts.poppins(fontSize: 14),
               ),
               const SizedBox(height: 16),
+              TextField(
+                controller: batteryController,
+                keyboardType: const TextInputType.numberWithOptions(
+                  decimal: true,
+                ),
+                decoration: InputDecoration(
+                  labelText: 'Pin khi trả xe (%) *',
+                  hintText: 'Nhập từ 0 đến 100',
+                  errorText: batteryError,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  contentPadding: const EdgeInsets.all(12),
+                ),
+                onChanged: (_) {
+                  if (batteryError != null) {
+                    setDialogState(() => batteryError = null);
+                  }
+                },
+              ),
+              const SizedBox(height: 12),
               SwitchListTile(
                 title: Text(
                   'Có sự cố?',
@@ -579,6 +620,16 @@ class _ActiveTripViewState extends State<_ActiveTripView> {
             ),
             ElevatedButton(
               onPressed: () async {
+                final endBattery = double.tryParse(
+                  batteryController.text.trim().replaceAll(',', '.'),
+                );
+                if (endBattery == null || endBattery < 0 || endBattery > 100) {
+                  setDialogState(() {
+                    batteryError = 'Pin phải là số từ 0 đến 100';
+                  });
+                  return;
+                }
+
                 Navigator.pop(dialogContext);
 
                 // Collect end-point GPS for distance calculation
@@ -596,16 +647,29 @@ class _ActiveTripViewState extends State<_ActiveTripView> {
                         '${position.longitude.toStringAsFixed(5)}';
                   }
                 } catch (_) {
-                  // GPS unavailable — backend will handle null gracefully
+                  // GPS unavailable — show a friendly message below.
                 }
 
                 if (!context.mounted) return;
+                if (endLat == null || endLng == null) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: const Text(
+                        'Không lấy được vị trí trả xe. Vui lòng bật định vị và thử lại.',
+                      ),
+                      backgroundColor: AppColors.error,
+                    ),
+                  );
+                  return;
+                }
+
                 context.read<TripBloc>().add(
                   EndTripEvent(
                     tripId: trip.id,
                     endLatitude: endLat,
                     endLongitude: endLng,
                     endAddress: endAddress,
+                    endBattery: endBattery,
                     hasIssues: hasIssues,
                     issueDescription:
                         hasIssues && issueController.text.isNotEmpty
@@ -620,7 +684,10 @@ class _ActiveTripViewState extends State<_ActiveTripView> {
           ],
         ),
       ),
-    );
+    ).whenComplete(() {
+      batteryController.dispose();
+      issueController.dispose();
+    });
   }
 
   Widget _buildCompletedView(BuildContext context, TripEntity trip) {

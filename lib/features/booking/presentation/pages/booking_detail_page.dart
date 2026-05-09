@@ -318,11 +318,7 @@ class _BookingDetailPageState extends State<BookingDetailPage> {
             DateFormat('dd/MM/yyyy HH:mm').format(booking.endTime),
           ),
           const SizedBox(height: 12),
-          _buildInfoRow(
-            Icons.timer,
-            'Thời lượng',
-            '${booking.durationInHours} giờ',
-          ),
+          _buildInfoRow(Icons.timer, 'Thời lượng', booking.durationDisplayText),
         ],
       ),
     );
@@ -1019,7 +1015,7 @@ class _StartTripButton extends StatefulWidget {
 class _StartTripButtonState extends State<_StartTripButton> {
   bool _isGettingLocation = false;
 
-  Future<void> _handleStartTrip(BuildContext context) async {
+  Future<void> _handleStartTrip() async {
     setState(() => _isGettingLocation = true);
 
     double? lat;
@@ -1038,11 +1034,23 @@ class _StartTripButtonState extends State<_StartTripButton> {
             '${position.longitude.toStringAsFixed(5)}';
       }
     } catch (_) {
-      // GPS unavailable — proceed without coords (nullable in backend)
+      // Handled below with a user-facing message.
     }
 
     if (!mounted) return;
     setState(() => _isGettingLocation = false);
+
+    if (lat == null || lng == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text(
+            'Không lấy được vị trí xuất phát. Vui lòng bật định vị và thử lại.',
+          ),
+          backgroundColor: AppColors.error,
+        ),
+      );
+      return;
+    }
 
     context.read<TripBloc>().add(
       StartTripEvent(
@@ -1069,8 +1077,14 @@ class _StartTripButtonState extends State<_StartTripButton> {
             ),
           );
         } else if (state is TripFailure) {
+          final message =
+              state.message.contains('startLatitude') ||
+                  state.message.contains('startLongitude') ||
+                  state.message.contains('Start location')
+              ? 'Không lấy được vị trí xuất phát. Vui lòng bật định vị và thử lại.'
+              : state.message;
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(state.message), backgroundColor: Colors.red),
+            SnackBar(content: Text(message), backgroundColor: Colors.red),
           );
         }
       },
@@ -1079,7 +1093,7 @@ class _StartTripButtonState extends State<_StartTripButton> {
         return SizedBox(
           width: double.infinity,
           child: ElevatedButton.icon(
-            onPressed: isBusy ? null : () => _handleStartTrip(context),
+            onPressed: isBusy ? null : _handleStartTrip,
             icon: isBusy
                 ? const SizedBox(
                     height: 18,
