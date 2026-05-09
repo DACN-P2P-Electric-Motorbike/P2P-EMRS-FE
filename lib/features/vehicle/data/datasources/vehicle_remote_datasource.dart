@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 import '../../../../../core/constants/api_constants.dart';
 import '../../../../../core/error/exceptions.dart';
 import '../../../../../core/network/dio_client.dart';
+import '../../../../../core/utils/vietnam_time.dart';
 import '../models/vehicle_model.dart';
 
 /// Remote data source for vehicle operations
@@ -42,10 +43,10 @@ class VehicleRemoteDataSourceImpl implements VehicleRemoteDataSource {
     try {
       final queryParameters = <String, dynamic>{};
       if (startTime != null) {
-        queryParameters['startTime'] = startTime.toIso8601String();
+        queryParameters['startTime'] = VietnamTime.toApiIsoString(startTime);
       }
       if (endTime != null) {
-        queryParameters['endTime'] = endTime.toIso8601String();
+        queryParameters['endTime'] = VietnamTime.toApiIsoString(endTime);
       }
 
       final response = await _dioClient.get(
@@ -129,10 +130,10 @@ class VehicleRemoteDataSourceImpl implements VehicleRemoteDataSource {
         'radiusKm': radius,
       };
       if (startTime != null) {
-        queryParameters['startTime'] = startTime.toIso8601String();
+        queryParameters['startTime'] = VietnamTime.toApiIsoString(startTime);
       }
       if (endTime != null) {
-        queryParameters['endTime'] = endTime.toIso8601String();
+        queryParameters['endTime'] = VietnamTime.toApiIsoString(endTime);
       }
 
       final response = await _dioClient.get(

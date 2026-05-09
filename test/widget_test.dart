@@ -2,8 +2,11 @@ import 'package:fe_capstone_project/core/settings/app_preferences_controller.dar
 import 'package:fe_capstone_project/core/storage/storage_service.dart';
 import 'package:fe_capstone_project/core/widgets/app_avatar.dart';
 import 'package:fe_capstone_project/core/widgets/app_network_image.dart';
+import 'package:fe_capstone_project/core/utils/vietnam_time.dart';
+import 'package:fe_capstone_project/features/booking/data/models/booking_model.dart';
 import 'package:fe_capstone_project/core/localization/app_localizations.dart';
 import 'package:fe_capstone_project/features/booking/domain/entities/booking.dart';
+import 'package:fe_capstone_project/features/review/data/models/review_model.dart';
 import 'package:fe_capstone_project/features/settings/data/privacy_remote_data_source.dart';
 import 'package:fe_capstone_project/features/settings/presentation/pages/app_settings_page.dart';
 import 'package:flutter/material.dart';
@@ -62,6 +65,55 @@ void main() {
 
     expect(booking.durationInHours, 0);
     expect(booking.durationDisplayText, '30 phút');
+  });
+
+  test('BookingModel reads payment status from nested payment payload', () {
+    final model = BookingModel.fromJson({
+      'id': 'booking-id',
+      'renterId': 'renter-id',
+      'ownerId': 'owner-id',
+      'vehicleId': 'vehicle-id',
+      'status': 'CONFIRMED',
+      'startTime': '2026-05-10T03:00:00.000Z',
+      'endTime': '2026-05-10T04:00:00.000Z',
+      'totalPrice': 25000,
+      'deposit': 200000,
+      'createdAt': '2026-05-09T03:00:00.000Z',
+      'updatedAt': '2026-05-09T03:00:00.000Z',
+      'payment': {'status': 'COMPLETED'},
+    });
+
+    final booking = model.toEntity();
+    expect(booking.paymentStatus, 'COMPLETED');
+    expect(booking.isPaymentCompleted, isTrue);
+  });
+
+  test('VietnamTime formats UTC API timestamps as GMT+7', () {
+    final utcTime = DateTime.parse('2026-05-10T03:00:00.000Z');
+
+    expect(VietnamTime.format(utcTime, 'dd/MM/yyyy HH:mm'), '10/05/2026 10:00');
+    expect(
+      VietnamTime.toApiIsoString(DateTime(2026, 5, 10, 10, 0)),
+      '2026-05-10T10:00:00.000+07:00',
+    );
+  });
+
+  test('ReviewModel reads reviewed booking id from nested trip payload', () {
+    final model = ReviewModel.fromJson({
+      'id': 'review-id',
+      'userId': 'user-id',
+      'vehicleId': 'vehicle-id',
+      'tripId': 'trip-id',
+      'rating': 5,
+      'comment': 'Xe tốt',
+      'createdAt': '2026-05-09T03:00:00.000Z',
+      'updatedAt': '2026-05-09T03:00:00.000Z',
+      'trip': {'bookingId': 'booking-id'},
+    });
+
+    expect(model.tripId, 'trip-id');
+    expect(model.bookingId, 'booking-id');
+    expect(model.toEntity().bookingId, 'booking-id');
   });
 
   testWidgets('AppAvatar does not load network images in data saver mode', (

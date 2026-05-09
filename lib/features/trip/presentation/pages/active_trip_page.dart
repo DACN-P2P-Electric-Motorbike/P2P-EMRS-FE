@@ -3,10 +3,10 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:intl/intl.dart';
 
 import '../../../../core/services/location_service.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/utils/vietnam_time.dart';
 import '../../../../injection_container.dart';
 import '../../../review/presentation/pages/create_review_page.dart';
 import '../../domain/entities/trip_entity.dart';
@@ -436,7 +436,7 @@ class _ActiveTripViewState extends State<_ActiveTripView> {
             _buildInfoRow(
               Icons.play_circle_outline,
               'Bắt đầu',
-              DateFormat('HH:mm - dd/MM/yyyy').format(trip.startedAt!),
+              VietnamTime.format(trip.startedAt!, 'HH:mm - dd/MM/yyyy'),
             ),
           if (trip.startAddress != null) ...[
             const SizedBox(height: 12),
@@ -636,9 +636,12 @@ class _ActiveTripViewState extends State<_ActiveTripView> {
                 double? endLat;
                 double? endLng;
                 String? endAddress;
+                String? locationError;
                 try {
-                  final position = await sl<LocationService>()
-                      .getCurrentPosition();
+                  final result = await sl<LocationService>()
+                      .getCurrentPositionResult();
+                  locationError = result.errorMessage;
+                  final position = result.position;
                   if (position != null) {
                     endLat = position.latitude;
                     endLng = position.longitude;
@@ -646,16 +649,18 @@ class _ActiveTripViewState extends State<_ActiveTripView> {
                         '${position.latitude.toStringAsFixed(5)}, '
                         '${position.longitude.toStringAsFixed(5)}';
                   }
-                } catch (_) {
-                  // GPS unavailable — show a friendly message below.
+                } catch (error) {
+                  locationError = error.toString();
                 }
 
                 if (!context.mounted) return;
                 if (endLat == null || endLng == null) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
-                      content: const Text(
-                        'Không lấy được vị trí trả xe. Vui lòng bật định vị và thử lại.',
+                      content: Text(
+                        locationError == null || locationError.isEmpty
+                            ? 'Không lấy được vị trí trả xe. Vui lòng bật định vị và thử lại.'
+                            : 'Không lấy được vị trí trả xe. $locationError',
                       ),
                       backgroundColor: AppColors.error,
                     ),

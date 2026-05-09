@@ -42,7 +42,9 @@ class PaymentRemoteDataSourceImpl implements PaymentRemoteDataSource {
         data: {'bookingId': bookingId, 'method': method},
       );
       if (response.statusCode == 201) {
-        return PaymentModel.fromJson(response.data as Map<String, dynamic>);
+        return PaymentModel.fromJson(
+          _responseMap(response.data, 'Failed to create payment'),
+        );
       }
       throw ServerException(
         message: 'Failed to create payment',
@@ -62,7 +64,9 @@ class PaymentRemoteDataSourceImpl implements PaymentRemoteDataSource {
       );
       if (response.statusCode == 200) {
         if (response.data == null) return null;
-        return PaymentModel.fromJson(response.data as Map<String, dynamic>);
+        return PaymentModel.fromJson(
+          _responseMap(response.data, 'Failed to get payment'),
+        );
       }
       throw ServerException(
         message: 'Failed to get payment',
@@ -78,7 +82,9 @@ class PaymentRemoteDataSourceImpl implements PaymentRemoteDataSource {
     try {
       final response = await _dioClient.get('/payments/$paymentId');
       if (response.statusCode == 200) {
-        return PaymentModel.fromJson(response.data as Map<String, dynamic>);
+        return PaymentModel.fromJson(
+          _responseMap(response.data, 'Payment not found'),
+        );
       }
       throw ServerException(
         message: 'Payment not found',
@@ -96,7 +102,9 @@ class PaymentRemoteDataSourceImpl implements PaymentRemoteDataSource {
         '/payments/$paymentId/simulate-success',
       );
       if (response.statusCode == 200) {
-        return PaymentModel.fromJson(response.data as Map<String, dynamic>);
+        return PaymentModel.fromJson(
+          _responseMap(response.data, 'Failed to simulate payment'),
+        );
       }
       throw ServerException(
         message: 'Failed to simulate payment',
@@ -114,7 +122,7 @@ class PaymentRemoteDataSourceImpl implements PaymentRemoteDataSource {
         '/payments/$paymentId/initiate-payos',
       );
       if (response.statusCode == 200) {
-        final data = response.data as Map<String, dynamic>;
+        final data = _responseMap(response.data, 'Failed to initiate PayOS');
         return {
           'checkoutUrl': data['checkoutUrl'] as String? ?? '',
           'qrCode': data['qrCode'] as String? ?? '',
@@ -136,7 +144,7 @@ class PaymentRemoteDataSourceImpl implements PaymentRemoteDataSource {
         '/payments/$paymentId/initiate-momo',
       );
       if (response.statusCode == 200) {
-        final data = response.data as Map<String, dynamic>;
+        final data = _responseMap(response.data, 'Failed to initiate MoMo');
         return {
           'paymentUrl': data['paymentUrl'] as String? ?? '',
           'deeplink': data['deeplink'] as String? ?? '',
@@ -159,7 +167,9 @@ class PaymentRemoteDataSourceImpl implements PaymentRemoteDataSource {
         data: {'otp': otp},
       );
       if (response.statusCode == 200) {
-        return PaymentModel.fromJson(response.data as Map<String, dynamic>);
+        return PaymentModel.fromJson(
+          _responseMap(response.data, 'Failed to refund payment'),
+        );
       }
       throw ServerException(
         message: 'Failed to refund payment',
@@ -176,7 +186,7 @@ class PaymentRemoteDataSourceImpl implements PaymentRemoteDataSource {
       final response = await _dioClient.get('/payments/owner-earnings');
       if (response.statusCode == 200) {
         return OwnerEarningsEntity.fromJson(
-          response.data as Map<String, dynamic>,
+          _responseMap(response.data, 'Failed to get earnings'),
         );
       }
       throw ServerException(
@@ -186,5 +196,22 @@ class PaymentRemoteDataSourceImpl implements PaymentRemoteDataSource {
     } on DioException catch (e) {
       throw ServerException.fromDioException(e);
     }
+  }
+
+  Map<String, dynamic> _responseMap(dynamic data, String fallbackMessage) {
+    if (data is Map<String, dynamic>) {
+      return data;
+    }
+
+    if (data is Map) {
+      return Map<String, dynamic>.from(data);
+    }
+
+    if (data is String) {
+      final message = data.trim().isEmpty ? fallbackMessage : data;
+      throw ServerException(message: message);
+    }
+
+    throw ServerException(message: fallbackMessage);
   }
 }

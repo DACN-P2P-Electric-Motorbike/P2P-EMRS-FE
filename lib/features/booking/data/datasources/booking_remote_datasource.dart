@@ -1,7 +1,7 @@
 import 'package:dio/dio.dart';
-import '../../../../core/constants/api_constants.dart';
 import '../../../../core/error/exceptions.dart';
 import '../../../../core/network/dio_client.dart';
+import '../../../../core/utils/vietnam_time.dart';
 import '../models/booking_model.dart';
 
 /// Abstract class for booking remote data source
@@ -61,14 +61,18 @@ class BookingRemoteDataSourceImpl implements BookingRemoteDataSource {
         '/bookings',
         data: {
           'vehicleId': vehicleId,
-          'startTime': startTime.toIso8601String(),
-          'endTime': endTime.toIso8601String(),
+          'startTime': VietnamTime.toApiIsoString(startTime),
+          'endTime': VietnamTime.toApiIsoString(endTime),
           if (notes != null) 'notes': notes,
         },
       );
 
       if (response.statusCode == 201) {
-        return BookingModel.fromJson(response.data as Map<String, dynamic>);
+        return BookingModel.fromJson(
+          await _withPaymentStatus(
+            Map<String, dynamic>.from(response.data as Map),
+          ),
+        );
       }
 
       throw ServerException(
@@ -91,9 +95,7 @@ class BookingRemoteDataSourceImpl implements BookingRemoteDataSource {
 
       if (response.statusCode == 200) {
         final List<dynamic> data = response.data as List<dynamic>;
-        return data
-            .map((json) => BookingModel.fromJson(json as Map<String, dynamic>))
-            .toList();
+        return _bookingModelsFromList(data);
       }
 
       throw ServerException(
@@ -112,9 +114,7 @@ class BookingRemoteDataSourceImpl implements BookingRemoteDataSource {
 
       if (response.statusCode == 200) {
         final List<dynamic> data = response.data as List<dynamic>;
-        return data
-            .map((json) => BookingModel.fromJson(json as Map<String, dynamic>))
-            .toList();
+        return _bookingModelsFromList(data);
       }
 
       throw ServerException(
@@ -133,9 +133,7 @@ class BookingRemoteDataSourceImpl implements BookingRemoteDataSource {
 
       if (response.statusCode == 200) {
         final List<dynamic> data = response.data as List<dynamic>;
-        return data
-            .map((json) => BookingModel.fromJson(json as Map<String, dynamic>))
-            .toList();
+        return _bookingModelsFromList(data);
       }
 
       throw ServerException(
@@ -153,7 +151,11 @@ class BookingRemoteDataSourceImpl implements BookingRemoteDataSource {
       final response = await _dioClient.get('/bookings/$bookingId');
 
       if (response.statusCode == 200) {
-        return BookingModel.fromJson(response.data as Map<String, dynamic>);
+        return BookingModel.fromJson(
+          await _withPaymentStatus(
+            Map<String, dynamic>.from(response.data as Map),
+          ),
+        );
       }
 
       throw ServerException(
@@ -174,7 +176,11 @@ class BookingRemoteDataSourceImpl implements BookingRemoteDataSource {
       );
 
       if (response.statusCode == 200) {
-        return BookingModel.fromJson(response.data as Map<String, dynamic>);
+        return BookingModel.fromJson(
+          await _withPaymentStatus(
+            Map<String, dynamic>.from(response.data as Map),
+          ),
+        );
       }
 
       throw ServerException(
@@ -197,9 +203,7 @@ class BookingRemoteDataSourceImpl implements BookingRemoteDataSource {
 
       if (response.statusCode == 200) {
         final List<dynamic> data = response.data as List<dynamic>;
-        return data
-            .map((json) => BookingModel.fromJson(json as Map<String, dynamic>))
-            .toList();
+        return _bookingModelsFromList(data);
       }
 
       throw ServerException(
@@ -218,9 +222,7 @@ class BookingRemoteDataSourceImpl implements BookingRemoteDataSource {
 
       if (response.statusCode == 200) {
         final List<dynamic> data = response.data as List<dynamic>;
-        return data
-            .map((json) => BookingModel.fromJson(json as Map<String, dynamic>))
-            .toList();
+        return _bookingModelsFromList(data);
       }
 
       throw ServerException(
@@ -244,7 +246,11 @@ class BookingRemoteDataSourceImpl implements BookingRemoteDataSource {
       );
 
       if (response.statusCode == 200) {
-        return BookingModel.fromJson(response.data as Map<String, dynamic>);
+        return BookingModel.fromJson(
+          await _withPaymentStatus(
+            Map<String, dynamic>.from(response.data as Map),
+          ),
+        );
       }
 
       throw ServerException(
@@ -265,7 +271,11 @@ class BookingRemoteDataSourceImpl implements BookingRemoteDataSource {
       );
 
       if (response.statusCode == 200) {
-        return BookingModel.fromJson(response.data as Map<String, dynamic>);
+        return BookingModel.fromJson(
+          await _withPaymentStatus(
+            Map<String, dynamic>.from(response.data as Map),
+          ),
+        );
       }
 
       throw ServerException(
@@ -274,6 +284,77 @@ class BookingRemoteDataSourceImpl implements BookingRemoteDataSource {
       );
     } on DioException catch (e) {
       throw ServerException.fromDioException(e);
+    }
+  }
+
+  Future<List<BookingModel>> _bookingModelsFromList(List<dynamic> data) async {
+    final enriched = await Future.wait(
+      data.map(
+        (json) => _withPaymentStatus(Map<String, dynamic>.from(json as Map)),
+      ),
+    );
+    return enriched.map(BookingModel.fromJson).toList();
+  }
+
+  Future<Map<String, dynamic>> _withPaymentStatus(
+    Map<String, dynamic> bookingJson,
+  ) async {
+    if (_paymentStatusFromBookingJson(bookingJson) != null) {
+      return bookingJson;
+    }
+
+    final bookingStatus = (bookingJson['status'] as String? ?? '')
+        .toUpperCase();
+    const statusesThatNeedPayment = {'CONFIRMED', 'ONGOING', 'COMPLETED'};
+    if (!statusesThatNeedPayment.contains(bookingStatus)) {
+      return bookingJson;
+    }
+
+    final bookingId = bookingJson['id'];
+    if (bookingId is! String || bookingId.isEmpty) {
+      return bookingJson;
+    }
+
+    final paymentStatus = await _fetchPaymentStatus(bookingId);
+    if (paymentStatus == null) {
+      return bookingJson;
+    }
+
+    return {...bookingJson, 'paymentStatus': paymentStatus};
+  }
+
+  String? _paymentStatusFromBookingJson(Map<String, dynamic> bookingJson) {
+    final directStatus = bookingJson['paymentStatus'];
+    if (directStatus is String && directStatus.isNotEmpty) {
+      return directStatus;
+    }
+
+    final payment = bookingJson['payment'];
+    if (payment is Map) {
+      final nestedStatus = payment['status'];
+      if (nestedStatus is String && nestedStatus.isNotEmpty) {
+        return nestedStatus;
+      }
+    }
+
+    return null;
+  }
+
+  Future<String?> _fetchPaymentStatus(String bookingId) async {
+    try {
+      final response = await _dioClient.get(
+        '/payments/by-booking',
+        queryParameters: {'bookingId': bookingId},
+      );
+      if (response.statusCode != 200 || response.data == null) {
+        return null;
+      }
+
+      final data = Map<String, dynamic>.from(response.data as Map);
+      final status = data['status'];
+      return status is String && status.isNotEmpty ? status : null;
+    } catch (_) {
+      return null;
     }
   }
 }

@@ -3,6 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/utils/vietnam_time.dart';
 import '../../domain/entities/booking.dart';
 
 /// Owner Booking Card with action buttons
@@ -152,7 +153,7 @@ class OwnerBookingCard extends StatelessWidget {
                     ),
                     const SizedBox(width: 4),
                     Text(
-                      DateFormat('dd/MM HH:mm').format(booking.startTime),
+                      VietnamTime.format(booking.startTime, 'dd/MM HH:mm'),
                       style: GoogleFonts.poppins(
                         fontSize: 12,
                         color: AppColors.textMuted,
@@ -160,7 +161,7 @@ class OwnerBookingCard extends StatelessWidget {
                     ),
                     const Text(' → '),
                     Text(
-                      DateFormat('dd/MM HH:mm').format(booking.endTime),
+                      VietnamTime.format(booking.endTime, 'dd/MM HH:mm'),
                       style: GoogleFonts.poppins(
                         fontSize: 12,
                         color: AppColors.textMuted,

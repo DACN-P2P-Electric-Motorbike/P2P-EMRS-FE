@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:intl/intl.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/utils/vietnam_time.dart';
 
 /// A compact widget to show upcoming booking time slots for a vehicle
 /// Similar to cinema seat selection - shows which times are booked
@@ -87,16 +87,10 @@ class BookingScheduleWidget extends StatelessWidget {
           ),
 
           // Booking slots preview (always show first 2)
-          if (!isExpanded) ...[
-            const Divider(height: 1),
-            _buildCompactSlots(),
-          ],
+          if (!isExpanded) ...[const Divider(height: 1), _buildCompactSlots()],
 
           // Expanded view
-          if (isExpanded) ...[
-            const Divider(height: 1),
-            _buildExpandedSlots(),
-          ],
+          if (isExpanded) ...[const Divider(height: 1), _buildExpandedSlots()],
         ],
       ),
     );
@@ -163,15 +157,14 @@ class BookingScheduleWidget extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.all(10),
       child: Column(
-        children: bookings.map((booking) => _buildDetailedSlot(booking)).toList(),
+        children: bookings
+            .map((booking) => _buildDetailedSlot(booking))
+            .toList(),
       ),
     );
   }
 
   Widget _buildSlotChip(BookingSlot booking) {
-    final dateFormat = DateFormat('dd/MM');
-    final timeFormat = DateFormat('HH:mm');
-
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
@@ -191,7 +184,7 @@ class BookingScheduleWidget extends StatelessWidget {
           ),
           const SizedBox(width: 4),
           Text(
-            '${dateFormat.format(booking.startTime)} ${timeFormat.format(booking.startTime)}-${timeFormat.format(booking.endTime)}',
+            '${VietnamTime.format(booking.startTime, 'dd/MM')} ${VietnamTime.format(booking.startTime, 'HH:mm')}-${VietnamTime.format(booking.endTime, 'HH:mm')}',
             style: GoogleFonts.poppins(
               fontSize: 10,
               color: _getStatusColor(booking.status),
@@ -204,9 +197,6 @@ class BookingScheduleWidget extends StatelessWidget {
   }
 
   Widget _buildDetailedSlot(BookingSlot booking) {
-    final dateFormat = DateFormat('EEE, dd/MM');
-    final timeFormat = DateFormat('HH:mm');
-
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.all(10),
@@ -231,7 +221,7 @@ class BookingScheduleWidget extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  dateFormat.format(booking.startTime),
+                  VietnamTime.format(booking.startTime, 'EEE, dd/MM'),
                   style: GoogleFonts.poppins(
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
@@ -239,7 +229,7 @@ class BookingScheduleWidget extends StatelessWidget {
                   ),
                 ),
                 Text(
-                  '${timeFormat.format(booking.startTime)} - ${timeFormat.format(booking.endTime)}',
+                  '${VietnamTime.format(booking.startTime, 'HH:mm')} - ${VietnamTime.format(booking.endTime, 'HH:mm')}',
                   style: GoogleFonts.poppins(
                     fontSize: 11,
                     color: AppColors.textSecondary,
@@ -344,4 +334,3 @@ enum BookingSlotStatus {
     }
   }
 }
-

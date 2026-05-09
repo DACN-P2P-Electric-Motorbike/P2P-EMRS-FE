@@ -14,6 +14,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:logger/logger.dart';
 import 'core/localization/app_localizations.dart';
+import 'core/constants/api_constants.dart';
 import 'core/settings/app_preferences_controller.dart';
 import 'core/storage/storage_service.dart';
 import 'core/theme/app_theme.dart';
@@ -278,8 +279,7 @@ class _MyAppState extends State<MyApp> {
 
               if (!_socketService.isConnected) {
                 _logger.d('Socket not connected, attempting connection');
-                const serverUrl = 'https://p2p-emrs.onrender.com';
-                await _socketService.connect(serverUrl);
+                await _socketService.connect(ApiConstants.baseUrl);
               } else {
                 _logger.d('Socket already connected');
               }

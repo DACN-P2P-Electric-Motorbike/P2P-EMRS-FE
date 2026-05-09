@@ -8,6 +8,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../../../core/platform/web_helper.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/utils/vietnam_time.dart';
 import '../../../../injection_container.dart';
 import '../../domain/entities/payment_entity.dart';
 import '../bloc/payment_bloc.dart';
@@ -122,13 +123,29 @@ class _PaymentViewState extends State<_PaymentView>
             );
             Navigator.pop(context, true);
           } else if (state is PaymentCreated) {
-            _handleAfterCreate(context, state.payment);
+            _continuePayment(context, state.payment);
+          } else if (state is PaymentLoaded &&
+              !state.payment.isCompleted &&
+              _selectedMethod != state.payment.method) {
+            setState(() => _selectedMethod = state.payment.method);
           } else if (state is PaymentUrlGenerated) {
             _handlePaymentUrlGenerated(context, state);
           } else if (state is PaymentFailure) {
+            if (state.message.contains('Payment already exists')) {
+              context.read<PaymentBloc>().add(
+                LoadPaymentByBookingEvent(widget.bookingId),
+              );
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(_friendlyPaymentError(state.message)),
+                  backgroundColor: AppColors.info,
+                ),
+              );
+              return;
+            }
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: Text(state.message),
+                content: Text(_friendlyPaymentError(state.message)),
                 backgroundColor: AppColors.error,
               ),
             );
@@ -149,8 +166,27 @@ class _PaymentViewState extends State<_PaymentView>
     );
   }
 
-  void _handleAfterCreate(BuildContext context, PaymentEntity payment) {
-    switch (_selectedMethod) {
+  String _friendlyPaymentError(String message) {
+    if (message.contains('Payment already exists')) {
+      return 'Đã có giao dịch thanh toán cho booking này. Đang tải lại để tiếp tục thanh toán.';
+    }
+    if (message.contains('Failed to create PayOS payment link')) {
+      return 'Không thể tạo liên kết PayOS. Giao dịch PayOS đã được đặt lại, vui lòng chọn phương thức khác hoặc thử lại sau.';
+    }
+    if (message.contains('PayOS is not configured') ||
+        message.contains('PayOS configuration is invalid')) {
+      return 'PayOS chưa được cấu hình đúng trên API. Vui lòng chọn MoMo/tiền mặt hoặc cập nhật PAYOS_CHECKSUM_KEY rồi thử lại.';
+    }
+    return message;
+  }
+
+  bool _canResumePayment(PaymentEntity payment) {
+    return payment.status == PaymentStatus.pending ||
+        payment.status == PaymentStatus.processing;
+  }
+
+  void _continuePayment(BuildContext context, PaymentEntity payment) {
+    switch (payment.method) {
       case PaymentMethod.payos:
         context.read<PaymentBloc>().add(InitiatePayOSEvent(payment.id));
       case PaymentMethod.momo:
@@ -295,7 +331,7 @@ class _PaymentViewState extends State<_PaymentView>
             if (payment.paidAt != null) ...[
               const SizedBox(height: 4),
               Text(
-                'Ngày thanh toán: ${DateFormat('dd/MM/yyyy HH:mm').format(payment.paidAt!)}',
+                'Ngày thanh toán: ${VietnamTime.format(payment.paidAt!, 'dd/MM/yyyy HH:mm')}',
                 style: GoogleFonts.poppins(
                   color: AppColors.textMuted,
                   fontSize: 13,
@@ -309,6 +345,11 @@ class _PaymentViewState extends State<_PaymentView>
   }
 
   Widget _buildPaymentForm(BuildContext context, PaymentState state) {
+    final existingPayment =
+        state is PaymentLoaded && _canResumePayment(state.payment)
+        ? state.payment
+        : null;
+
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
       child: Column(
@@ -318,42 +359,46 @@ class _PaymentViewState extends State<_PaymentView>
           _buildSummaryCard(),
           const SizedBox(height: 24),
 
-          // Payment Method Selection
-          Text(
-            'Phương thức thanh toán',
-            style: GoogleFonts.poppins(
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
-              color: AppColors.textPrimary,
+          if (existingPayment != null) ...[
+            _buildExistingPaymentNotice(existingPayment),
+          ] else ...[
+            // Payment Method Selection
+            Text(
+              'Phương thức thanh toán',
+              style: GoogleFonts.poppins(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+                color: AppColors.textPrimary,
+              ),
             ),
-          ),
-          const SizedBox(height: 12),
-          _buildMethodCard(
-            method: PaymentMethod.payos,
-            title: 'PayOS',
-            subtitle: 'Chuyển khoản ngân hàng / QR Code',
-            icon: 'assets/icons/payos.png',
-            fallbackIcon: Icons.account_balance,
-            color: const Color(0xFF1A73E8),
-          ),
-          const SizedBox(height: 12),
-          _buildMethodCard(
-            method: PaymentMethod.momo,
-            title: 'MoMo',
-            subtitle: 'Thanh toán qua ví MoMo (sandbox)',
-            icon: 'assets/icons/momo.png',
-            fallbackIcon: Icons.account_balance_wallet,
-            color: const Color(0xFFAE2070),
-          ),
-          const SizedBox(height: 12),
-          _buildMethodCard(
-            method: PaymentMethod.cash,
-            title: 'Tiền mặt',
-            subtitle: 'Thanh toán trực tiếp (sandbox simulation)',
-            icon: '',
-            fallbackIcon: Icons.money,
-            color: AppColors.success,
-          ),
+            const SizedBox(height: 12),
+            _buildMethodCard(
+              method: PaymentMethod.payos,
+              title: 'PayOS',
+              subtitle: 'Chuyển khoản ngân hàng / QR Code',
+              icon: 'assets/icons/payos.png',
+              fallbackIcon: Icons.account_balance,
+              color: const Color(0xFF1A73E8),
+            ),
+            const SizedBox(height: 12),
+            _buildMethodCard(
+              method: PaymentMethod.momo,
+              title: 'MoMo',
+              subtitle: 'Thanh toán qua ví MoMo (sandbox)',
+              icon: 'assets/icons/momo.png',
+              fallbackIcon: Icons.account_balance_wallet,
+              color: const Color(0xFFAE2070),
+            ),
+            const SizedBox(height: 12),
+            _buildMethodCard(
+              method: PaymentMethod.cash,
+              title: 'Tiền mặt',
+              subtitle: 'Thanh toán trực tiếp (sandbox simulation)',
+              icon: '',
+              fallbackIcon: Icons.money,
+              color: AppColors.success,
+            ),
+          ],
           const SizedBox(height: 32),
 
           // Revenue breakdown
@@ -364,7 +409,9 @@ class _PaymentViewState extends State<_PaymentView>
           SizedBox(
             width: double.infinity,
             child: ElevatedButton(
-              onPressed: state is PaymentLoading ? null : () => _onPay(context),
+              onPressed: state is PaymentLoading
+                  ? null
+                  : () => _onPay(context, state),
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.primary,
                 padding: const EdgeInsets.symmetric(vertical: 18),
@@ -382,13 +429,55 @@ class _PaymentViewState extends State<_PaymentView>
                       ),
                     )
                   : Text(
-                      'Thanh toán ${_formatter.format(widget.totalAmount + widget.deposit)}',
+                      existingPayment != null
+                          ? 'Tiếp tục thanh toán ${existingPayment.methodDisplayText}'
+                          : 'Thanh toán ${_formatter.format(widget.totalAmount + widget.deposit)}',
                       style: GoogleFonts.poppins(
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
                         color: Colors.white,
                       ),
                     ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildExistingPaymentNotice(PaymentEntity payment) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.info.withOpacity(0.08),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.info.withOpacity(0.25)),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.receipt_long, color: AppColors.info),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Đã có giao dịch đang chờ',
+                  style: GoogleFonts.poppins(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  '${payment.methodDisplayText} - ${payment.statusDisplayText}',
+                  style: GoogleFonts.poppins(
+                    fontSize: 12,
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+              ],
             ),
           ),
         ],
@@ -619,7 +708,12 @@ class _PaymentViewState extends State<_PaymentView>
     );
   }
 
-  void _onPay(BuildContext context) {
+  void _onPay(BuildContext context, PaymentState state) {
+    if (state is PaymentLoaded && _canResumePayment(state.payment)) {
+      _continuePayment(context, state.payment);
+      return;
+    }
+
     context.read<PaymentBloc>().add(
       CreatePaymentEvent(bookingId: widget.bookingId, method: _selectedMethod),
     );

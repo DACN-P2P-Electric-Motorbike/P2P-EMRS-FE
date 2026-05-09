@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:intl/intl.dart';
 
 import '../../../../core/error/exceptions.dart';
 import '../../../../core/localization/app_localizations.dart';
 import '../../../../core/settings/app_preferences_controller.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/utils/vietnam_time.dart';
 import '../../../../injection_container.dart';
 import '../../data/privacy_remote_data_source.dart';
 
@@ -178,7 +178,7 @@ class _AppSettingsPageState extends State<AppSettingsPage> {
 
   String _formatDate(DateTime? value) {
     if (value == null) return '-';
-    return DateFormat('dd/MM/yyyy HH:mm').format(value.toLocal());
+    return VietnamTime.format(value, 'dd/MM/yyyy HH:mm');
   }
 
   void _showSnackBar(String message) {

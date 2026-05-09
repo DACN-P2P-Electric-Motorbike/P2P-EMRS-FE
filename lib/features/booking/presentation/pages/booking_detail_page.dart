@@ -9,8 +9,11 @@ import 'package:intl/intl.dart';
 import '../../../../core/services/location_service.dart';
 import '../../../../core/services/socket_service.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/usecases/usecase.dart';
+import '../../../../core/utils/vietnam_time.dart';
 import '../../../../injection_container.dart';
 import '../../../payment/presentation/pages/payment_page.dart';
+import '../../../review/domain/usecases/review_usecases.dart';
 import '../../../review/presentation/pages/create_review_page.dart';
 import '../../../trip/presentation/bloc/trip_bloc.dart';
 import '../../../trip/presentation/bloc/trip_event.dart';
@@ -39,6 +42,7 @@ class BookingDetailPage extends StatefulWidget {
 class _BookingDetailPageState extends State<BookingDetailPage> {
   final SocketService _socketService = sl<SocketService>();
   StreamSubscription? _bookingUpdateSubscription;
+  Future<Set<String>>? _reviewedBookingIdsFuture;
 
   @override
   void initState() {
@@ -48,6 +52,7 @@ class _BookingDetailPageState extends State<BookingDetailPage> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<BookingBloc>().add(LoadBookingByIdEvent(widget.bookingId));
     });
+    _reviewedBookingIdsFuture = _loadReviewedBookingIds();
   }
 
   void _setupRealtimeUpdates() {
@@ -59,6 +64,7 @@ class _BookingDetailPageState extends State<BookingDetailPage> {
       data,
     ) {
       if (data['bookingId'] == widget.bookingId) {
+        if (!mounted) return;
         // Reload booking when status changes
         context.read<BookingBloc>().add(LoadBookingByIdEvent(widget.bookingId));
       }
@@ -70,6 +76,21 @@ class _BookingDetailPageState extends State<BookingDetailPage> {
     _socketService.unsubscribeFromBooking(widget.bookingId);
     _bookingUpdateSubscription?.cancel();
     super.dispose();
+  }
+
+  Future<Set<String>> _loadReviewedBookingIds() async {
+    final result = await sl<GetMyReviewsUseCase>()(const NoParams());
+    return result.fold(
+      (_) => <String>{},
+      (reviews) =>
+          reviews.map((review) => review.bookingId).whereType<String>().toSet(),
+    );
+  }
+
+  void _refreshReviewedBookingIds() {
+    setState(() {
+      _reviewedBookingIdsFuture = _loadReviewedBookingIds();
+    });
   }
 
   @override
@@ -264,14 +285,14 @@ class _BookingDetailPageState extends State<BookingDetailPage> {
           _buildInfoRow(
             Icons.calendar_today,
             'Ngày tạo',
-            DateFormat('dd/MM/yyyy HH:mm').format(booking.createdAt),
+            VietnamTime.format(booking.createdAt, 'dd/MM/yyyy HH:mm'),
           ),
           if (booking.confirmedAt != null) ...[
             const SizedBox(height: 12),
             _buildInfoRow(
               Icons.check_circle_outline,
               'Ngày xác nhận',
-              DateFormat('dd/MM/yyyy HH:mm').format(booking.confirmedAt!),
+              VietnamTime.format(booking.confirmedAt!, 'dd/MM/yyyy HH:mm'),
             ),
           ],
         ],
@@ -309,13 +330,13 @@ class _BookingDetailPageState extends State<BookingDetailPage> {
           _buildInfoRow(
             Icons.access_time,
             'Bắt đầu',
-            DateFormat('dd/MM/yyyy HH:mm').format(booking.startTime),
+            VietnamTime.format(booking.startTime, 'dd/MM/yyyy HH:mm'),
           ),
           const SizedBox(height: 12),
           _buildInfoRow(
             Icons.access_time_filled,
             'Kết thúc',
-            DateFormat('dd/MM/yyyy HH:mm').format(booking.endTime),
+            VietnamTime.format(booking.endTime, 'dd/MM/yyyy HH:mm'),
           ),
           const SizedBox(height: 12),
           _buildInfoRow(Icons.timer, 'Thời lượng', booking.durationDisplayText),
@@ -681,27 +702,50 @@ class _BookingDetailPageState extends State<BookingDetailPage> {
 
     // Completed booking - show review button
     if (!widget.isOwnerView && booking.isCompleted) {
-      return Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        child: SizedBox(
-          width: double.infinity,
-          child: ElevatedButton.icon(
-            onPressed: () => _navigateToReview(context, booking),
-            icon: const Icon(Icons.star_outline),
-            label: Text(
-              'Đánh giá chuyến đi',
-              style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
-            ),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFFFFB300),
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(vertical: 16),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
+      return FutureBuilder<Set<String>>(
+        future: _reviewedBookingIdsFuture,
+        builder: (context, snapshot) {
+          final isChecking = snapshot.connectionState != ConnectionState.done;
+          final hasReviewed = snapshot.data?.contains(booking.id) ?? false;
+          return Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: isChecking || hasReviewed
+                    ? null
+                    : () => _navigateToReview(context, booking),
+                icon: Icon(
+                  hasReviewed ? Icons.check_circle_outline : Icons.star_outline,
+                ),
+                label: Text(
+                  hasReviewed
+                      ? 'Đã đánh giá chuyến đi'
+                      : isChecking
+                      ? 'Đang kiểm tra đánh giá...'
+                      : 'Đánh giá chuyến đi',
+                  style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: hasReviewed
+                      ? AppColors.success
+                      : const Color(0xFFFFB300),
+                  foregroundColor: Colors.white,
+                  disabledBackgroundColor: hasReviewed
+                      ? AppColors.success.withOpacity(0.85)
+                      : AppColors.textMuted.withOpacity(0.18),
+                  disabledForegroundColor: hasReviewed
+                      ? Colors.white
+                      : AppColors.textMuted,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
               ),
             ),
-          ),
-        ),
+          );
+        },
       );
     }
 
@@ -776,7 +820,7 @@ class _BookingDetailPageState extends State<BookingDetailPage> {
       const Duration(minutes: 15),
     );
     final message = now.isBefore(earliestStart)
-        ? 'Có thể bắt đầu từ ${DateFormat('HH:mm dd/MM').format(earliestStart)}'
+        ? 'Có thể bắt đầu từ ${VietnamTime.format(earliestStart, 'HH:mm dd/MM')}'
         : 'Đã quá thời gian bắt đầu cho phép';
 
     return SizedBox(
@@ -796,7 +840,8 @@ class _BookingDetailPageState extends State<BookingDetailPage> {
     BuildContext context,
     BookingEntity booking,
   ) async {
-    final completed = await Navigator.push<bool>(
+    final bookingBloc = context.read<BookingBloc>();
+    await Navigator.push<bool>(
       context,
       MaterialPageRoute(
         builder: (_) => PaymentPage(
@@ -807,13 +852,16 @@ class _BookingDetailPageState extends State<BookingDetailPage> {
       ),
     );
 
-    if (completed == true && context.mounted) {
-      context.read<BookingBloc>().add(LoadBookingByIdEvent(booking.id));
+    if (context.mounted) {
+      bookingBloc.add(LoadBookingByIdEvent(booking.id));
     }
   }
 
-  void _navigateToReview(BuildContext context, BookingEntity booking) {
-    Navigator.push(
+  Future<void> _navigateToReview(
+    BuildContext context,
+    BookingEntity booking,
+  ) async {
+    final created = await Navigator.push<bool>(
       context,
       MaterialPageRoute(
         builder: (_) => CreateReviewPage(
@@ -823,6 +871,9 @@ class _BookingDetailPageState extends State<BookingDetailPage> {
         ),
       ),
     );
+    if (created == true && mounted) {
+      _refreshReviewedBookingIds();
+    }
   }
 
   void _showApproveDialog(BuildContext context, BookingEntity booking) {
@@ -1021,9 +1072,12 @@ class _StartTripButtonState extends State<_StartTripButton> {
     double? lat;
     double? lng;
     String? address;
+    String? locationError;
 
     try {
-      final position = await sl<LocationService>().getCurrentPosition();
+      final result = await sl<LocationService>().getCurrentPositionResult();
+      locationError = result.errorMessage;
+      final position = result.position;
       if (position != null) {
         lat = position.latitude;
         lng = position.longitude;
@@ -1033,8 +1087,8 @@ class _StartTripButtonState extends State<_StartTripButton> {
             '${position.latitude.toStringAsFixed(5)}, '
             '${position.longitude.toStringAsFixed(5)}';
       }
-    } catch (_) {
-      // Handled below with a user-facing message.
+    } catch (error) {
+      locationError = error.toString();
     }
 
     if (!mounted) return;
@@ -1043,8 +1097,10 @@ class _StartTripButtonState extends State<_StartTripButton> {
     if (lat == null || lng == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: const Text(
-            'Không lấy được vị trí xuất phát. Vui lòng bật định vị và thử lại.',
+          content: Text(
+            locationError == null || locationError.isEmpty
+                ? 'Không lấy được vị trí xuất phát. Vui lòng bật định vị và thử lại.'
+                : 'Không lấy được vị trí xuất phát. $locationError',
           ),
           backgroundColor: AppColors.error,
         ),
