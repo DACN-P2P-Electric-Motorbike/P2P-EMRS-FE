@@ -19,6 +19,7 @@ class BookingModel {
   final DateTime? confirmedAt;
   final DateTime? cancelledAt;
   final String? vehicleName;
+  final int? vehicleBatteryLevel;
   final String? paymentStatus;
 
   const BookingModel({
@@ -38,6 +39,7 @@ class BookingModel {
     this.confirmedAt,
     this.cancelledAt,
     this.vehicleName,
+    this.vehicleBatteryLevel,
     this.paymentStatus,
   });
 
@@ -46,6 +48,10 @@ class BookingModel {
     final nestedPayment = json['payment'];
     final nestedPaymentStatus = nestedPayment is Map
         ? nestedPayment['status'] as String?
+        : null;
+    final nestedVehicle = json['vehicle'];
+    final vehicleBatteryLevel = nestedVehicle is Map
+        ? (nestedVehicle['batteryLevel'] as num?)?.toInt()
         : null;
 
     return BookingModel(
@@ -68,8 +74,10 @@ class BookingModel {
       cancelledAt: json['cancelledAt'] != null
           ? DateTime.parse(json['cancelledAt'] as String)
           : null,
-      vehicleName:
-          (json['vehicle'] as Map<String, dynamic>?)?['name'] as String?,
+      vehicleName: nestedVehicle is Map
+          ? nestedVehicle['name'] as String?
+          : null,
+      vehicleBatteryLevel: vehicleBatteryLevel,
       paymentStatus: json['paymentStatus'] as String? ?? nestedPaymentStatus,
     );
   }
@@ -92,7 +100,11 @@ class BookingModel {
       'updatedAt': updatedAt.toIso8601String(),
       'confirmedAt': confirmedAt?.toIso8601String(),
       'cancelledAt': cancelledAt?.toIso8601String(),
-      if (vehicleName != null) 'vehicle': {'name': vehicleName},
+      if (vehicleName != null || vehicleBatteryLevel != null)
+        'vehicle': {
+          if (vehicleName != null) 'name': vehicleName,
+          if (vehicleBatteryLevel != null) 'batteryLevel': vehicleBatteryLevel,
+        },
       'paymentStatus': paymentStatus,
     };
   }
@@ -116,6 +128,7 @@ class BookingModel {
       confirmedAt: confirmedAt,
       cancelledAt: cancelledAt,
       vehicleName: vehicleName,
+      vehicleBatteryLevel: vehicleBatteryLevel,
       paymentStatus: paymentStatus,
     );
   }

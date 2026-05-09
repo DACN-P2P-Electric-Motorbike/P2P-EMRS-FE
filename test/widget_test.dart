@@ -82,12 +82,14 @@ void main() {
       'deposit': 200000,
       'createdAt': '2026-05-09T03:00:00.000Z',
       'updatedAt': '2026-05-09T03:00:00.000Z',
+      'vehicle': {'batteryLevel': 87},
       'payment': {'status': 'COMPLETED'},
     });
 
     final booking = model.toEntity();
     expect(booking.paymentStatus, 'COMPLETED');
     expect(booking.isPaymentCompleted, isTrue);
+    expect(booking.vehicleBatteryLevel, 87);
   });
 
   test('VietnamTime formats UTC API timestamps as GMT+7', () {
