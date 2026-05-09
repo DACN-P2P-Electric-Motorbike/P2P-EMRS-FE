@@ -1,6 +1,9 @@
+import 'dart:async';
+
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../../../core/cache/hive_cache_service.dart';
 import '../../../../core/usecases/usecase.dart';
 import '../../data/models/create_vehicle_params.dart';
 import '../../data/models/update_vehicle_params.dart';
@@ -23,6 +26,9 @@ class OwnerVehicleBloc extends Bloc<OwnerVehicleEvent, OwnerVehicleState> {
   final GetVehicleByIdUseCase _getVehicleByIdUseCase;
   final ToggleAvailabilityUseCase _toggleAvailabilityUseCase;
   final DeleteVehicleUseCase _deleteVehicleUseCase;
+  final HiveCacheService _cache;
+  late final StreamSubscription<String> _cacheSubscription;
+  bool _isWatchingMyVehicles = false;
 
   OwnerVehicleBloc({
     required GetMyVehiclesUseCase getMyVehiclesUseCase,
@@ -31,13 +37,16 @@ class OwnerVehicleBloc extends Bloc<OwnerVehicleEvent, OwnerVehicleState> {
     required GetVehicleByIdUseCase getVehicleByIdUseCase,
     required ToggleAvailabilityUseCase toggleAvailabilityUseCase,
     required DeleteVehicleUseCase deleteVehicleUseCase,
+    required HiveCacheService cache,
   }) : _getMyVehiclesUseCase = getMyVehiclesUseCase,
        _registerVehicleUseCase = registerVehicleUseCase,
        _updateVehicleUseCase = updateVehicleUseCase,
        _getVehicleByIdUseCase = getVehicleByIdUseCase,
        _toggleAvailabilityUseCase = toggleAvailabilityUseCase,
        _deleteVehicleUseCase = deleteVehicleUseCase,
+       _cache = cache,
        super(OwnerVehicleState.initial()) {
+    _cacheSubscription = _cache.changes.listen(_onCacheChanged);
     on<LoadMyVehicles>(_onLoadMyVehicles);
     on<RegisterVehicleSubmit>(_onRegisterVehicle);
     on<UpdateVehicleStatus>(_onUpdateVehicleStatus);
@@ -75,6 +84,7 @@ class OwnerVehicleBloc extends Bloc<OwnerVehicleEvent, OwnerVehicleState> {
         state.copyWith(status: OwnerVehicleStatus.loaded, vehicles: vehicles),
       ),
     );
+    _isWatchingMyVehicles = true;
   }
 
   /// Handle registering a new vehicle
@@ -370,5 +380,20 @@ class OwnerVehicleBloc extends Bloc<OwnerVehicleEvent, OwnerVehicleState> {
         clearSuccess: true,
       ),
     );
+  }
+
+  void _onCacheChanged(String key) {
+    if (!_isWatchingMyVehicles ||
+        key != 'owner.vehicles' ||
+        state.status != OwnerVehicleStatus.loaded) {
+      return;
+    }
+    add(const LoadMyVehicles());
+  }
+
+  @override
+  Future<void> close() {
+    _cacheSubscription.cancel();
+    return super.close();
   }
 }

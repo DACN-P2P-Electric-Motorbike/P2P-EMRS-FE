@@ -35,6 +35,7 @@ class BookingEntity extends Equatable {
   final DateTime? confirmedAt;
   final DateTime? cancelledAt;
   final String? vehicleName;
+  final int? vehicleBatteryLevel;
   final String? paymentStatus;
 
   const BookingEntity({
@@ -54,6 +55,7 @@ class BookingEntity extends Equatable {
     this.confirmedAt,
     this.cancelledAt,
     this.vehicleName,
+    this.vehicleBatteryLevel,
     this.paymentStatus,
   });
 
@@ -158,6 +160,7 @@ class BookingEntity extends Equatable {
     confirmedAt,
     cancelledAt,
     vehicleName,
+    vehicleBatteryLevel,
     paymentStatus,
   ];
 
@@ -178,6 +181,7 @@ class BookingEntity extends Equatable {
     DateTime? confirmedAt,
     DateTime? cancelledAt,
     String? vehicleName,
+    int? vehicleBatteryLevel,
     String? paymentStatus,
   }) {
     return BookingEntity(
@@ -197,6 +201,7 @@ class BookingEntity extends Equatable {
       confirmedAt: confirmedAt ?? this.confirmedAt,
       cancelledAt: cancelledAt ?? this.cancelledAt,
       vehicleName: vehicleName ?? this.vehicleName,
+      vehicleBatteryLevel: vehicleBatteryLevel ?? this.vehicleBatteryLevel,
       paymentStatus: paymentStatus ?? this.paymentStatus,
     );
   }

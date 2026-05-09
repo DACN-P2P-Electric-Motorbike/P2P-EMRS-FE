@@ -166,9 +166,9 @@ class _BrowseVehiclesViewState extends State<_BrowseVehiclesView> {
         _selectedFeatures.isNotEmpty ||
         _sortBy != 'default' ||
         _searchController.text.trim().isNotEmpty ||
-          _nearbyEnabled ||
-          _desiredStartTime != null ||
-          _desiredEndTime != null;
+        _nearbyEnabled ||
+        _desiredStartTime != null ||
+        _desiredEndTime != null;
   }
 
   @override
@@ -366,7 +366,8 @@ class _BrowseVehiclesViewState extends State<_BrowseVehiclesView> {
                       if (result != null && mounted) {
                         final newStartTime = result['startTime'] as DateTime?;
                         final newEndTime = result['endTime'] as DateTime?;
-                        final timeChanged = newStartTime != _desiredStartTime ||
+                        final timeChanged =
+                            newStartTime != _desiredStartTime ||
                             newEndTime != _desiredEndTime;
 
                         setState(() {
@@ -607,17 +608,11 @@ class _BrowseVehiclesViewState extends State<_BrowseVehiclesView> {
                     Expanded(
                       child: _buildActionCard(
                         context,
-                        icon: Icons.wallet_outlined,
-                        title: 'Ví tiền',
-                        subtitle: 'Thanh toán',
+                        icon: Icons.payments_outlined,
+                        title: 'Thanh toán',
+                        subtitle: 'Booking',
                         color: AppColors.success,
-                        onTap: () {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Tính năng đang được phát triển'),
-                            ),
-                          );
-                        },
+                        onTap: () => context.push('/bookings'),
                       ),
                     ),
                   ],

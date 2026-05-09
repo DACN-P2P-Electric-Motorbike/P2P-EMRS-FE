@@ -1066,6 +1066,18 @@ class _StartTripButton extends StatefulWidget {
 class _StartTripButtonState extends State<_StartTripButton> {
   bool _isGettingLocation = false;
 
+  String _startTripFailureMessage(String rawMessage) {
+    if (rawMessage.contains('startLatitude') ||
+        rawMessage.contains('startLongitude') ||
+        rawMessage.contains('Start location')) {
+      return 'Không lấy được vị trí xuất phát. Vui lòng bật định vị và thử lại.';
+    }
+    if (rawMessage.contains('startBattery')) {
+      return 'Không có thông tin pin lúc bắt đầu chuyến đi. Vui lòng tải lại booking và thử lại.';
+    }
+    return rawMessage;
+  }
+
   Future<void> _handleStartTrip() async {
     setState(() => _isGettingLocation = true);
 
@@ -1114,6 +1126,7 @@ class _StartTripButtonState extends State<_StartTripButton> {
         startLatitude: lat,
         startLongitude: lng,
         startAddress: address,
+        startBattery: widget.booking.vehicleBatteryLevel?.toDouble(),
       ),
     );
   }
@@ -1133,12 +1146,7 @@ class _StartTripButtonState extends State<_StartTripButton> {
             ),
           );
         } else if (state is TripFailure) {
-          final message =
-              state.message.contains('startLatitude') ||
-                  state.message.contains('startLongitude') ||
-                  state.message.contains('Start location')
-              ? 'Không lấy được vị trí xuất phát. Vui lòng bật định vị và thử lại.'
-              : state.message;
+          final message = _startTripFailureMessage(state.message);
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text(message), backgroundColor: Colors.red),
           );

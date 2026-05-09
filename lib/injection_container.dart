@@ -2,6 +2,7 @@ import 'package:get_it/get_it.dart';
 
 // Core
 import 'core/network/dio_client.dart';
+import 'core/cache/hive_cache_service.dart';
 import 'core/storage/storage_service.dart';
 import 'core/services/upload_service.dart';
 import 'core/services/socket_service.dart';
@@ -131,6 +132,9 @@ Future<void> init() async {
   // FCM Service - Singleton
   sl.registerLazySingleton<FcmService>(() => FcmService());
 
+  // Local JSON cache for frequently revisited mobile screens.
+  sl.registerLazySingleton<HiveCacheService>(() => HiveCacheService());
+
   // Location Service - Singleton
   sl.registerLazySingleton<LocationService>(() => LocationService());
 
@@ -179,7 +183,7 @@ Future<void> init() async {
 
   // Data Sources
   sl.registerLazySingleton<OwnerVehicleRemoteDataSource>(
-    () => OwnerVehicleRemoteDataSourceImpl(dioClient: sl()),
+    () => OwnerVehicleRemoteDataSourceImpl(dioClient: sl(), cache: sl()),
   );
 
   // Repository
@@ -204,6 +208,7 @@ Future<void> init() async {
       getVehicleByIdUseCase: sl(),
       toggleAvailabilityUseCase: sl(),
       deleteVehicleUseCase: sl(),
+      cache: sl(),
     ),
   );
 
@@ -213,7 +218,7 @@ Future<void> init() async {
 
   // Data Sources
   sl.registerLazySingleton<VehicleRemoteDataSource>(
-    () => VehicleRemoteDataSourceImpl(dioClient: sl()),
+    () => VehicleRemoteDataSourceImpl(dioClient: sl(), cache: sl()),
   );
 
   // Repository
@@ -228,7 +233,11 @@ Future<void> init() async {
 
   // Cubit - Factory
   sl.registerFactory(
-    () => VehicleListCubit(getAvailableVehicles: sl(), getNearbyVehicles: sl()),
+    () => VehicleListCubit(
+      getAvailableVehicles: sl(),
+      getNearbyVehicles: sl(),
+      cache: sl(),
+    ),
   );
   sl.registerFactory(() => VehicleDetailCubit(getVehicleById: sl()));
 
@@ -258,7 +267,7 @@ Future<void> init() async {
 
   // Data Sources
   sl.registerLazySingleton<BookingRemoteDataSource>(
-    () => BookingRemoteDataSourceImpl(dioClient: sl()),
+    () => BookingRemoteDataSourceImpl(dioClient: sl(), cache: sl()),
   );
 
   // Repository
@@ -287,6 +296,7 @@ Future<void> init() async {
       getPendingBookingsUseCase: sl(),
       approveBookingUseCase: sl(),
       rejectBookingUseCase: sl(),
+      cache: sl(),
     ),
   );
 

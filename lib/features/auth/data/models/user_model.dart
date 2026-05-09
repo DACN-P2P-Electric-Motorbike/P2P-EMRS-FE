@@ -65,11 +65,13 @@ class UserModel {
 
     // Check if backend returns roles array (new format)
     if (json.containsKey('roles') && json['roles'] is List) {
-      roles = (json['roles'] as List).map((e) => e.toString()).toList();
+      roles = (json['roles'] as List)
+          .map((e) => _normalizeRole(e.toString()))
+          .toList();
     }
     // Fallback to single role (backward compatibility)
     else if (json.containsKey('role')) {
-      roles = [json['role'] as String];
+      roles = [_normalizeRole(json['role'] as String)];
     }
     // Default to RENTER if no role specified
     else {
@@ -89,6 +91,12 @@ class UserModel {
       createdAt: DateTime.parse(json['createdAt'] as String),
       updatedAt: DateTime.parse(json['updatedAt'] as String),
     );
+  }
+
+  static String _normalizeRole(String role) {
+    final normalized = role.trim().toUpperCase();
+    final dotIndex = normalized.lastIndexOf('.');
+    return dotIndex >= 0 ? normalized.substring(dotIndex + 1) : normalized;
   }
 
   /// Convert to JSON for API requests

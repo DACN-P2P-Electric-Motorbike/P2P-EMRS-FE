@@ -59,6 +59,7 @@ class _PaymentView extends StatefulWidget {
 class _PaymentViewState extends State<_PaymentView>
     with WidgetsBindingObserver {
   PaymentMethod _selectedMethod = PaymentMethod.payos;
+  String? _loadedPaymentId;
   StreamSubscription<dynamic>? _webMessageSub;
 
   final _formatter = NumberFormat.currency(locale: 'vi_VN', symbol: 'đ');
@@ -126,8 +127,11 @@ class _PaymentViewState extends State<_PaymentView>
             _continuePayment(context, state.payment);
           } else if (state is PaymentLoaded &&
               !state.payment.isCompleted &&
-              _selectedMethod != state.payment.method) {
-            setState(() => _selectedMethod = state.payment.method);
+              _loadedPaymentId != state.payment.id) {
+            setState(() {
+              _loadedPaymentId = state.payment.id;
+              _selectedMethod = state.payment.method;
+            });
           } else if (state is PaymentUrlGenerated) {
             _handlePaymentUrlGenerated(context, state);
           } else if (state is PaymentFailure) {
@@ -176,6 +180,9 @@ class _PaymentViewState extends State<_PaymentView>
     if (message.contains('PayOS is not configured') ||
         message.contains('PayOS configuration is invalid')) {
       return 'PayOS chưa được cấu hình đúng trên API. Vui lòng chọn MoMo/tiền mặt hoặc cập nhật PAYOS_CHECKSUM_KEY rồi thử lại.';
+    }
+    if (message.contains('Cannot change payment method while the PayOS link')) {
+      return 'Chưa thể đổi phương thức vì liên kết PayOS đang hoạt động. Vui lòng hủy trang thanh toán PayOS hoặc thử lại sau.';
     }
     return message;
   }
@@ -359,46 +366,46 @@ class _PaymentViewState extends State<_PaymentView>
           _buildSummaryCard(),
           const SizedBox(height: 24),
 
-          if (existingPayment != null) ...[
+          if (existingPayment != null)
             _buildExistingPaymentNotice(existingPayment),
-          ] else ...[
-            // Payment Method Selection
-            Text(
-              'Phương thức thanh toán',
-              style: GoogleFonts.poppins(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-                color: AppColors.textPrimary,
-              ),
+          if (existingPayment != null) const SizedBox(height: 16),
+
+          // Payment Method Selection
+          Text(
+            'Phương thức thanh toán',
+            style: GoogleFonts.poppins(
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+              color: AppColors.textPrimary,
             ),
-            const SizedBox(height: 12),
-            _buildMethodCard(
-              method: PaymentMethod.payos,
-              title: 'PayOS',
-              subtitle: 'Chuyển khoản ngân hàng / QR Code',
-              icon: 'assets/icons/payos.png',
-              fallbackIcon: Icons.account_balance,
-              color: const Color(0xFF1A73E8),
-            ),
-            const SizedBox(height: 12),
-            _buildMethodCard(
-              method: PaymentMethod.momo,
-              title: 'MoMo',
-              subtitle: 'Thanh toán qua ví MoMo (sandbox)',
-              icon: 'assets/icons/momo.png',
-              fallbackIcon: Icons.account_balance_wallet,
-              color: const Color(0xFFAE2070),
-            ),
-            const SizedBox(height: 12),
-            _buildMethodCard(
-              method: PaymentMethod.cash,
-              title: 'Tiền mặt',
-              subtitle: 'Thanh toán trực tiếp (sandbox simulation)',
-              icon: '',
-              fallbackIcon: Icons.money,
-              color: AppColors.success,
-            ),
-          ],
+          ),
+          const SizedBox(height: 12),
+          _buildMethodCard(
+            method: PaymentMethod.payos,
+            title: 'PayOS',
+            subtitle: 'Chuyển khoản ngân hàng / QR Code',
+            icon: 'assets/icons/payos.png',
+            fallbackIcon: Icons.account_balance,
+            color: const Color(0xFF1A73E8),
+          ),
+          const SizedBox(height: 12),
+          _buildMethodCard(
+            method: PaymentMethod.momo,
+            title: 'MoMo',
+            subtitle: 'Thanh toán qua ví MoMo (sandbox)',
+            icon: 'assets/icons/momo.png',
+            fallbackIcon: Icons.account_balance_wallet,
+            color: const Color(0xFFAE2070),
+          ),
+          const SizedBox(height: 12),
+          _buildMethodCard(
+            method: PaymentMethod.cash,
+            title: 'Tiền mặt',
+            subtitle: 'Thanh toán trực tiếp (sandbox simulation)',
+            icon: '',
+            fallbackIcon: Icons.money,
+            color: AppColors.success,
+          ),
           const SizedBox(height: 32),
 
           // Revenue breakdown
@@ -430,7 +437,9 @@ class _PaymentViewState extends State<_PaymentView>
                     )
                   : Text(
                       existingPayment != null
-                          ? 'Tiếp tục thanh toán ${existingPayment.methodDisplayText}'
+                          ? _selectedMethod == existingPayment.method
+                                ? 'Tiếp tục thanh toán ${existingPayment.methodDisplayText}'
+                                : 'Đổi sang ${_methodLabel(_selectedMethod)} và thanh toán'
                           : 'Thanh toán ${_formatter.format(widget.totalAmount + widget.deposit)}',
                       style: GoogleFonts.poppins(
                         fontSize: 16,
@@ -475,6 +484,14 @@ class _PaymentViewState extends State<_PaymentView>
                   style: GoogleFonts.poppins(
                     fontSize: 12,
                     color: AppColors.textSecondary,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Bạn có thể chọn phương thức khác trước khi giao dịch hoàn tất.',
+                  style: GoogleFonts.poppins(
+                    fontSize: 12,
+                    color: AppColors.textMuted,
                   ),
                 ),
               ],
@@ -709,7 +726,9 @@ class _PaymentViewState extends State<_PaymentView>
   }
 
   void _onPay(BuildContext context, PaymentState state) {
-    if (state is PaymentLoaded && _canResumePayment(state.payment)) {
+    if (state is PaymentLoaded &&
+        _canResumePayment(state.payment) &&
+        _selectedMethod == state.payment.method) {
       _continuePayment(context, state.payment);
       return;
     }
@@ -717,5 +736,18 @@ class _PaymentViewState extends State<_PaymentView>
     context.read<PaymentBloc>().add(
       CreatePaymentEvent(bookingId: widget.bookingId, method: _selectedMethod),
     );
+  }
+
+  String _methodLabel(PaymentMethod method) {
+    switch (method) {
+      case PaymentMethod.payos:
+        return 'PayOS';
+      case PaymentMethod.momo:
+        return 'MoMo';
+      case PaymentMethod.cash:
+        return 'Tiền mặt';
+      case PaymentMethod.creditCard:
+        return 'Thẻ tín dụng';
+    }
   }
 }

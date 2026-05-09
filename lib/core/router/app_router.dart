@@ -65,10 +65,16 @@ class AppRouter {
           state.uri.path == '/owner-earnings';
 
       if (isOwnerRoute &&
-          (authState is AuthAuthenticated || authState is AuthSuccess)) {
-        final user = authState is AuthAuthenticated
-            ? authState.user
-            : (authState as AuthSuccess).user;
+          (authState is AuthAuthenticated ||
+              authState is AuthSuccess ||
+              authState is ProfileUpdated)) {
+        final user = switch (authState) {
+          AuthAuthenticated(:final user) => user,
+          AuthSuccess(:final user) => user,
+          ProfileUpdated(:final user) => user,
+          _ => null,
+        };
+        if (user == null) return null;
         if (!user.isOwner && !user.isAdmin) {
           // If not owner/admin, redirect to become-owner page
           return '/become-owner';

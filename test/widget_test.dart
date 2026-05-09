@@ -6,6 +6,8 @@ import 'package:fe_capstone_project/core/utils/vietnam_time.dart';
 import 'package:fe_capstone_project/features/booking/data/models/booking_model.dart';
 import 'package:fe_capstone_project/core/localization/app_localizations.dart';
 import 'package:fe_capstone_project/features/booking/domain/entities/booking.dart';
+import 'package:fe_capstone_project/features/auth/data/models/user_model.dart';
+import 'package:fe_capstone_project/features/auth/domain/entities/user.dart';
 import 'package:fe_capstone_project/features/review/data/models/review_model.dart';
 import 'package:fe_capstone_project/features/settings/data/privacy_remote_data_source.dart';
 import 'package:fe_capstone_project/features/settings/presentation/pages/app_settings_page.dart';
@@ -80,12 +82,14 @@ void main() {
       'deposit': 200000,
       'createdAt': '2026-05-09T03:00:00.000Z',
       'updatedAt': '2026-05-09T03:00:00.000Z',
+      'vehicle': {'batteryLevel': 87},
       'payment': {'status': 'COMPLETED'},
     });
 
     final booking = model.toEntity();
     expect(booking.paymentStatus, 'COMPLETED');
     expect(booking.isPaymentCompleted, isTrue);
+    expect(booking.vehicleBatteryLevel, 87);
   });
 
   test('VietnamTime formats UTC API timestamps as GMT+7', () {
@@ -114,6 +118,40 @@ void main() {
     expect(model.tripId, 'trip-id');
     expect(model.bookingId, 'booking-id');
     expect(model.toEntity().bookingId, 'booking-id');
+  });
+
+  test('User role checks handle multi-role and enum-like values', () {
+    final now = DateTime.utc(2026, 5, 9);
+    final user = UserEntity(
+      id: 'user-id',
+      email: 'owner@example.com',
+      fullName: 'Owner',
+      phone: '0900000000',
+      roles: const ['renter', 'UserRole.OWNER', 'admin'],
+      status: 'ACTIVE',
+      trustScore: 100,
+      createdAt: now,
+      updatedAt: now,
+    );
+
+    expect(user.isRenter, isTrue);
+    expect(user.isOwner, isTrue);
+    expect(user.isAdmin, isTrue);
+
+    final model = UserModel.fromJson({
+      'id': 'user-id',
+      'email': 'owner@example.com',
+      'fullName': 'Owner',
+      'phone': '0900000000',
+      'roles': ['renter', 'UserRole.OWNER'],
+      'status': 'ACTIVE',
+      'trustScore': 100,
+      'createdAt': '2026-05-09T03:00:00.000Z',
+      'updatedAt': '2026-05-09T03:00:00.000Z',
+    });
+
+    expect(model.roles, ['RENTER', 'OWNER']);
+    expect(model.toEntity().isOwner, isTrue);
   });
 
   testWidgets('AppAvatar does not load network images in data saver mode', (

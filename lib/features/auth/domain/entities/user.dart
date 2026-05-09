@@ -31,8 +31,14 @@ class UserEntity extends Equatable {
     required this.updatedAt,
   });
 
-  /// Check if user has a specific role
-  bool hasRole(String role) => roles.contains(role.toUpperCase());
+  /// Check if user has a specific role.
+  ///
+  /// Some API/client paths may pass enum-like values such as
+  /// `UserRole.OWNER`; normalize them before comparing.
+  bool hasRole(String role) {
+    final expected = _normalizeRole(role);
+    return roles.any((userRole) => _normalizeRole(userRole) == expected);
+  }
 
   /// Check if user is a renter
   bool get isRenter => hasRole('RENTER');
@@ -70,7 +76,7 @@ class UserEntity extends Equatable {
 
   /// Get individual role display name
   String _getRoleDisplayName(String role) {
-    switch (role.toUpperCase()) {
+    switch (_normalizeRole(role)) {
       case 'RENTER':
         return 'Người thuê xe';
       case 'OWNER':
@@ -90,6 +96,12 @@ class UserEntity extends Equatable {
   /// Get role badges for UI display
   List<String> get roleBadges {
     return roles;
+  }
+
+  String _normalizeRole(String role) {
+    final normalized = role.trim().toUpperCase();
+    final dotIndex = normalized.lastIndexOf('.');
+    return dotIndex >= 0 ? normalized.substring(dotIndex + 1) : normalized;
   }
 
   @override

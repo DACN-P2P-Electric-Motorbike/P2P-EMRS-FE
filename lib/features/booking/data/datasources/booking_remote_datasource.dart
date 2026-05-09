@@ -1,4 +1,7 @@
+import 'dart:async';
+
 import 'package:dio/dio.dart';
+import '../../../../core/cache/hive_cache_service.dart';
 import '../../../../core/error/exceptions.dart';
 import '../../../../core/network/dio_client.dart';
 import '../../../../core/utils/vietnam_time.dart';
@@ -45,9 +48,13 @@ abstract class BookingRemoteDataSource {
 /// Implementation using DioClient
 class BookingRemoteDataSourceImpl implements BookingRemoteDataSource {
   final DioClient _dioClient;
+  final HiveCacheService _cache;
 
-  BookingRemoteDataSourceImpl({required DioClient dioClient})
-    : _dioClient = dioClient;
+  BookingRemoteDataSourceImpl({
+    required DioClient dioClient,
+    required HiveCacheService cache,
+  }) : _dioClient = dioClient,
+       _cache = cache;
 
   @override
   Future<BookingModel> createBooking({
@@ -68,11 +75,13 @@ class BookingRemoteDataSourceImpl implements BookingRemoteDataSource {
       );
 
       if (response.statusCode == 201) {
-        return BookingModel.fromJson(
+        final booking = BookingModel.fromJson(
           await _withPaymentStatus(
             Map<String, dynamic>.from(response.data as Map),
           ),
         );
+        await _writeBookingAndInvalidateLists(booking);
+        return booking;
       }
 
       throw ServerException(
@@ -86,76 +95,93 @@ class BookingRemoteDataSourceImpl implements BookingRemoteDataSource {
 
   @override
   Future<List<BookingModel>> getRenterBookings({String? status}) async {
-    try {
-      final queryParams = status != null ? {'status': status} : null;
-      final response = await _dioClient.get(
-        '/bookings',
-        queryParameters: queryParams,
+    final queryParams = status != null ? {'status': status} : null;
+    final cacheKey = 'bookings.renter:${status ?? 'all'}';
+    final cached = await _cachedBookingList(cacheKey);
+    if (cached != null) {
+      unawaited(
+        _refreshBookingList(
+          cacheKey,
+          '/bookings',
+          queryParameters: queryParams,
+          fallbackMessage: 'Failed to get bookings',
+        ),
       );
-
-      if (response.statusCode == 200) {
-        final List<dynamic> data = response.data as List<dynamic>;
-        return _bookingModelsFromList(data);
-      }
-
-      throw ServerException(
-        message: 'Failed to get bookings',
-        statusCode: response.statusCode,
-      );
-    } on DioException catch (e) {
-      throw ServerException.fromDioException(e);
+      return cached;
     }
+
+    return _fetchAndCacheBookingList(
+      cacheKey,
+      '/bookings',
+      queryParameters: queryParams,
+      fallbackMessage: 'Failed to get bookings',
+    );
   }
 
   @override
   Future<List<BookingModel>> getUpcomingBookings() async {
-    try {
-      final response = await _dioClient.get('/bookings/upcoming');
-
-      if (response.statusCode == 200) {
-        final List<dynamic> data = response.data as List<dynamic>;
-        return _bookingModelsFromList(data);
-      }
-
-      throw ServerException(
-        message: 'Failed to get upcoming bookings',
-        statusCode: response.statusCode,
+    const cacheKey = 'bookings.upcoming';
+    final cached = await _cachedBookingList(cacheKey);
+    if (cached != null) {
+      unawaited(
+        _refreshBookingList(
+          cacheKey,
+          '/bookings/upcoming',
+          fallbackMessage: 'Failed to get upcoming bookings',
+        ),
       );
-    } on DioException catch (e) {
-      throw ServerException.fromDioException(e);
+      return cached;
     }
+
+    return _fetchAndCacheBookingList(
+      cacheKey,
+      '/bookings/upcoming',
+      fallbackMessage: 'Failed to get upcoming bookings',
+    );
   }
 
   @override
   Future<List<BookingModel>> getBookingHistory() async {
-    try {
-      final response = await _dioClient.get('/bookings/history');
-
-      if (response.statusCode == 200) {
-        final List<dynamic> data = response.data as List<dynamic>;
-        return _bookingModelsFromList(data);
-      }
-
-      throw ServerException(
-        message: 'Failed to get booking history',
-        statusCode: response.statusCode,
+    const cacheKey = 'bookings.history';
+    final cached = await _cachedBookingList(cacheKey);
+    if (cached != null) {
+      unawaited(
+        _refreshBookingList(
+          cacheKey,
+          '/bookings/history',
+          fallbackMessage: 'Failed to get booking history',
+        ),
       );
-    } on DioException catch (e) {
-      throw ServerException.fromDioException(e);
+      return cached;
     }
+
+    return _fetchAndCacheBookingList(
+      cacheKey,
+      '/bookings/history',
+      fallbackMessage: 'Failed to get booking history',
+    );
   }
 
   @override
   Future<BookingModel> getBookingById(String bookingId) async {
+    final cacheKey = 'bookings.detail:$bookingId';
+    final cached = await _cache.read<Map<dynamic, dynamic>>(cacheKey);
+    if (cached != null) {
+      unawaited(_refreshBookingDetail(cacheKey, bookingId));
+      return BookingModel.fromJson(Map<String, dynamic>.from(cached));
+    }
+
     try {
       final response = await _dioClient.get('/bookings/$bookingId');
 
       if (response.statusCode == 200) {
-        return BookingModel.fromJson(
+        final booking = BookingModel.fromJson(
           await _withPaymentStatus(
             Map<String, dynamic>.from(response.data as Map),
           ),
         );
+        await _cache.write(cacheKey, booking.toJson());
+        return booking;
       }
 
       throw ServerException(
@@ -176,11 +202,13 @@ class BookingRemoteDataSourceImpl implements BookingRemoteDataSource {
       );
 
       if (response.statusCode == 200) {
-        return BookingModel.fromJson(
+        final booking = BookingModel.fromJson(
           await _withPaymentStatus(
             Map<String, dynamic>.from(response.data as Map),
           ),
         );
+        await _writeBookingAndInvalidateLists(booking);
+        return booking;
       }
 
       throw ServerException(
@@ -194,44 +222,49 @@ class BookingRemoteDataSourceImpl implements BookingRemoteDataSource {
 
   @override
   Future<List<BookingModel>> getOwnerBookings({String? status}) async {
-    try {
-      final queryParams = status != null ? {'status': status} : null;
-      final response = await _dioClient.get(
-        '/owner/bookings',
-        queryParameters: queryParams,
+    final queryParams = status != null ? {'status': status} : null;
+    final cacheKey = 'bookings.owner:${status ?? 'all'}';
+    final cached = await _cachedBookingList(cacheKey);
+    if (cached != null) {
+      unawaited(
+        _refreshBookingList(
+          cacheKey,
+          '/owner/bookings',
+          queryParameters: queryParams,
+          fallbackMessage: 'Failed to get owner bookings',
+        ),
       );
-
-      if (response.statusCode == 200) {
-        final List<dynamic> data = response.data as List<dynamic>;
-        return _bookingModelsFromList(data);
-      }
-
-      throw ServerException(
-        message: 'Failed to get owner bookings',
-        statusCode: response.statusCode,
-      );
-    } on DioException catch (e) {
-      throw ServerException.fromDioException(e);
+      return cached;
     }
+
+    return _fetchAndCacheBookingList(
+      cacheKey,
+      '/owner/bookings',
+      queryParameters: queryParams,
+      fallbackMessage: 'Failed to get owner bookings',
+    );
   }
 
   @override
   Future<List<BookingModel>> getPendingBookings() async {
-    try {
-      final response = await _dioClient.get('/owner/bookings/pending');
-
-      if (response.statusCode == 200) {
-        final List<dynamic> data = response.data as List<dynamic>;
-        return _bookingModelsFromList(data);
-      }
-
-      throw ServerException(
-        message: 'Failed to get pending bookings',
-        statusCode: response.statusCode,
+    const cacheKey = 'bookings.owner.pending';
+    final cached = await _cachedBookingList(cacheKey);
+    if (cached != null) {
+      unawaited(
+        _refreshBookingList(
+          cacheKey,
+          '/owner/bookings/pending',
+          fallbackMessage: 'Failed to get pending bookings',
+        ),
       );
-    } on DioException catch (e) {
-      throw ServerException.fromDioException(e);
+      return cached;
     }
+
+    return _fetchAndCacheBookingList(
+      cacheKey,
+      '/owner/bookings/pending',
+      fallbackMessage: 'Failed to get pending bookings',
+    );
   }
 
   @override
@@ -246,11 +279,13 @@ class BookingRemoteDataSourceImpl implements BookingRemoteDataSource {
       );
 
       if (response.statusCode == 200) {
-        return BookingModel.fromJson(
+        final booking = BookingModel.fromJson(
           await _withPaymentStatus(
             Map<String, dynamic>.from(response.data as Map),
           ),
         );
+        await _writeBookingAndInvalidateLists(booking);
+        return booking;
       }
 
       throw ServerException(
@@ -271,11 +306,13 @@ class BookingRemoteDataSourceImpl implements BookingRemoteDataSource {
       );
 
       if (response.statusCode == 200) {
-        return BookingModel.fromJson(
+        final booking = BookingModel.fromJson(
           await _withPaymentStatus(
             Map<String, dynamic>.from(response.data as Map),
           ),
         );
+        await _writeBookingAndInvalidateLists(booking);
+        return booking;
       }
 
       throw ServerException(
@@ -294,6 +331,82 @@ class BookingRemoteDataSourceImpl implements BookingRemoteDataSource {
       ),
     );
     return enriched.map(BookingModel.fromJson).toList();
+  }
+
+  Future<List<BookingModel>?> _cachedBookingList(String cacheKey) async {
+    final cached = await _cache.read<List<dynamic>>(cacheKey);
+    if (cached == null) return null;
+    return cached
+        .whereType<Map>()
+        .map((json) => BookingModel.fromJson(Map<String, dynamic>.from(json)))
+        .toList();
+  }
+
+  Future<List<BookingModel>> _fetchAndCacheBookingList(
+    String cacheKey,
+    String path, {
+    Map<String, dynamic>? queryParameters,
+    required String fallbackMessage,
+  }) async {
+    try {
+      final response = await _dioClient.get(
+        path,
+        queryParameters: queryParameters,
+      );
+
+      if (response.statusCode == 200) {
+        final models = await _bookingModelsFromList(
+          response.data as List<dynamic>,
+        );
+        await _cache.write(cacheKey, models.map((b) => b.toJson()).toList());
+        return models;
+      }
+
+      throw ServerException(
+        message: fallbackMessage,
+        statusCode: response.statusCode,
+      );
+    } on DioException catch (e) {
+      throw ServerException.fromDioException(e);
+    }
+  }
+
+  Future<void> _refreshBookingList(
+    String cacheKey,
+    String path, {
+    Map<String, dynamic>? queryParameters,
+    required String fallbackMessage,
+  }) async {
+    try {
+      await _fetchAndCacheBookingList(
+        cacheKey,
+        path,
+        queryParameters: queryParameters,
+        fallbackMessage: fallbackMessage,
+      );
+    } catch (_) {}
+  }
+
+  Future<void> _refreshBookingDetail(String cacheKey, String bookingId) async {
+    try {
+      final response = await _dioClient.get('/bookings/$bookingId');
+      if (response.statusCode != 200) return;
+      final booking = BookingModel.fromJson(
+        await _withPaymentStatus(
+          Map<String, dynamic>.from(response.data as Map),
+        ),
+      );
+      await _cache.write(cacheKey, booking.toJson());
+    } catch (_) {}
+  }
+
+  Future<void> _writeBookingAndInvalidateLists(BookingModel booking) async {
+    await _cache.write('bookings.detail:${booking.id}', booking.toJson());
+    await _cache.deleteByPrefix('bookings.renter:');
+    await _cache.delete('bookings.upcoming');
+    await _cache.delete('bookings.history');
+    await _cache.deleteByPrefix('bookings.owner:');
+    await _cache.delete('bookings.owner.pending');
   }
 
   Future<Map<String, dynamic>> _withPaymentStatus(

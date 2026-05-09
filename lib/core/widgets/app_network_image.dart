@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 
 import '../localization/app_localizations.dart';
@@ -35,19 +36,26 @@ class AppNetworkImage extends StatelessWidget {
     final preferences = AppPreferencesScope.maybeOf(context);
     final image = preferences?.dataSaverEnabled == true
         ? _buildDataSaverPlaceholder(context)
-        : Image.network(
-            imageUrl,
+        : CachedNetworkImage(
+            imageUrl: imageUrl,
             width: width,
             height: height,
             fit: fit,
-            semanticLabel: semanticLabel,
-            cacheWidth: cacheWidth,
-            cacheHeight: cacheHeight,
-            loadingBuilder: (context, child, loadingProgress) {
-              if (loadingProgress == null) return child;
-              return placeholder ?? _buildLoadingPlaceholder();
-            },
-            errorBuilder: (context, error, stackTrace) {
+            memCacheWidth: cacheWidth,
+            memCacheHeight: cacheHeight,
+            imageBuilder: (context, imageProvider) => Semantics(
+              label: semanticLabel,
+              image: true,
+              child: Image(
+                image: imageProvider,
+                width: width,
+                height: height,
+                fit: fit,
+              ),
+            ),
+            placeholder: (context, url) =>
+                placeholder ?? _buildLoadingPlaceholder(),
+            errorWidget: (context, url, error) {
               return errorWidget ?? _buildErrorPlaceholder();
             },
           );
