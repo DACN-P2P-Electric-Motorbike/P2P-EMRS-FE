@@ -9,6 +9,7 @@ import 'package:fe_capstone_project/features/booking/domain/entities/booking.dar
 import 'package:fe_capstone_project/features/auth/data/models/user_model.dart';
 import 'package:fe_capstone_project/features/auth/domain/entities/user.dart';
 import 'package:fe_capstone_project/features/review/data/models/review_model.dart';
+import 'package:fe_capstone_project/features/review/domain/entities/review_entity.dart';
 import 'package:fe_capstone_project/features/settings/data/privacy_remote_data_source.dart';
 import 'package:fe_capstone_project/features/settings/presentation/pages/app_settings_page.dart';
 import 'package:flutter/material.dart';
@@ -118,6 +119,112 @@ void main() {
     expect(model.tripId, 'trip-id');
     expect(model.bookingId, 'booking-id');
     expect(model.toEntity().bookingId, 'booking-id');
+  });
+
+  test('TrustScoreBreakdownModel parses recent events and active warnings',
+      () {
+    final model = TrustScoreBreakdownModel.fromJson({
+      'trustScore': 95,
+      'breakdown': {
+        'reviewsGiven': 4,
+        'reviewsGivenBonus': 4,
+        'avgRatingReceived': 4.5,
+        'totalReviewsReceived': 8,
+        'cancelledBookings': 1,
+        'cancellationPenalty': -5,
+        'rejectedBookings': 0,
+        'rejectionPenalty': 0,
+        'completedTrips': 5,
+        'tripsWithIssues': 0,
+        'violationPenalty': 0,
+      },
+      'recentEvents': [
+        {
+          'id': 'evt-1',
+          'type': 'KYC_VERIFIED',
+          'delta': 5,
+          'scoreBefore': 100,
+          'scoreAfter': 105,
+          'reason': 'Identity document submitted during registration',
+          'createdAt': '2026-05-15T10:00:00.000Z',
+        },
+        {
+          'id': 'evt-2',
+          'type': 'WARNING',
+          'delta': 0,
+          'scoreBefore': 105,
+          'scoreAfter': 105,
+          'reason': 'Late return warning',
+          'createdAt': '2026-05-15T11:00:00.000Z',
+        },
+        {
+          'id': 'evt-3',
+          'type': 'BAD_REVIEW_RECEIVED',
+          'delta': -3,
+          'scoreBefore': 105,
+          'scoreAfter': 102,
+          'reason': 'Received a low rating',
+          'createdAt': '2026-05-15T12:00:00.000Z',
+        },
+      ],
+      'activeWarnings': [
+        {
+          'id': 'warn-1',
+          'type': 'LATE_RETURN',
+          'reason': 'Returned vehicle 45 minutes late',
+          'createdAt': '2026-05-15T11:00:00.000Z',
+          'expiresAt': '2026-06-14T11:00:00.000Z',
+        },
+      ],
+    });
+
+    final breakdown = model.entity;
+    expect(breakdown.trustScore, 95);
+    expect(breakdown.recentEvents, hasLength(3));
+    expect(
+      breakdown.recentEvents[0].type,
+      TrustScoreEventType.kycVerified,
+    );
+    expect(breakdown.recentEvents[0].isPositive, isTrue);
+    expect(
+      breakdown.recentEvents[1].type,
+      TrustScoreEventType.warning,
+    );
+    expect(breakdown.recentEvents[1].isWarning, isTrue);
+    expect(
+      breakdown.recentEvents[2].type,
+      TrustScoreEventType.badReviewReceived,
+    );
+    expect(breakdown.recentEvents[2].isNegative, isTrue);
+
+    expect(breakdown.activeWarnings, hasLength(1));
+    expect(
+      breakdown.activeWarnings.first.type,
+      TrustScoreEventType.lateReturn,
+    );
+    expect(breakdown.activeWarnings.first.penalizedAt, isNull);
+  });
+
+  test('TrustScoreBreakdownModel handles missing events/warnings fields', () {
+    final model = TrustScoreBreakdownModel.fromJson({
+      'trustScore': 100,
+      'breakdown': {
+        'reviewsGiven': 0,
+        'reviewsGivenBonus': 0,
+        'avgRatingReceived': null,
+        'totalReviewsReceived': 0,
+        'cancelledBookings': 0,
+        'cancellationPenalty': 0,
+        'rejectedBookings': 0,
+        'rejectionPenalty': 0,
+        'completedTrips': 0,
+        'tripsWithIssues': 0,
+        'violationPenalty': 0,
+      },
+    });
+
+    expect(model.entity.recentEvents, isEmpty);
+    expect(model.entity.activeWarnings, isEmpty);
   });
 
   test('User role checks handle multi-role and enum-like values', () {

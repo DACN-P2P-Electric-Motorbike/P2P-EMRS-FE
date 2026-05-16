@@ -63,9 +63,14 @@ class PaymentRemoteDataSourceImpl implements PaymentRemoteDataSource {
         queryParameters: {'bookingId': bookingId},
       );
       if (response.statusCode == 200) {
-        if (response.data == null) return null;
+        final data = response.data;
+        // Backend returns null/empty body when no payment exists yet
+        // for the booking. Treat empty/whitespace strings as "no payment".
+        if (data == null) return null;
+        if (data is String && data.trim().isEmpty) return null;
+        if (data is Map && data.isEmpty) return null;
         return PaymentModel.fromJson(
-          _responseMap(response.data, 'Failed to get payment'),
+          _responseMap(data, 'Failed to get payment'),
         );
       }
       throw ServerException(
@@ -73,6 +78,8 @@ class PaymentRemoteDataSourceImpl implements PaymentRemoteDataSource {
         statusCode: response.statusCode,
       );
     } on DioException catch (e) {
+      // 404 means the booking exists but has no payment record yet.
+      if (e.response?.statusCode == 404) return null;
       throw ServerException.fromDioException(e);
     }
   }
