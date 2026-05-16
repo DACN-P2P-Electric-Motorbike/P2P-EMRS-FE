@@ -184,7 +184,7 @@ class ProfilePage extends StatelessWidget {
             ),
             const SizedBox(height: 12),
             Text(
-              '${user?.trustScore?.toStringAsFixed(0) ?? '0'}/100',
+              '${user?.trustScore?.toStringAsFixed(0) ?? '0'}/150',
               style: GoogleFonts.poppins(
                 fontSize: 36,
                 fontWeight: FontWeight.bold,
@@ -195,7 +195,7 @@ class ProfilePage extends StatelessWidget {
             ClipRRect(
               borderRadius: BorderRadius.circular(8),
               child: LinearProgressIndicator(
-                value: (user?.trustScore ?? 0) / 100,
+                value: ((user?.trustScore ?? 0) / 150).clamp(0.0, 1.0),
                 backgroundColor: AppColors.border,
                 valueColor: const AlwaysStoppedAnimation(AppColors.primary),
                 minHeight: 10,

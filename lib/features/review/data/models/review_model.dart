@@ -67,9 +67,32 @@ class TrustScoreBreakdownModel {
 
   factory TrustScoreBreakdownModel.fromJson(Map<String, dynamic> json) {
     final b = json['breakdown'] as Map<String, dynamic>;
+
+    final rawEvents = json['recentEvents'];
+    final events = rawEvents is List
+        ? rawEvents
+              .whereType<Map>()
+              .map(
+                (raw) => _parseEvent(Map<String, dynamic>.from(raw)),
+              )
+              .whereType<TrustScoreEvent>()
+              .toList()
+        : const <TrustScoreEvent>[];
+
+    final rawWarnings = json['activeWarnings'];
+    final warnings = rawWarnings is List
+        ? rawWarnings
+              .whereType<Map>()
+              .map(
+                (raw) => _parseWarning(Map<String, dynamic>.from(raw)),
+              )
+              .whereType<TrustScoreWarning>()
+              .toList()
+        : const <TrustScoreWarning>[];
+
     return TrustScoreBreakdownModel._(
       TrustScoreBreakdown(
-        trustScore: json['trustScore'] as int,
+        trustScore: (json['trustScore'] as num).toInt(),
         reviewsGiven: b['reviewsGiven'] as int,
         reviewsGivenBonus: b['reviewsGivenBonus'] as int,
         avgRatingReceived: (b['avgRatingReceived'] as num?)?.toDouble(),
@@ -81,7 +104,43 @@ class TrustScoreBreakdownModel {
         completedTrips: b['completedTrips'] as int,
         tripsWithIssues: b['tripsWithIssues'] as int,
         violationPenalty: b['violationPenalty'] as int,
+        recentEvents: events,
+        activeWarnings: warnings,
       ),
+    );
+  }
+
+  static TrustScoreEvent? _parseEvent(Map<String, dynamic> json) {
+    final id = json['id'];
+    final createdAt = json['createdAt'];
+    if (id is! String || createdAt is! String) return null;
+    return TrustScoreEvent(
+      id: id,
+      type: TrustScoreEventType.parse(json['type'] as String?),
+      delta: (json['delta'] as num?)?.toDouble() ?? 0,
+      scoreBefore: (json['scoreBefore'] as num?)?.toDouble() ?? 0,
+      scoreAfter: (json['scoreAfter'] as num?)?.toDouble() ?? 0,
+      reason: json['reason'] as String?,
+      createdAt: DateTime.tryParse(createdAt) ?? DateTime.now(),
+    );
+  }
+
+  static TrustScoreWarning? _parseWarning(Map<String, dynamic> json) {
+    final id = json['id'];
+    final createdAt = json['createdAt'];
+    final expiresAt = json['expiresAt'];
+    if (id is! String || createdAt is! String || expiresAt is! String) {
+      return null;
+    }
+    return TrustScoreWarning(
+      id: id,
+      type: TrustScoreEventType.parse(json['type'] as String?),
+      reason: json['reason'] as String?,
+      createdAt: DateTime.tryParse(createdAt) ?? DateTime.now(),
+      expiresAt: DateTime.tryParse(expiresAt) ?? DateTime.now(),
+      penalizedAt: json['penalizedAt'] is String
+          ? DateTime.tryParse(json['penalizedAt'] as String)
+          : null,
     );
   }
 }

@@ -147,6 +147,13 @@ class _PaymentViewState extends State<_PaymentView>
               );
               return;
             }
+            // The "load existing payment" call may legitimately return
+            // nothing for fresh bookings. Don't surface that as an error —
+            // the form below will still allow the user to create a payment.
+            if (state.message.contains('Failed to get payment') ||
+                state.message.toLowerCase().contains('payment not found')) {
+              return;
+            }
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: Text(_friendlyPaymentError(state.message)),
@@ -356,6 +363,8 @@ class _PaymentViewState extends State<_PaymentView>
         state is PaymentLoaded && _canResumePayment(state.payment)
         ? state.payment
         : null;
+    final failedPayment =
+        state is PaymentLoaded && state.payment.isFailed ? state.payment : null;
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
@@ -369,6 +378,9 @@ class _PaymentViewState extends State<_PaymentView>
           if (existingPayment != null)
             _buildExistingPaymentNotice(existingPayment),
           if (existingPayment != null) const SizedBox(height: 16),
+
+          if (failedPayment != null) _buildFailedPaymentNotice(failedPayment),
+          if (failedPayment != null) const SizedBox(height: 16),
 
           // Payment Method Selection
           Text(
@@ -489,6 +501,54 @@ class _PaymentViewState extends State<_PaymentView>
                 const SizedBox(height: 4),
                 Text(
                   'Bạn có thể chọn phương thức khác trước khi giao dịch hoàn tất.',
+                  style: GoogleFonts.poppins(
+                    fontSize: 12,
+                    color: AppColors.textMuted,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFailedPaymentNotice(PaymentEntity payment) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.error.withOpacity(0.08),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.error.withOpacity(0.25)),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.error_outline, color: AppColors.error),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Giao dịch trước đó thất bại',
+                  style: GoogleFonts.poppins(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  '${payment.methodDisplayText} - ${payment.statusDisplayText}',
+                  style: GoogleFonts.poppins(
+                    fontSize: 12,
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Vui lòng chọn phương thức và thử lại.',
                   style: GoogleFonts.poppins(
                     fontSize: 12,
                     color: AppColors.textMuted,
