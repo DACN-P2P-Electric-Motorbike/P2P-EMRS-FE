@@ -75,6 +75,10 @@ dependencies:
   flutter_map: ^7.0.2
   latlong2: ^0.9.1
 
+  # In-app payment browser (PayOS / MoMo). Mobile only — Flutter web keeps the
+  # popup-tab + postMessage flow because webview_flutter has no real web impl.
+  webview_flutter: ^4.10.0
+
 dev_dependencies:
   sentry_dart_plugin: ^3.3.0
   flutter_test:
