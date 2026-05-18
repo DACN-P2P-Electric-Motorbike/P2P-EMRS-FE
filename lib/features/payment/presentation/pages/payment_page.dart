@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -14,6 +15,7 @@ import '../../domain/entities/payment_entity.dart';
 import '../bloc/payment_bloc.dart';
 import '../bloc/payment_event.dart';
 import '../bloc/payment_state.dart';
+import 'payment_webview_page.dart';
 
 class PaymentPage extends StatelessWidget {
   final String bookingId;
@@ -225,26 +227,65 @@ class _PaymentViewState extends State<_PaymentView>
       return;
     }
 
-    // Try to launch deeplink (MoMo app) first, then fall back to payUrl
+    // 1. MoMo deeplink (mobile only) — if the MoMo wallet is installed, this
+    //    hands off to the native app for the smoothest UX. Anything else
+    //    falls through to the in-app WebView / web popup.
     final deeplink = state.deeplink;
-    bool launched = false;
-
-    if (deeplink != null && deeplink.isNotEmpty) {
+    if (!kIsWeb && deeplink != null && deeplink.isNotEmpty) {
       final dlUri = Uri.tryParse(deeplink);
       if (dlUri != null && await canLaunchUrl(dlUri)) {
         await launchUrl(dlUri, mode: LaunchMode.externalApplication);
-        launched = true;
+        return;
       }
     }
 
-    if (!launched) {
-      if (await canLaunchUrl(url)) {
-        await launchUrl(url, mode: LaunchMode.externalApplication);
-        launched = true;
+    // 2. Mobile (Android / iOS) — open the gateway inside the app via
+    //    WebView and watch for the API's return / cancel redirects so we can
+    //    pop back automatically when the user finishes paying. Way less
+    //    frustrating than kicking them out to the system browser.
+    if (PaymentWebViewPage.isSupported() && context.mounted) {
+      // Capture references before the await so we don't lean on `context`
+      // after the WebView pops (lint: use_build_context_synchronously).
+      final bloc = context.read<PaymentBloc>();
+      final messenger = ScaffoldMessenger.of(context);
+      final result = await openPaymentWebView(
+        context,
+        paymentUrl: url.toString(),
+      );
+      if (!mounted) return;
+      switch (result) {
+        case PaymentWebViewResult.success:
+          // Webhook is the source of truth — refresh from the API. The
+          // payment may already be COMPLETED, or still PROCESSING for a
+          // moment until the webhook fires. The poll-on-resume hook also
+          // covers the latter.
+          bloc.add(LoadPaymentByBookingEvent(widget.bookingId));
+          messenger.showSnackBar(
+            const SnackBar(
+              content: Text('Đang xác nhận giao dịch...'),
+              backgroundColor: AppColors.info,
+            ),
+          );
+        case PaymentWebViewResult.cancelled:
+        case PaymentWebViewResult.dismissed:
+        case null:
+          // Reload so the page reflects whatever state the gateway left the
+          // payment in (PENDING, PROCESSING, FAILED, ...).
+          bloc.add(LoadPaymentByBookingEvent(widget.bookingId));
       }
+      return;
     }
 
-    if (!launched && context.mounted) {
+    // 3. Web (and unsupported desktop targets) — open in a new tab. The API
+    //    return endpoint posts a `payos_result` message back via
+    //    `window.opener.postMessage`, which `_webMessageSub` already
+    //    listens for to refresh state.
+    if (await canLaunchUrl(url)) {
+      await launchUrl(url, mode: LaunchMode.externalApplication);
+      return;
+    }
+
+    if (context.mounted) {
       _showPaymentUrlFallbackDialog(context, state);
     }
   }
