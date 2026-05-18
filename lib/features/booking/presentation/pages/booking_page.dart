@@ -25,22 +25,11 @@ class UnifiedBookingsPage extends StatefulWidget {
 class _UnifiedBookingsPageState extends State<UnifiedBookingsPage>
     with SingleTickerProviderStateMixin {
   late TabController _mainTabController;
-  bool _isOwner = false;
 
   @override
   void initState() {
     super.initState();
     _mainTabController = TabController(length: 2, vsync: this);
-    _checkUserRole();
-  }
-
-  void _checkUserRole() {
-    final authState = context.read<AuthBloc>().state;
-    if (authState is AuthAuthenticated) {
-      setState(() {
-        _isOwner = authState.user.isOwner || authState.user.isAdmin;
-      });
-    }
   }
 
   @override
@@ -53,9 +42,17 @@ class _UnifiedBookingsPageState extends State<UnifiedBookingsPage>
   Widget build(BuildContext context) {
     return BlocBuilder<AuthBloc, AuthState>(
       builder: (context, authState) {
-        final isOwner =
-            authState is AuthAuthenticated &&
-            (authState.user.isOwner || authState.user.isAdmin);
+        // Extract user from all possible authenticated states.
+        // AuthSuccess is emitted right after login, AuthAuthenticated after
+        // app restart (via CheckAuth). Missing either causes owner tabs to not
+        // appear on first login for users with multiple roles.
+        final user = switch (authState) {
+          AuthAuthenticated(:final user) => user,
+          AuthSuccess(:final user) => user,
+          ProfileUpdated(:final user) => user,
+          _ => null,
+        };
+        final isOwner = user?.isOwner == true || user?.isAdmin == true;
 
         return Scaffold(
           backgroundColor: const Color(0xFFF8F9FD),
