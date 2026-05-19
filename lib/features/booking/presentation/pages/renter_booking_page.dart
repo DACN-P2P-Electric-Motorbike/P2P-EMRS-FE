@@ -94,6 +94,9 @@ class _RenterBookingsContentState extends State<_RenterBookingsContent>
           labelColor: AppColors.primary,
           unselectedLabelColor: AppColors.textMuted,
           indicatorColor: AppColors.primary,
+          isScrollable: true,
+          tabAlignment: TabAlignment.start,
+          labelPadding: const EdgeInsets.symmetric(horizontal: 20),
           labelStyle: GoogleFonts.poppins(
             fontSize: 14,
             fontWeight: FontWeight.w600,
@@ -135,12 +138,25 @@ class _RenterBookingsContentState extends State<_RenterBookingsContent>
             controller: _tabController,
             children: [
               _buildBookingList(context, state, null, tabIndex: 0),
-              _buildBookingList(context, state, BookingStatus.PENDING,
-                  tabIndex: 1),
-              _buildBookingList(context, state, BookingStatus.CONFIRMED,
-                  tabIndex: 2),
-              _buildBookingList(context, state, null,
-                  isHistory: true, tabIndex: 3),
+              _buildBookingList(
+                context,
+                state,
+                BookingStatus.PENDING,
+                tabIndex: 1,
+              ),
+              _buildBookingList(
+                context,
+                state,
+                BookingStatus.CONFIRMED,
+                tabIndex: 2,
+              ),
+              _buildBookingList(
+                context,
+                state,
+                null,
+                isHistory: true,
+                tabIndex: 3,
+              ),
             ],
           );
         },
@@ -186,15 +202,17 @@ class _RenterBookingsContentState extends State<_RenterBookingsContent>
         },
         child: ListView.builder(
           padding: const EdgeInsets.all(16),
-          itemCount:
-              bookings.length > visibleCount ? visibleCount + 1 : bookings.length,
+          itemCount: bookings.length > visibleCount
+              ? visibleCount + 1
+              : bookings.length,
           itemBuilder: (context, index) {
             if (index == visibleCount) {
               return Padding(
                 padding: const EdgeInsets.symmetric(vertical: 8),
                 child: TextButton(
-                  onPressed: () =>
-                      setState(() => _visibleCounts[tabIndex] = visibleCount + 10),
+                  onPressed: () => setState(
+                    () => _visibleCounts[tabIndex] = visibleCount + 10,
+                  ),
                   child: Text(
                     'Xem thêm (${bookings.length - visibleCount} đặt xe)',
                     style: GoogleFonts.poppins(

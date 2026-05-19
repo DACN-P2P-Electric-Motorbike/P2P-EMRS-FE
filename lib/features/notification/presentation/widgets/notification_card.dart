@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import '../../../../core/localization/notification_text_localizer.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/vietnam_time.dart';
 import '../../domain/entities/notification.dart';
@@ -22,6 +23,13 @@ class NotificationCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final localized = NotificationTextLocalizer.localize(
+      type: notification.type.name,
+      title: notification.title,
+      message: notification.message,
+      locale: Localizations.localeOf(context),
+    );
+
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
       decoration: BoxDecoration(
@@ -74,7 +82,7 @@ class NotificationCard extends StatelessWidget {
                         children: [
                           Expanded(
                             child: Text(
-                              notification.title,
+                              localized.title,
                               style: GoogleFonts.poppins(
                                 fontSize: 15,
                                 fontWeight: notification.isUnread
@@ -100,7 +108,7 @@ class NotificationCard extends StatelessWidget {
 
                       // Message
                       Text(
-                        notification.message,
+                        localized.message,
                         style: GoogleFonts.poppins(
                           fontSize: 13,
                           color: AppColors.textSecondary,
@@ -136,7 +144,10 @@ class NotificationCard extends StatelessWidget {
                             ),
                             const SizedBox(width: 4),
                             Text(
-                              'Booking',
+                              Localizations.localeOf(context).languageCode ==
+                                      'en'
+                                  ? 'Booking'
+                                  : 'Đặt xe',
                               style: GoogleFonts.poppins(
                                 fontSize: 11,
                                 color: AppColors.textMuted,

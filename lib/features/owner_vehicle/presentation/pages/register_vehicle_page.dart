@@ -92,7 +92,7 @@ class _RegisterVehicleContentState extends State<_RegisterVehicleContent> {
         if (state.status == OwnerVehicleStatus.registered) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text(state.successMessage ?? 'Vehicle registered!'),
+              content: Text(state.successMessage ?? 'Đã đăng ký xe!'),
               backgroundColor: AppColors.success,
             ),
           );
@@ -117,7 +117,7 @@ class _RegisterVehicleContentState extends State<_RegisterVehicleContent> {
               onPressed: () => context.pop(),
             ),
             title: Text(
-              'Register Vehicle',
+              'Đăng ký xe',
               style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
             ),
           ),
@@ -157,11 +157,11 @@ class _RegisterVehicleContentState extends State<_RegisterVehicleContent> {
                   _buildSectionTitle('Basic Information'),
                   const SizedBox(height: 16),
 
-                  // License Plate
+                  // Biển số xe
                   _buildTextField(
                     controller: _licensePlateController,
-                    label: 'License Plate',
-                    hint: 'e.g., 59A-12345',
+                    label: 'Biển số xe',
+                    hint: 'VD: 59A-12345',
                     prefixIcon: Icons.badge_outlined,
                     enabled: !isLoading,
                     textCapitalization: TextCapitalization.characters,
@@ -172,7 +172,7 @@ class _RegisterVehicleContentState extends State<_RegisterVehicleContent> {
                     ],
                     validator: (value) {
                       if (value == null || value.isEmpty) {
-                        return 'License plate is required';
+                        return 'Vui lòng nhập biển số xe';
                       }
                       if (!RegExp(
                         r'^[0-9]{2}[A-Z]-[0-9]{4,5}$',
@@ -187,22 +187,22 @@ class _RegisterVehicleContentState extends State<_RegisterVehicleContent> {
                   // Model
                   _buildTextField(
                     controller: _modelController,
-                    label: 'Model Name',
-                    hint: 'e.g., VinFast Klara S',
+                    label: 'Tên model',
+                    hint: 'VD: VinFast Klara S',
                     prefixIcon: Icons.electric_moped_outlined,
                     enabled: !isLoading,
                     validator: (value) {
                       if (value == null || value.isEmpty) {
-                        return 'Model name is required';
+                        return 'Vui lòng nhập tên model';
                       }
                       return null;
                     },
                   ),
                   const SizedBox(height: 16),
 
-                  // Vehicle Type Dropdown
+                  // Loại xe
                   _buildDropdownField(
-                    label: 'Vehicle Type',
+                    label: 'Loại xe',
                     value: _selectedType,
                     items: VehicleType.values,
                     enabled: !isLoading,
@@ -226,15 +226,15 @@ class _RegisterVehicleContentState extends State<_RegisterVehicleContent> {
                   // Price per hour
                   _buildTextField(
                     controller: _priceController,
-                    label: 'Price per Hour (VND)',
-                    hint: 'e.g., 25000',
+                    label: 'Giá thuê theo giờ (VND)',
+                    hint: 'VD: 25000',
                     prefixIcon: Icons.monetization_on_outlined,
                     keyboardType: TextInputType.number,
                     enabled: !isLoading,
                     inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                     validator: (value) {
                       if (value == null || value.isEmpty) {
-                        return 'Price is required';
+                        return 'Vui lòng nhập giá thuê';
                       }
                       final price = double.tryParse(value);
                       if (price == null || price < 1000) {
@@ -248,28 +248,28 @@ class _RegisterVehicleContentState extends State<_RegisterVehicleContent> {
                   // Address
                   _buildTextField(
                     controller: _addressController,
-                    label: 'Pickup Address',
-                    hint: 'e.g., 123 Nguyen Trai, Quan 1, TP.HCM',
+                    label: 'Địa chỉ nhận xe',
+                    hint: 'VD: 123 Nguyễn Trãi, Quận 1, TP.HCM',
                     prefixIcon: Icons.location_on_outlined,
                     enabled: !isLoading,
                     maxLines: 2,
                     validator: (value) {
                       if (value == null || value.isEmpty) {
-                        return 'Address is required';
+                        return 'Vui lòng nhập địa chỉ nhận xe';
                       }
                       return null;
                     },
                   ),
                   const SizedBox(height: 24),
 
-                  // Section: Description & Images
-                  _buildSectionTitle('Description & Images'),
+                  // Mô tả & hình ảnh
+                  _buildSectionTitle('Mô tả & Hình ảnh'),
                   const SizedBox(height: 16),
 
                   // Description
                   _buildTextField(
                     controller: _descriptionController,
-                    label: 'Description (Optional)',
+                    label: 'Mô tả (tùy chọn)',
                     hint: 'Describe your vehicle condition, features, etc.',
                     prefixIcon: Icons.description_outlined,
                     enabled: !isLoading,
@@ -293,7 +293,7 @@ class _RegisterVehicleContentState extends State<_RegisterVehicleContent> {
                               size: 20,
                             )
                           : Text(
-                              'Register Vehicle',
+                              'Đăng ký xe',
                               style: GoogleFonts.poppins(
                                 fontSize: 16,
                                 fontWeight: FontWeight.w600,
@@ -387,7 +387,7 @@ class _RegisterVehicleContentState extends State<_RegisterVehicleContent> {
             ),
             const SizedBox(width: 8),
             Text(
-              'Vehicle Images',
+              'Hình ảnh xe',
               style: GoogleFonts.poppins(
                 fontSize: 14,
                 fontWeight: FontWeight.w500,
@@ -428,7 +428,7 @@ class _RegisterVehicleContentState extends State<_RegisterVehicleContent> {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        'Add Photo',
+                        'Thêm ảnh',
                         style: GoogleFonts.poppins(
                           fontSize: 11,
                           color: AppColors.textSecondary,
@@ -452,7 +452,7 @@ class _RegisterVehicleContentState extends State<_RegisterVehicleContent> {
                           imageUrl: entry.value,
                           width: 100,
                           height: 100,
-                          semanticLabel: 'Vehicle registration image preview',
+                          semanticLabel: 'Ảnh xem trước khi đăng ký xe',
                         ),
                         Positioned(
                           top: 4,
@@ -487,7 +487,7 @@ class _RegisterVehicleContentState extends State<_RegisterVehicleContent> {
         ),
         const SizedBox(height: 8),
         Text(
-          '* At least one image is required',
+          '* Cần ít nhất một ảnh xe',
           style: GoogleFonts.poppins(fontSize: 12, color: AppColors.textMuted),
         ),
       ],

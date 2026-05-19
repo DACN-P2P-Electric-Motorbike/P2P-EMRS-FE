@@ -211,7 +211,7 @@ class _YourBikeContentState extends State<_YourBikeContent>
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // Model Name
+                        // Tên model
                         Text(
                           vehicle.model,
                           style: GoogleFonts.poppins(
@@ -432,7 +432,7 @@ class _YourBikeContentState extends State<_YourBikeContent>
   Color _getStatusColor(VehicleStatus status) {
     switch (status) {
       case VehicleStatus.available:
-        return const Color(0xFFE5A400); // Yellow/Gold for "For rent"
+        return const Color(0xFFE5A400);
       case VehicleStatus.rented:
         return AppColors.info;
       case VehicleStatus.maintenance:

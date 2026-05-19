@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import '../../../../../core/theme/app_theme.dart';
-import '../../../../../core/widgets/app_network_image.dart';
+import 'package:fe_capstone_project/core/localization/vehicle_labels.dart';
+import 'package:fe_capstone_project/core/theme/app_theme.dart';
+import 'package:fe_capstone_project/core/widgets/app_network_image.dart';
 import '../../domain/entities/vehicle_entity.dart';
 import 'booking_schedule_widget.dart';
 
@@ -75,7 +76,10 @@ class _VehicleCardState extends State<VehicleCard> {
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: Text(
-                          vehicle.status.displayName,
+                          vehicleStatusLabel(
+                            context,
+                            vehicle.status.toApiString(),
+                          ),
                           style: const TextStyle(
                             color: Colors.white,
                             fontSize: 12,
@@ -141,7 +145,10 @@ class _VehicleCardState extends State<VehicleCard> {
                               borderRadius: BorderRadius.circular(6),
                             ),
                             child: Text(
-                              vehicle.brand.displayName,
+                              vehicleBrandLabel(
+                                context,
+                                vehicle.brand.toApiString(),
+                              ),
                               style: GoogleFonts.poppins(
                                 fontSize: 11,
                                 fontWeight: FontWeight.w600,
@@ -220,7 +227,10 @@ class _VehicleCardState extends State<VehicleCard> {
                                     ),
                                     const SizedBox(width: 3),
                                     Text(
-                                      feature.displayName,
+                                      vehicleFeatureLabel(
+                                        context,
+                                        feature.toApiString(),
+                                      ),
                                       style: const TextStyle(
                                         fontSize: 10,
                                         color: AppColors.textSecondary,

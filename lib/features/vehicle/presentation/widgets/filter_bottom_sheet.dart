@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import '../../../../../core/theme/app_theme.dart';
+import 'package:fe_capstone_project/core/localization/vehicle_labels.dart';
+import 'package:fe_capstone_project/core/theme/app_theme.dart';
 import '../../domain/entities/vehicle_entity.dart';
 
 class FilterBottomSheet extends StatefulWidget {
@@ -75,23 +76,35 @@ class _FilterBottomSheetState extends State<FilterBottomSheet> {
                 ),
                 child: Row(
                   children: [
-                    Text(
-                      'Bộ lọc',
-                      style: GoogleFonts.poppins(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.textPrimary,
+                    Expanded(
+                      child: Text(
+                        'Bộ lọc',
+                        style: GoogleFonts.poppins(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.textPrimary,
+                        ),
                       ),
                     ),
-                    const Spacer(),
                     TextButton(
                       onPressed: _resetFilters,
+                      style: TextButton.styleFrom(
+                        minimumSize: const Size(72, 40),
+                        padding: const EdgeInsets.symmetric(horizontal: 8),
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        alignment: Alignment.center,
+                      ),
                       child: const Text('Đặt lại'),
                     ),
                     const SizedBox(width: 8),
-                    IconButton(
-                      onPressed: () => Navigator.pop(context),
-                      icon: const Icon(Icons.close),
+                    SizedBox.square(
+                      dimension: 40,
+                      child: IconButton(
+                        onPressed: () => Navigator.pop(context),
+                        icon: const Icon(Icons.close),
+                        padding: EdgeInsets.zero,
+                        tooltip: 'Đóng',
+                      ),
                     ),
                   ],
                 ),
@@ -148,7 +161,7 @@ class _FilterBottomSheetState extends State<FilterBottomSheet> {
                       runSpacing: 8,
                       children: VehicleBrand.values.map((brand) {
                         return _buildChoiceChip(
-                          brand.displayName,
+                          vehicleBrandLabel(context, brand.toApiString()),
                           _selectedBrand == brand,
                           () {
                             setState(() {
@@ -171,7 +184,7 @@ class _FilterBottomSheetState extends State<FilterBottomSheet> {
                       runSpacing: 8,
                       children: VehicleType.values.map((type) {
                         return _buildChoiceChip(
-                          type.displayName,
+                          vehicleTypeLabel(context, type.toApiString()),
                           _selectedType == type,
                           () {
                             setState(() {
@@ -314,7 +327,7 @@ class _FilterBottomSheetState extends State<FilterBottomSheet> {
                       children: VehicleFeature.values.map((feature) {
                         final isSelected = _selectedFeatures.contains(feature);
                         return _buildChoiceChip(
-                          feature.displayName,
+                          vehicleFeatureLabel(context, feature.toApiString()),
                           isSelected,
                           () {
                             setState(() {

@@ -129,7 +129,9 @@ Future<void> _appMain() async {
     // Initialize FCM (mobile only)
     if (!kIsWeb) {
       try {
-        await di.sl<FcmService>().initialize();
+        final fcmService = di.sl<FcmService>();
+        fcmService.setLocale(appPreferences.locale);
+        await fcmService.initialize();
         _logger.i('✅ FCM initialized');
       } catch (e, stackTrace) {
         _logger.w(
@@ -172,6 +174,7 @@ class _MyAppState extends State<MyApp> {
     super.initState();
     // Only initialize FCM on mobile
     _fcmService = kIsWeb ? null : di.sl<FcmService>();
+    _fcmService?.setLocale(widget.appPreferences.locale);
     _logger.d('MyApp state initialized');
   }
 
@@ -181,27 +184,41 @@ class _MyAppState extends State<MyApp> {
     try {
       final fcmToken = _fcmService!.fcmToken;
       if (fcmToken != null) {
-        _logger.i('FCM token available: ${fcmToken.substring(0, 20)}...');
-
-        final platform = Platform.isIOS ? 'ios' : 'android';
-        _logger.d('Registering FCM token with backend (platform: $platform)');
-
-        final registerUseCase = di.sl<RegisterFcmTokenUseCase>();
-        final result = await registerUseCase(
-          RegisterFcmTokenParams(token: fcmToken, platform: platform),
-        );
-
-        result.fold(
-          (failure) {
-            _logger.w('Failed to register FCM token: ${failure.message}');
-          },
-          (_) {
-            _logger.i('✅ FCM token registered successfully');
-          },
-        );
+        await _registerFcmTokenValue(fcmToken);
       } else {
         _logger.w('FCM token not available');
       }
+    } catch (e, stackTrace) {
+      _logger.e(
+        'Error registering FCM token',
+        error: e,
+        stackTrace: stackTrace,
+      );
+    }
+  }
+
+  Future<void> _registerFcmTokenValue(String fcmToken) async {
+    if (kIsWeb || _fcmService == null) return;
+
+    try {
+      _logger.i('FCM token available: ${fcmToken.substring(0, 20)}...');
+
+      final platform = Platform.isIOS ? 'ios' : 'android';
+      _logger.d('Registering FCM token with backend (platform: $platform)');
+
+      final registerUseCase = di.sl<RegisterFcmTokenUseCase>();
+      final result = await registerUseCase(
+        RegisterFcmTokenParams(token: fcmToken, platform: platform),
+      );
+
+      result.fold(
+        (failure) {
+          _logger.w('Failed to register FCM token: ${failure.message}');
+        },
+        (_) {
+          _logger.i('✅ FCM token registered successfully');
+        },
+      );
     } catch (e, stackTrace) {
       _logger.e(
         'Error registering FCM token',
@@ -233,6 +250,11 @@ class _MyAppState extends State<MyApp> {
       _logger.i('📬 Foreground FCM message received');
       _logger.d('Title: ${message.notification?.title}');
       _logger.d('Body: ${message.notification?.body}');
+    };
+
+    _fcmService!.onTokenRefresh = (token) async {
+      _logger.i('🔄 Registering refreshed FCM token');
+      await _registerFcmTokenValue(token);
     };
 
     _logger.i('✅ FCM callbacks configured');
@@ -323,6 +345,7 @@ class _MyAppState extends State<MyApp> {
           child: AnimatedBuilder(
             animation: widget.appPreferences,
             builder: (context, _) {
+              _fcmService?.setLocale(widget.appPreferences.locale);
               return MaterialApp.router(
                 title: AppLocalizations(
                   widget.appPreferences.locale,

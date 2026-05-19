@@ -1,5 +1,3 @@
-import 'dart:typed_data';
-
 import 'package:fe_capstone_project/core/storage/storage_service.dart';
 import 'package:fe_capstone_project/features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:fe_capstone_project/features/auth/presentation/bloc/auth_event.dart';
@@ -15,6 +13,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:latlong2/latlong.dart' as latlong2;
 
 import '../../../../core/services/geocoding_service.dart';
+import '../../../../core/localization/vehicle_labels.dart';
 import '../../../../core/services/upload_service.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/widgets/location_picker_page.dart';
@@ -59,6 +58,7 @@ class _BikeRegistrationContentState extends State<_BikeRegistrationContent> {
   final _modelController = TextEditingController();
   final _licensePlateController = TextEditingController();
   VehicleBrand? _selectedBrand;
+  VehicleType? _selectedType;
   final List<VehicleFeature> _selectedFeatures = [];
   String? _vehicleImageName;
   Uint8List? _vehicleImageBytes;
@@ -128,6 +128,10 @@ class _BikeRegistrationContentState extends State<_BikeRegistrationContent> {
       _showError('Vui lòng chọn hãng xe');
       return;
     }
+    if (_selectedType == null) {
+      _showError('Vui lòng chọn loại xe hoặc model');
+      return;
+    }
     if (_modelController.text.isEmpty) {
       _showError('Vui lòng nhập tên model');
       return;
@@ -153,9 +157,7 @@ class _BikeRegistrationContentState extends State<_BikeRegistrationContent> {
         _licenseBackBytes != null) {
       final uploadSuccess = await _uploadAllImages();
       if (!uploadSuccess) {
-        _showError(
-          _uploadError ?? 'Tải lên ảnh thất bại. Vui lòng thử lại.',
-        );
+        _showError(_uploadError ?? 'Tải lên ảnh thất bại. Vui lòng thử lại.');
         return;
       }
     }
@@ -164,7 +166,7 @@ class _BikeRegistrationContentState extends State<_BikeRegistrationContent> {
       licensePlate: _licensePlateController.text.trim().toUpperCase(),
       model: _modelController.text.trim(),
       brand: _selectedBrand!,
-      type: VehicleType.other,
+      type: _selectedType!,
       features: _selectedFeatures,
       pricePerHour: pricePerDay / 24,
       pricePerDay: pricePerDay,
@@ -252,7 +254,7 @@ class _BikeRegistrationContentState extends State<_BikeRegistrationContent> {
               ),
               const SizedBox(height: 20),
               Text(
-                'Registration Successful!',
+                'Đăng ký thành công!',
                 textAlign: TextAlign.center,
                 style: GoogleFonts.poppins(
                   fontSize: 18,
@@ -262,7 +264,7 @@ class _BikeRegistrationContentState extends State<_BikeRegistrationContent> {
               ),
               const SizedBox(height: 8),
               Text(
-                'Your bike has been submitted for review. You will be notified once approved.',
+                'Xe của bạn đã được gửi để xét duyệt. Bạn sẽ nhận thông báo khi xe được duyệt.',
                 textAlign: TextAlign.center,
                 style: GoogleFonts.poppins(
                   fontSize: 14,
@@ -285,7 +287,7 @@ class _BikeRegistrationContentState extends State<_BikeRegistrationContent> {
                     ),
                   ),
                   child: Text(
-                    'Done',
+                    'Hoàn tất',
                     style: GoogleFonts.poppins(
                       fontWeight: FontWeight.w600,
                       color: Colors.white,
@@ -348,7 +350,7 @@ class _BikeRegistrationContentState extends State<_BikeRegistrationContent> {
                   }
                 } catch (e) {
                   if (context.mounted) {
-                    _showError('Failed to update auth: $e');
+                    _showError('Không thể cập nhật đăng nhập: $e');
                   }
                 }
               } else if (state is BecomeOwnerError) {
@@ -467,10 +469,7 @@ class _BikeRegistrationContentState extends State<_BikeRegistrationContent> {
       child: Row(
         children: [
           for (int i = 0; i < _totalSteps; i++) ...[
-            _StepCircle(
-              index: i,
-              currentStep: _currentStep,
-            ),
+            _StepCircle(index: i, currentStep: _currentStep),
             if (i < _totalSteps - 1)
               Expanded(
                 child: AnimatedContainer(
@@ -508,22 +507,33 @@ class _BikeRegistrationContentState extends State<_BikeRegistrationContent> {
             hint: 'Chọn hãng xe',
             value: _selectedBrand,
             items: VehicleBrand.values,
-            itemLabel: (brand) => brand.displayName,
-            onChanged: (value) => setState(() => _selectedBrand = value),
+            itemLabel: (brand) =>
+                vehicleBrandLabel(context, brand.toApiString()),
+            onChanged: _selectBrand,
           ),
+          const SizedBox(height: 20),
+
+          // Model / vehicle type
+          _buildLabel('${vehicleLabel(context, 'vehicleModelField')} *'),
+          _buildDropdown<VehicleType>(
+            hint: vehicleLabel(context, 'vehicleModelHint'),
+            value: _selectedType,
+            items: _modelOptionsForSelectedBrand(),
+            itemLabel: (type) => _modelLabel(type),
+            onChanged: _selectModel,
+          ),
+          if (_selectedType == VehicleType.other) ...[
+            const SizedBox(height: 12),
+            _buildTextField(
+              controller: _modelController,
+              hintText: vehicleLabel(context, 'vehicleCustomModelHint'),
+            ),
+          ],
           const SizedBox(height: 20),
 
           // Additional Features
           _buildLabel('Tính năng bổ sung'),
           _buildMultiSelectDropdown(),
-          const SizedBox(height: 20),
-
-          // Model Name
-          _buildLabel('Tên model *'),
-          _buildTextField(
-            controller: _modelController,
-            hintText: 'VD: VinFast Evo200',
-          ),
           const SizedBox(height: 20),
 
           // Number Plate
@@ -716,7 +726,7 @@ class _BikeRegistrationContentState extends State<_BikeRegistrationContent> {
           ),
           const SizedBox(height: 24),
 
-          // Pickup Address
+          // Địa chỉ nhận xe
           _buildLabel('Địa chỉ nhận xe *'),
           _buildTextField(
             controller: _addressController,
@@ -747,10 +757,7 @@ class _BikeRegistrationContentState extends State<_BikeRegistrationContent> {
                     ? AppColors.success
                     : AppColors.primary,
               ),
-              padding: const EdgeInsets.symmetric(
-                horizontal: 16,
-                vertical: 10,
-              ),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(10),
               ),
@@ -820,7 +827,19 @@ class _BikeRegistrationContentState extends State<_BikeRegistrationContent> {
                   ),
                 ),
                 const SizedBox(height: 12),
-                _buildSummaryRow('Hãng xe', _selectedBrand?.displayName ?? '-'),
+                _buildSummaryRow(
+                  'Hãng xe',
+                  _selectedBrand == null
+                      ? '-'
+                      : vehicleBrandLabel(
+                          context,
+                          _selectedBrand!.toApiString(),
+                        ),
+                ),
+                _buildSummaryRow(
+                  'Loại xe',
+                  _selectedType == null ? '-' : _modelLabel(_selectedType!),
+                ),
                 _buildSummaryRow(
                   'Model',
                   _modelController.text.isEmpty ? '-' : _modelController.text,
@@ -1135,7 +1154,7 @@ class _BikeRegistrationContentState extends State<_BikeRegistrationContent> {
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 8),
                       child: Text(
-                        fileName!,
+                        fileName,
                         style: GoogleFonts.poppins(
                           fontSize: 9,
                           color: AppColors.success,
@@ -1267,6 +1286,49 @@ class _BikeRegistrationContentState extends State<_BikeRegistrationContent> {
     );
   }
 
+  void _selectBrand(VehicleBrand? value) {
+    setState(() {
+      _selectedBrand = value;
+      _selectedType = null;
+      _modelController.clear();
+    });
+  }
+
+  void _selectModel(VehicleType? value) {
+    setState(() {
+      _selectedType = value;
+      if (value == null || value == VehicleType.other) {
+        _modelController.clear();
+      } else {
+        _modelController.text = _modelLabel(value);
+      }
+    });
+  }
+
+  List<VehicleType> _modelOptionsForSelectedBrand() {
+    if (_selectedBrand == VehicleBrand.vinfast) {
+      return const [
+        VehicleType.vinfastKlara,
+        VehicleType.vinfastFeliz,
+        VehicleType.vinfastVento,
+        VehicleType.other,
+      ];
+    }
+    return const [
+      VehicleType.electricScooter,
+      VehicleType.electricMotorcycle,
+      VehicleType.electricBike,
+      VehicleType.other,
+    ];
+  }
+
+  String _modelLabel(VehicleType type) {
+    if (type == VehicleType.other) {
+      return vehicleLabel(context, 'vehicleCustomModel');
+    }
+    return vehicleTypeLabel(context, type.toApiString());
+  }
+
   /// Format number with thousand separators
   String _formatNumber(int number) {
     final str = number.toString();
@@ -1290,7 +1352,9 @@ class _BikeRegistrationContentState extends State<_BikeRegistrationContent> {
         title: Text(
           _selectedFeatures.isEmpty
               ? 'Chọn tính năng (tùy chọn)'
-              : _selectedFeatures.map((f) => f.displayName).join(', '),
+              : _selectedFeatures
+                    .map((f) => vehicleFeatureLabel(context, f.toApiString()))
+                    .join(', '),
           style: GoogleFonts.poppins(
             color: _selectedFeatures.isEmpty
                 ? AppColors.textMuted
@@ -1304,7 +1368,7 @@ class _BikeRegistrationContentState extends State<_BikeRegistrationContent> {
           final isSelected = _selectedFeatures.contains(feature);
           return ListTile(
             title: Text(
-              feature.displayName,
+              vehicleFeatureLabel(context, feature.toApiString()),
               style: GoogleFonts.poppins(
                 fontSize: 14,
                 fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,

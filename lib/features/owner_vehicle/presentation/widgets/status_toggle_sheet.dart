@@ -46,7 +46,7 @@ class StatusToggleSheet extends StatelessWidget {
 
           // Title
           const Text(
-            'Update Vehicle Status',
+            'Cập nhật trạng thái xe',
             style: TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.w600,
@@ -55,7 +55,7 @@ class StatusToggleSheet extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           const Text(
-            'Select a new status for your vehicle',
+            'Chọn trạng thái mới cho xe của bạn',
             style: TextStyle(fontSize: 14, color: AppColors.textSecondary),
           ),
           const SizedBox(height: 24),
@@ -84,7 +84,7 @@ class StatusToggleSheet extends StatelessWidget {
                 const SizedBox(width: 12),
                 Expanded(
                   child: Text(
-                    'Only "Available" and "Maintenance" status can be set by owners.',
+                    'Chủ xe chỉ có thể đặt trạng thái "Đang cho thuê" hoặc "Bảo trì".',
                     style: TextStyle(fontSize: 12, color: AppColors.info),
                   ),
                 ),
@@ -181,9 +181,9 @@ class StatusToggleSheet extends StatelessWidget {
   String _getStatusDescription(VehicleStatus status) {
     switch (status) {
       case VehicleStatus.available:
-        return 'Vehicle is available for rental';
+        return 'Xe đang sẵn sàng cho người thuê đặt';
       case VehicleStatus.maintenance:
-        return 'Vehicle is under maintenance';
+        return 'Xe đang bảo trì và không hiển thị cho thuê';
       default:
         return '';
     }

@@ -306,7 +306,7 @@ Future<void> init() async {
 
   // Data Sources
   sl.registerLazySingleton<TripRemoteDataSource>(
-    () => TripRemoteDataSourceImpl(dioClient: sl()),
+    () => TripRemoteDataSourceImpl(dioClient: sl(), cache: sl()),
   );
 
   // Repository
@@ -338,7 +338,7 @@ Future<void> init() async {
 
   // Data Sources
   sl.registerLazySingleton<PaymentRemoteDataSource>(
-    () => PaymentRemoteDataSourceImpl(dioClient: sl()),
+    () => PaymentRemoteDataSourceImpl(dioClient: sl(), cache: sl()),
   );
 
   // Repository

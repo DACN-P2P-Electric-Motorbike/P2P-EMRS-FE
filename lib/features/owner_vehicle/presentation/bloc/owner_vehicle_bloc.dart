@@ -115,8 +115,7 @@ class OwnerVehicleBloc extends Bloc<OwnerVehicleEvent, OwnerVehicleState> {
           state.copyWith(
             status: OwnerVehicleStatus.registered,
             vehicles: updatedVehicles,
-            successMessage:
-                'Vehicle registered successfully! Pending approval.',
+            successMessage: 'Đã gửi xe để chờ duyệt.',
           ),
         );
       },
@@ -162,7 +161,8 @@ class OwnerVehicleBloc extends Bloc<OwnerVehicleEvent, OwnerVehicleState> {
             selectedVehicle: state.selectedVehicle?.id == updatedVehicle.id
                 ? updatedVehicle
                 : null,
-            successMessage: 'Status updated to ${event.newStatus.displayName}',
+            successMessage:
+                'Đã cập nhật trạng thái: ${event.newStatus.displayName}',
           ),
         );
       },

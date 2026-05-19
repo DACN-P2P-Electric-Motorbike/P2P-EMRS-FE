@@ -2,7 +2,11 @@ import 'dart:io';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:flutter/widgets.dart';
 import 'package:logger/logger.dart';
+
+import '../../firebase_options.dart';
+import '../localization/notification_text_localizer.dart';
 
 // Global logger for background handler
 final Logger _backgroundLogger = Logger(
@@ -19,7 +23,7 @@ final Logger _backgroundLogger = Logger(
 // Top-level handler for background messages
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
-  await Firebase.initializeApp();
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   _backgroundLogger.i('📬 Handling background message: ${message.messageId}');
 
   // Show notification even when app is in background
@@ -35,6 +39,7 @@ class FcmService {
   final FirebaseMessaging _fcm = FirebaseMessaging.instance;
   static final FlutterLocalNotificationsPlugin _localNotifications =
       FlutterLocalNotificationsPlugin();
+  static Locale _currentLocale = const Locale('vi');
 
   final Logger _logger = Logger(
     printer: PrettyPrinter(
@@ -43,16 +48,23 @@ class FcmService {
       lineLength: 80,
       colors: true,
       printEmojis: true,
-      printTime: true,
+      dateTimeFormat: DateTimeFormat.onlyTimeAndSinceStart,
     ),
   );
 
   String? _fcmToken;
   String? get fcmToken => _fcmToken;
 
+  void setLocale(Locale locale) {
+    _currentLocale = locale.languageCode == 'en'
+        ? const Locale('en')
+        : const Locale('vi');
+  }
+
   // Callbacks
   Function(RemoteMessage)? onNotificationTapped;
   Function(RemoteMessage)? onForegroundMessage;
+  Future<void> Function(String token)? onTokenRefresh;
 
   /// Initialize FCM
   Future<void> initialize() async {
@@ -89,10 +101,10 @@ class FcmService {
       }
 
       // Listen for token refresh
-      _fcm.onTokenRefresh.listen((newToken) {
+      _fcm.onTokenRefresh.listen((newToken) async {
         _fcmToken = newToken;
         _logger.i('🔄 FCM Token refreshed: ${newToken.substring(0, 20)}...');
-        // TODO: Register token with backend
+        await onTokenRefresh?.call(newToken);
       });
 
       // Handle background messages
@@ -170,10 +182,13 @@ class FcmService {
 
       // Create Android notification channel
       if (Platform.isAndroid) {
-        const AndroidNotificationChannel channel = AndroidNotificationChannel(
+        final isVietnamese = _currentLocale.languageCode != 'en';
+        final AndroidNotificationChannel channel = AndroidNotificationChannel(
           'booking_notifications',
-          'Booking Notifications',
-          description: 'Notifications for booking updates',
+          isVietnamese ? 'Thông báo đặt xe' : 'Booking Notifications',
+          description: isVietnamese
+              ? 'Thông báo về đặt xe, chuyến đi và thanh toán'
+              : 'Notifications for booking, trip, and payment updates',
           importance: Importance.high,
           playSound: true,
         );
@@ -183,6 +198,15 @@ class FcmService {
               AndroidFlutterLocalNotificationsPlugin
             >()
             ?.createNotificationChannel(channel);
+
+        final notificationsEnabled = await _localNotifications
+            .resolvePlatformSpecificImplementation<
+              AndroidFlutterLocalNotificationsPlugin
+            >()
+            ?.requestNotificationsPermission();
+        _logger.d(
+          'Android notification permission: ${notificationsEnabled ?? true}',
+        );
 
         _logger.d('✅ Android notification channel created');
       }
@@ -207,12 +231,22 @@ class FcmService {
         return;
       }
 
+      final localized = NotificationTextLocalizer.localize(
+        type: data['type'] ?? '',
+        title: notification.title ?? '',
+        message: notification.body ?? '',
+        locale: _currentLocale,
+      );
+
       // Android notification details
-      const AndroidNotificationDetails androidDetails =
+      final isVietnamese = _currentLocale.languageCode != 'en';
+      final AndroidNotificationDetails androidDetails =
           AndroidNotificationDetails(
             'booking_notifications',
-            'Booking Notifications',
-            channelDescription: 'Notifications for booking updates',
+            isVietnamese ? 'Thông báo đặt xe' : 'Booking Notifications',
+            channelDescription: isVietnamese
+                ? 'Thông báo về đặt xe, chuyến đi và thanh toán'
+                : 'Notifications for booking, trip, and payment updates',
             importance: Importance.high,
             priority: Priority.high,
             showWhen: true,
@@ -226,7 +260,7 @@ class FcmService {
         presentSound: true,
       );
 
-      const NotificationDetails details = NotificationDetails(
+      final NotificationDetails details = NotificationDetails(
         android: androidDetails,
         iOS: iosDetails,
       );
@@ -234,13 +268,13 @@ class FcmService {
       // Show notification
       await _localNotifications.show(
         message.hashCode,
-        notification.title,
-        notification.body,
+        localized.title,
+        localized.message,
         details,
         payload: data['bookingId'],
       );
 
-      _backgroundLogger.d('✅ Notification displayed: ${notification.title}');
+      _backgroundLogger.d('✅ Notification displayed: ${localized.title}');
     } catch (e, stackTrace) {
       _backgroundLogger.e(
         '❌ Error showing notification',
