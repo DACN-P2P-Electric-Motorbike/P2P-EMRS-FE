@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import '../../../../core/cache/hive_cache_service.dart';
 import '../../../../core/error/exceptions.dart';
 import '../../../../core/network/dio_client.dart';
 import '../models/payment_model.dart';
@@ -27,9 +28,13 @@ abstract class PaymentRemoteDataSource {
 
 class PaymentRemoteDataSourceImpl implements PaymentRemoteDataSource {
   final DioClient _dioClient;
+  final HiveCacheService _cache;
 
-  PaymentRemoteDataSourceImpl({required DioClient dioClient})
-    : _dioClient = dioClient;
+  PaymentRemoteDataSourceImpl({
+    required DioClient dioClient,
+    required HiveCacheService cache,
+  }) : _dioClient = dioClient,
+       _cache = cache;
 
   @override
   Future<PaymentModel> createPayment({
@@ -42,9 +47,11 @@ class PaymentRemoteDataSourceImpl implements PaymentRemoteDataSource {
         data: {'bookingId': bookingId, 'method': method},
       );
       if (response.statusCode == 201) {
-        return PaymentModel.fromJson(
+        final payment = PaymentModel.fromJson(
           _responseMap(response.data, 'Failed to create payment'),
         );
+        await _invalidateBookingCaches(payment.bookingId);
+        return payment;
       }
       throw ServerException(
         message: 'Failed to create payment',
@@ -69,9 +76,13 @@ class PaymentRemoteDataSourceImpl implements PaymentRemoteDataSource {
         if (data == null) return null;
         if (data is String && data.trim().isEmpty) return null;
         if (data is Map && data.isEmpty) return null;
-        return PaymentModel.fromJson(
+        final payment = PaymentModel.fromJson(
           _responseMap(data, 'Failed to get payment'),
         );
+        if (!payment.isPending) {
+          await _invalidateBookingCaches(payment.bookingId);
+        }
+        return payment;
       }
       throw ServerException(
         message: 'Failed to get payment',
@@ -109,9 +120,11 @@ class PaymentRemoteDataSourceImpl implements PaymentRemoteDataSource {
         '/payments/$paymentId/simulate-success',
       );
       if (response.statusCode == 200) {
-        return PaymentModel.fromJson(
+        final payment = PaymentModel.fromJson(
           _responseMap(response.data, 'Failed to simulate payment'),
         );
+        await _invalidateBookingCaches(payment.bookingId);
+        return payment;
       }
       throw ServerException(
         message: 'Failed to simulate payment',
@@ -174,9 +187,11 @@ class PaymentRemoteDataSourceImpl implements PaymentRemoteDataSource {
         data: {'otp': otp},
       );
       if (response.statusCode == 200) {
-        return PaymentModel.fromJson(
+        final payment = PaymentModel.fromJson(
           _responseMap(response.data, 'Failed to refund payment'),
         );
+        await _invalidateBookingCaches(payment.bookingId);
+        return payment;
       }
       throw ServerException(
         message: 'Failed to refund payment',
@@ -225,5 +240,14 @@ class PaymentRemoteDataSourceImpl implements PaymentRemoteDataSource {
     }
 
     throw ServerException(message: fallbackMessage);
+  }
+
+  Future<void> _invalidateBookingCaches(String bookingId) async {
+    await _cache.delete('bookings.detail:$bookingId');
+    await _cache.deleteByPrefix('bookings.renter:');
+    await _cache.delete('bookings.upcoming');
+    await _cache.delete('bookings.history');
+    await _cache.deleteByPrefix('bookings.owner:');
+    await _cache.delete('bookings.owner.pending');
   }
 }

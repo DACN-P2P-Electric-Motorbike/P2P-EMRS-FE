@@ -25,22 +25,11 @@ class UnifiedBookingsPage extends StatefulWidget {
 class _UnifiedBookingsPageState extends State<UnifiedBookingsPage>
     with SingleTickerProviderStateMixin {
   late TabController _mainTabController;
-  bool _isOwner = false;
 
   @override
   void initState() {
     super.initState();
     _mainTabController = TabController(length: 2, vsync: this);
-    _checkUserRole();
-  }
-
-  void _checkUserRole() {
-    final authState = context.read<AuthBloc>().state;
-    if (authState is AuthAuthenticated) {
-      setState(() {
-        _isOwner = authState.user.isOwner || authState.user.isAdmin;
-      });
-    }
   }
 
   @override
@@ -115,6 +104,7 @@ class _RenterBookingsTab extends StatefulWidget {
 class _RenterBookingsTabState extends State<_RenterBookingsTab>
     with AutomaticKeepAliveClientMixin, SingleTickerProviderStateMixin {
   late TabController _tabController;
+  late final BookingBloc _bookingBloc;
 
   @override
   bool get wantKeepAlive => true;
@@ -122,34 +112,36 @@ class _RenterBookingsTabState extends State<_RenterBookingsTab>
   @override
   void initState() {
     super.initState();
+    _bookingBloc = sl<BookingBloc>()..add(const LoadRenterBookingsEvent());
     _tabController = TabController(length: 4, vsync: this);
     _tabController.addListener(_onTabChanged);
   }
 
   void _onTabChanged() {
     if (!_tabController.indexIsChanging) {
-      BookingStatus? status;
-      switch (_tabController.index) {
-        case 0:
-          status = null;
-          break;
-        case 1:
-          status = BookingStatus.PENDING;
-          break;
-        case 2:
-          status = BookingStatus.CONFIRMED;
-          break;
-        case 3:
-          context.read<BookingBloc>().add(const LoadRenterBookingsEvent());
-          return;
-      }
-      context.read<BookingBloc>().add(LoadRenterBookingsEvent(status: status));
+      _loadCurrentTab();
     }
+  }
+
+  BookingStatus? _currentStatusFilter() {
+    switch (_tabController.index) {
+      case 1:
+        return BookingStatus.PENDING;
+      case 2:
+        return BookingStatus.CONFIRMED;
+      default:
+        return null;
+    }
+  }
+
+  void _loadCurrentTab() {
+    _bookingBloc.add(LoadRenterBookingsEvent(status: _currentStatusFilter()));
   }
 
   @override
   void dispose() {
     _tabController.dispose();
+    _bookingBloc.close();
     super.dispose();
   }
 
@@ -157,8 +149,8 @@ class _RenterBookingsTabState extends State<_RenterBookingsTab>
   Widget build(BuildContext context) {
     super.build(context);
 
-    return BlocProvider(
-      create: (_) => sl<BookingBloc>()..add(const LoadRenterBookingsEvent()),
+    return BlocProvider.value(
+      value: _bookingBloc,
       child: Column(
         children: [
           Container(
@@ -170,6 +162,7 @@ class _RenterBookingsTabState extends State<_RenterBookingsTab>
               indicatorColor: AppColors.primary,
               isScrollable: true,
               tabAlignment: TabAlignment.start,
+              labelPadding: const EdgeInsets.symmetric(horizontal: 20),
               labelStyle: GoogleFonts.poppins(
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
@@ -196,9 +189,7 @@ class _RenterBookingsTabState extends State<_RenterBookingsTab>
                       backgroundColor: AppColors.success,
                     ),
                   );
-                  context.read<BookingBloc>().add(
-                    const LoadRenterBookingsEvent(),
-                  );
+                  _loadCurrentTab();
                 } else if (state is BookingFailure) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
@@ -266,9 +257,7 @@ class _RenterBookingsTabState extends State<_RenterBookingsTab>
 
       return RefreshIndicator(
         onRefresh: () async {
-          context.read<BookingBloc>().add(
-            LoadRenterBookingsEvent(status: filterStatus),
-          );
+          _bookingBloc.add(LoadRenterBookingsEvent(status: filterStatus));
         },
         child: ListView.builder(
           padding: const EdgeInsets.all(16),
@@ -332,18 +321,21 @@ class _RenterBookingsTabState extends State<_RenterBookingsTab>
     );
   }
 
-  void _navigateToDetail(
+  Future<void> _navigateToDetail(
     BuildContext context,
     String bookingId,
     bool isOwnerView,
-  ) {
-    Navigator.push(
+  ) async {
+    await Navigator.push(
       context,
       MaterialPageRoute(
         builder: (_) =>
             BookingDetailPage(bookingId: bookingId, isOwnerView: isOwnerView),
       ),
     );
+    if (mounted) {
+      _loadCurrentTab();
+    }
   }
 }
 
@@ -358,6 +350,7 @@ class _OwnerBookingsTab extends StatefulWidget {
 class _OwnerBookingsTabState extends State<_OwnerBookingsTab>
     with AutomaticKeepAliveClientMixin, SingleTickerProviderStateMixin {
   late TabController _tabController;
+  late final BookingBloc _bookingBloc;
 
   @override
   bool get wantKeepAlive => true;
@@ -365,37 +358,42 @@ class _OwnerBookingsTabState extends State<_OwnerBookingsTab>
   @override
   void initState() {
     super.initState();
+    _bookingBloc = sl<BookingBloc>()..add(const LoadOwnerBookingsEvent());
     _tabController = TabController(length: 5, vsync: this);
     _tabController.addListener(_onTabChanged);
   }
 
   void _onTabChanged() {
     if (!_tabController.indexIsChanging) {
-      BookingStatus? status;
-      switch (_tabController.index) {
-        case 0:
-          status = null;
-          break;
-        case 1:
-          context.read<BookingBloc>().add(const LoadPendingBookingsEvent());
-          return;
-        case 2:
-          status = BookingStatus.CONFIRMED;
-          break;
-        case 3:
-          status = BookingStatus.ONGOING;
-          break;
-        case 4:
-          status = BookingStatus.COMPLETED;
-          break;
-      }
-      context.read<BookingBloc>().add(LoadOwnerBookingsEvent(status: status));
+      _loadCurrentTab();
     }
+  }
+
+  BookingStatus? _currentStatusFilter() {
+    switch (_tabController.index) {
+      case 2:
+        return BookingStatus.CONFIRMED;
+      case 3:
+        return BookingStatus.ONGOING;
+      case 4:
+        return BookingStatus.COMPLETED;
+      default:
+        return null;
+    }
+  }
+
+  void _loadCurrentTab() {
+    if (_tabController.index == 1) {
+      _bookingBloc.add(const LoadPendingBookingsEvent());
+      return;
+    }
+    _bookingBloc.add(LoadOwnerBookingsEvent(status: _currentStatusFilter()));
   }
 
   @override
   void dispose() {
     _tabController.dispose();
+    _bookingBloc.close();
     super.dispose();
   }
 
@@ -403,8 +401,8 @@ class _OwnerBookingsTabState extends State<_OwnerBookingsTab>
   Widget build(BuildContext context) {
     super.build(context);
 
-    return BlocProvider(
-      create: (_) => sl<BookingBloc>()..add(const LoadOwnerBookingsEvent()),
+    return BlocProvider.value(
+      value: _bookingBloc,
       child: Column(
         children: [
           Container(
@@ -415,6 +413,7 @@ class _OwnerBookingsTabState extends State<_OwnerBookingsTab>
               unselectedLabelColor: AppColors.textMuted,
               indicatorColor: AppColors.primary,
               isScrollable: true,
+              tabAlignment: TabAlignment.start,
               labelStyle: GoogleFonts.poppins(
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
@@ -442,15 +441,7 @@ class _OwnerBookingsTabState extends State<_OwnerBookingsTab>
                       backgroundColor: AppColors.success,
                     ),
                   );
-                  if (_tabController.index == 1) {
-                    context.read<BookingBloc>().add(
-                      const LoadPendingBookingsEvent(),
-                    );
-                  } else {
-                    context.read<BookingBloc>().add(
-                      const LoadOwnerBookingsEvent(),
-                    );
-                  }
+                  _loadCurrentTab();
                 } else if (state is BookingFailure) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
@@ -518,11 +509,9 @@ class _OwnerBookingsTabState extends State<_OwnerBookingsTab>
       return RefreshIndicator(
         onRefresh: () async {
           if (filterStatus == BookingStatus.PENDING) {
-            context.read<BookingBloc>().add(const LoadPendingBookingsEvent());
+            _bookingBloc.add(const LoadPendingBookingsEvent());
           } else {
-            context.read<BookingBloc>().add(
-              LoadOwnerBookingsEvent(status: filterStatus),
-            );
+            _bookingBloc.add(LoadOwnerBookingsEvent(status: filterStatus));
           }
         },
         child: ListView.builder(
@@ -584,18 +573,21 @@ class _OwnerBookingsTabState extends State<_OwnerBookingsTab>
     );
   }
 
-  void _navigateToDetail(
+  Future<void> _navigateToDetail(
     BuildContext context,
     String bookingId,
     bool isOwnerView,
-  ) {
-    Navigator.push(
+  ) async {
+    await Navigator.push(
       context,
       MaterialPageRoute(
         builder: (_) =>
             BookingDetailPage(bookingId: bookingId, isOwnerView: isOwnerView),
       ),
     );
+    if (mounted) {
+      _loadCurrentTab();
+    }
   }
 
   void _showApproveDialog(BuildContext context, BookingEntity booking) {
@@ -638,7 +630,7 @@ class _OwnerBookingsTabState extends State<_OwnerBookingsTab>
           ElevatedButton(
             onPressed: () {
               Navigator.pop(dialogContext);
-              context.read<BookingBloc>().add(
+              _bookingBloc.add(
                 ApproveBookingEvent(
                   bookingId: booking.id,
                   message: messageController.text.trim().isNotEmpty
@@ -706,7 +698,7 @@ class _OwnerBookingsTabState extends State<_OwnerBookingsTab>
             onPressed: () {
               if (formKey.currentState?.validate() ?? false) {
                 Navigator.pop(dialogContext);
-                context.read<BookingBloc>().add(
+                _bookingBloc.add(
                   RejectBookingEvent(
                     bookingId: booking.id,
                     reason: reasonController.text.trim(),

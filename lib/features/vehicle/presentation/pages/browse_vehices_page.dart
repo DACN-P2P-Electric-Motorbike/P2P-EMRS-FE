@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../../../../core/localization/vehicle_labels.dart';
 import '../../../../core/services/location_service.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../injection_container.dart';
@@ -297,7 +298,7 @@ class _BrowseVehiclesViewState extends State<_BrowseVehiclesView> {
                           ),
                         ),
                         Text(
-                          user?.fullName ?? 'User',
+                          user?.fullName ?? 'Bạn',
                           style: GoogleFonts.poppins(
                             color: Colors.white,
                             fontSize: 20,
@@ -477,19 +478,25 @@ class _BrowseVehiclesViewState extends State<_BrowseVehiclesView> {
         runSpacing: 8,
         children: [
           if (_selectedBrand != null)
-            _buildFilterChip('Hãng: ${_selectedBrand!.displayName}', () {
-              if (mounted) {
-                setState(() => _selectedBrand = null);
-                _applyFilters();
-              }
-            }),
+            _buildFilterChip(
+              'Hãng: ${vehicleBrandLabel(context, _selectedBrand!.toApiString())}',
+              () {
+                if (mounted) {
+                  setState(() => _selectedBrand = null);
+                  _applyFilters();
+                }
+              },
+            ),
           if (_selectedType != null)
-            _buildFilterChip('Loại: ${_selectedType!.displayName}', () {
-              if (mounted) {
-                setState(() => _selectedType = null);
-                _applyFilters();
-              }
-            }),
+            _buildFilterChip(
+              'Loại: ${vehicleTypeLabel(context, _selectedType!.toApiString())}',
+              () {
+                if (mounted) {
+                  setState(() => _selectedType = null);
+                  _applyFilters();
+                }
+              },
+            ),
           if (_maxPrice != null)
             _buildFilterChip('Giá tối đa: ${_formatPrice(_maxPrice!)}đ/h', () {
               if (mounted) {
@@ -506,12 +513,15 @@ class _BrowseVehiclesViewState extends State<_BrowseVehiclesView> {
             }),
           if (_selectedFeatures.isNotEmpty)
             ..._selectedFeatures.map(
-              (feature) => _buildFilterChip(feature.displayName, () {
-                if (mounted) {
-                  setState(() => _selectedFeatures.remove(feature));
-                  _applyFilters();
-                }
-              }),
+              (feature) => _buildFilterChip(
+                vehicleFeatureLabel(context, feature.toApiString()),
+                () {
+                  if (mounted) {
+                    setState(() => _selectedFeatures.remove(feature));
+                    _applyFilters();
+                  }
+                },
+              ),
             ),
           if (_sortBy != 'default')
             _buildFilterChip('Sắp xếp: ${_getSortLabel(_sortBy)}', () {
@@ -610,7 +620,7 @@ class _BrowseVehiclesViewState extends State<_BrowseVehiclesView> {
                         context,
                         icon: Icons.payments_outlined,
                         title: 'Thanh toán',
-                        subtitle: 'Booking',
+                        subtitle: 'Đặt xe',
                         color: AppColors.success,
                         onTap: () => context.push('/bookings'),
                       ),

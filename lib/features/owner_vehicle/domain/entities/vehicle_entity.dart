@@ -53,19 +53,19 @@ enum VehicleStatus {
   String get displayName {
     switch (this) {
       case VehicleStatus.available:
-        return 'For rent';
+        return 'Đang cho thuê';
       case VehicleStatus.rented:
-        return 'Rented';
+        return 'Đang thuê';
       case VehicleStatus.maintenance:
-        return 'Maintenance';
+        return 'Bảo trì';
       case VehicleStatus.pendingApproval:
-        return 'Pending';
+        return 'Chờ duyệt';
       case VehicleStatus.rejected:
-        return 'Rejected';
+        return 'Từ chối';
       case VehicleStatus.locked:
-        return 'Locked';
+        return 'Đã khóa';
       case VehicleStatus.unavailable:
-        return 'Unavailable';
+        return 'Tạm tắt';
     }
   }
 }
@@ -112,7 +112,7 @@ enum VehicleBrand {
       case VehicleBrand.yadea:
         return 'Yadea';
       case VehicleBrand.other:
-        return 'Other';
+        return 'Khác';
     }
   }
 }
@@ -174,13 +174,13 @@ enum VehicleType {
       case VehicleType.vinfastVento:
         return 'VinFast Vento';
       case VehicleType.electricScooter:
-        return 'Electric Scooter';
+        return 'Xe tay ga điện';
       case VehicleType.electricMotorcycle:
-        return 'Electric Motorcycle';
+        return 'Xe máy điện';
       case VehicleType.electricBike:
-        return 'Electric Bike';
+        return 'Xe đạp điện';
       case VehicleType.other:
-        return 'Other';
+        return 'Khác';
     }
   }
 }
@@ -228,15 +228,15 @@ enum VehicleFeature {
   String get displayName {
     switch (this) {
       case VehicleFeature.replaceableBattery:
-        return 'Replaceable Battery';
+        return 'Pin tháo rời';
       case VehicleFeature.fastCharging:
-        return 'Fast Charging';
+        return 'Sạc nhanh';
       case VehicleFeature.difficultTerrain:
-        return 'Difficult Terrain Support';
+        return 'Đi địa hình';
       case VehicleFeature.gpsTracking:
-        return 'GPS Tracking';
+        return 'Định vị GPS';
       case VehicleFeature.antiTheft:
-        return 'Anti-theft System';
+        return 'Chống trộm';
     }
   }
 }
@@ -319,7 +319,7 @@ class VehicleEntity extends Equatable {
   /// Format price for display (per day)
   String get formattedPricePerDay {
     final price = pricePerDay ?? (pricePerHour * 24);
-    return '${_formatNumber(price)}đ/day';
+    return '${_formatNumber(price)}đ/ngày';
   }
 
   /// Format price for display (per hour)

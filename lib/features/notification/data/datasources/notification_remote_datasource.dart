@@ -154,7 +154,7 @@ class NotificationRemoteDataSourceImpl implements NotificationRemoteDataSource {
   Future<void> registerFcmToken(String token, String platform) async {
     try {
       final response = await _dioClient.post(
-        '/fcm-token',
+        '/notifications/fcm-token',
         data: {
           'token': token,
           'platform': platform, // 'ios' or 'android'
@@ -176,7 +176,7 @@ class NotificationRemoteDataSourceImpl implements NotificationRemoteDataSource {
   Future<void> unregisterFcmToken(String token) async {
     try {
       final response = await _dioClient.delete(
-        '/fcm-token/$token',
+        '/notifications/fcm-token/$token',
         // data: {'token': token},
       );
 

@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import '../../../../core/cache/hive_cache_service.dart';
 import '../../../../core/error/exceptions.dart';
 import '../../../../core/network/dio_client.dart';
 import '../models/trip_model.dart';
@@ -31,9 +32,13 @@ abstract class TripRemoteDataSource {
 
 class TripRemoteDataSourceImpl implements TripRemoteDataSource {
   final DioClient _dioClient;
+  final HiveCacheService _cache;
 
-  TripRemoteDataSourceImpl({required DioClient dioClient})
-    : _dioClient = dioClient;
+  TripRemoteDataSourceImpl({
+    required DioClient dioClient,
+    required HiveCacheService cache,
+  }) : _dioClient = dioClient,
+       _cache = cache;
 
   @override
   Future<TripModel> startTrip({
@@ -55,7 +60,9 @@ class TripRemoteDataSourceImpl implements TripRemoteDataSource {
         },
       );
       if (response.statusCode == 201) {
-        return TripModel.fromJson(response.data as Map<String, dynamic>);
+        final trip = TripModel.fromJson(response.data as Map<String, dynamic>);
+        await _invalidateBookingCaches(trip.bookingId);
+        return trip;
       }
       throw ServerException(
         message: 'Failed to start trip',
@@ -89,7 +96,9 @@ class TripRemoteDataSourceImpl implements TripRemoteDataSource {
         },
       );
       if (response.statusCode == 200) {
-        return TripModel.fromJson(response.data as Map<String, dynamic>);
+        final trip = TripModel.fromJson(response.data as Map<String, dynamic>);
+        await _invalidateBookingCaches(trip.bookingId);
+        return trip;
       }
       throw ServerException(
         message: 'Failed to end trip',
@@ -150,5 +159,14 @@ class TripRemoteDataSourceImpl implements TripRemoteDataSource {
     } on DioException catch (e) {
       throw ServerException.fromDioException(e);
     }
+  }
+
+  Future<void> _invalidateBookingCaches(String bookingId) async {
+    await _cache.delete('bookings.detail:$bookingId');
+    await _cache.deleteByPrefix('bookings.renter:');
+    await _cache.delete('bookings.upcoming');
+    await _cache.delete('bookings.history');
+    await _cache.deleteByPrefix('bookings.owner:');
+    await _cache.delete('bookings.owner.pending');
   }
 }

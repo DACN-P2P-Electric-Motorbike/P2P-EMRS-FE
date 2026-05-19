@@ -783,11 +783,21 @@ class _VehicleReviewsSectionState extends State<_VehicleReviewsSection> {
           final avg =
               state.reviews.fold<double>(0, (sum, r) => sum + r.rating) /
               state.reviews.length;
+          final ratingCounts = <int, int>{
+            for (var star = 1; star <= 5; star++) star: 0,
+          };
+          for (final review in state.reviews) {
+            ratingCounts.update(review.rating, (count) => count + 1);
+          }
 
           return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _ReviewSummaryBar(average: avg, count: state.reviews.length),
+              _ReviewSummaryBar(
+                average: avg,
+                count: state.reviews.length,
+                ratingCounts: ratingCounts,
+              ),
               const SizedBox(height: 12),
               // Star chip filter row
               SingleChildScrollView(
@@ -890,8 +900,13 @@ class _StarFilterChip extends StatelessWidget {
 class _ReviewSummaryBar extends StatelessWidget {
   final double average;
   final int count;
+  final Map<int, int> ratingCounts;
 
-  const _ReviewSummaryBar({required this.average, required this.count});
+  const _ReviewSummaryBar({
+    required this.average,
+    required this.count,
+    required this.ratingCounts,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -929,30 +944,58 @@ class _ReviewSummaryBar extends StatelessWidget {
             child: Column(
               children: List.generate(5, (i) {
                 final star = 5 - i;
+                final starCount = ratingCounts[star] ?? 0;
+                final ratio = count == 0 ? 0.0 : starCount / count;
                 return Padding(
                   padding: const EdgeInsets.symmetric(vertical: 2),
                   child: Row(
                     children: [
-                      Text(
-                        '$star',
-                        style: GoogleFonts.poppins(
-                          fontSize: 11,
-                          color: AppColors.textMuted,
+                      SizedBox(
+                        width: 42,
+                        child: Row(
+                          children: [
+                            SizedBox(
+                              width: 10,
+                              child: Text(
+                                '$star',
+                                textAlign: TextAlign.right,
+                                style: GoogleFonts.poppins(
+                                  fontSize: 11,
+                                  color: AppColors.textMuted,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 4),
+                            const Icon(
+                              Icons.star_rounded,
+                              size: 11,
+                              color: Color(0xFFFFB300),
+                            ),
+                          ],
                         ),
                       ),
-                      const SizedBox(width: 4),
-                      const Icon(
-                        Icons.star_rounded,
-                        size: 11,
-                        color: Color(0xFFFFB300),
-                      ),
-                      const SizedBox(width: 6),
                       Expanded(
-                        child: Container(
-                          height: 6,
-                          decoration: BoxDecoration(
-                            color: Colors.grey[200],
-                            borderRadius: BorderRadius.circular(3),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(3),
+                          child: LinearProgressIndicator(
+                            value: ratio,
+                            minHeight: 6,
+                            backgroundColor: Colors.grey[200],
+                            valueColor: const AlwaysStoppedAnimation<Color>(
+                              Color(0xFFFFB300),
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      SizedBox(
+                        width: 12,
+                        child: Text(
+                          '$starCount',
+                          textAlign: TextAlign.right,
+                          style: GoogleFonts.poppins(
+                            fontSize: 10,
+                            color: AppColors.textMuted,
                           ),
                         ),
                       ),

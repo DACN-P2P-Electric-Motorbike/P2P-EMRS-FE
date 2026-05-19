@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:fe_capstone_project/core/localization/notification_text_localizer.dart';
 import 'package:fe_capstone_project/core/services/notification_toast_service.dart';
 import 'package:fe_capstone_project/core/services/socket_service.dart';
 import 'package:fe_capstone_project/core/router/app_router.dart';
@@ -50,19 +51,26 @@ class _NotificationListenerWidgetState
         return;
       }
 
+      if (!mounted) return;
+
+      final notificationType = notification['type'] as String? ?? type;
       final title = notification['title'] as String? ?? 'New Notification';
       final message = notification['message'] as String? ?? '';
-
-      // ✅ Extract bookingId from notificatHandler: "onTap"ion object
-      final bookingId = notification['bookingId'] as String?;
-      // Show toast
-      _toastService.showNotificationToast(
+      final localized = NotificationTextLocalizer.localize(
+        type: notificationType,
         title: title,
         message: message,
-        type: type,
+        locale: Localizations.localeOf(context),
+      );
+
+      final bookingId = notification['bookingId'] as String?;
+      _toastService.showNotificationToast(
+        title: localized.title,
+        message: localized.message,
+        type: notificationType,
         onTap: () {
           if (bookingId != null) {
-            _navigateToBooking(bookingId, type);
+            _navigateToBooking(bookingId, notificationType);
           }
         },
       );

@@ -3,6 +3,7 @@ import 'package:fe_capstone_project/core/storage/storage_service.dart';
 import 'package:fe_capstone_project/core/widgets/app_avatar.dart';
 import 'package:fe_capstone_project/core/widgets/app_network_image.dart';
 import 'package:fe_capstone_project/core/utils/vietnam_time.dart';
+import 'package:fe_capstone_project/core/localization/notification_text_localizer.dart';
 import 'package:fe_capstone_project/features/booking/data/models/booking_model.dart';
 import 'package:fe_capstone_project/core/localization/app_localizations.dart';
 import 'package:fe_capstone_project/features/booking/domain/entities/booking.dart';
@@ -121,8 +122,7 @@ void main() {
     expect(model.toEntity().bookingId, 'booking-id');
   });
 
-  test('TrustScoreBreakdownModel parses recent events and active warnings',
-      () {
+  test('TrustScoreBreakdownModel parses recent events and active warnings', () {
     final model = TrustScoreBreakdownModel.fromJson({
       'trustScore': 95,
       'breakdown': {
@@ -181,15 +181,9 @@ void main() {
     final breakdown = model.entity;
     expect(breakdown.trustScore, 95);
     expect(breakdown.recentEvents, hasLength(3));
-    expect(
-      breakdown.recentEvents[0].type,
-      TrustScoreEventType.kycVerified,
-    );
+    expect(breakdown.recentEvents[0].type, TrustScoreEventType.kycVerified);
     expect(breakdown.recentEvents[0].isPositive, isTrue);
-    expect(
-      breakdown.recentEvents[1].type,
-      TrustScoreEventType.warning,
-    );
+    expect(breakdown.recentEvents[1].type, TrustScoreEventType.warning);
     expect(breakdown.recentEvents[1].isWarning, isTrue);
     expect(
       breakdown.recentEvents[2].type,
@@ -198,10 +192,7 @@ void main() {
     expect(breakdown.recentEvents[2].isNegative, isTrue);
 
     expect(breakdown.activeWarnings, hasLength(1));
-    expect(
-      breakdown.activeWarnings.first.type,
-      TrustScoreEventType.lateReturn,
-    );
+    expect(breakdown.activeWarnings.first.type, TrustScoreEventType.lateReturn);
     expect(breakdown.activeWarnings.first.penalizedAt, isNull);
   });
 
@@ -259,6 +250,26 @@ void main() {
 
     expect(model.roles, ['RENTER', 'OWNER']);
     expect(model.toEntity().isOwner, isTrue);
+  });
+
+  test('NotificationTextLocalizer follows the selected app language', () {
+    final vi = NotificationTextLocalizer.localize(
+      type: 'BOOKING_REJECTED',
+      title: 'Booking Rejected',
+      message: 'Your booking request was rejected. Reason: Schedule conflict',
+      locale: const Locale('vi'),
+    );
+    final en = NotificationTextLocalizer.localize(
+      type: 'PAYMENT_SUCCESS',
+      title: 'Đã nhận thanh toán',
+      message: 'Bạn vừa nhận được 250.000 VND từ chuyến thuê xe.',
+      locale: const Locale('en'),
+    );
+
+    expect(vi.title, 'Đặt xe bị từ chối');
+    expect(vi.message, contains('Lý do: Schedule conflict'));
+    expect(en.title, 'Payment received');
+    expect(en.message, contains('250.000 VND'));
   });
 
   testWidgets('AppAvatar does not load network images in data saver mode', (

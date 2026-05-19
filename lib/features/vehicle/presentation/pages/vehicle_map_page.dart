@@ -81,10 +81,10 @@ class _VehicleMapPageState extends State<VehicleMapPage> {
   void _loadNearby() {
     if (_userPosition == null) return;
     context.read<VehicleListCubit>().loadNearbyVehicles(
-          userLat: _userPosition!.latitude,
-          userLng: _userPosition!.longitude,
-          radiusKm: _radiusKm,
-        );
+      userLat: _userPosition!.latitude,
+      userLng: _userPosition!.longitude,
+      radiusKm: _radiusKm,
+    );
   }
 
   void _animateCameraToUser() {
@@ -107,38 +107,41 @@ class _VehicleMapPageState extends State<VehicleMapPage> {
     setState(() => _radiusKm = value);
     if (_userPosition != null && _allFetchedVehicles.isNotEmpty) {
       context.read<VehicleListCubit>().updateRadius(
-            _allFetchedVehicles,
-            _radiusKm,
-            _userPosition!.latitude,
-            _userPosition!.longitude,
-          );
+        _allFetchedVehicles,
+        _radiusKm,
+        _userPosition!.latitude,
+        _userPosition!.longitude,
+      );
     }
   }
 
   Set<gmaps.Marker> _buildGoogleMarkers(List<VehicleEntity> vehicles) {
     return vehicles
-        .where((vehicle) => vehicle.latitude != null && vehicle.longitude != null)
+        .where(
+          (vehicle) => vehicle.latitude != null && vehicle.longitude != null,
+        )
         .map((vehicle) {
-      final isAvailable =
-          vehicle.isAvailable && vehicle.status == VehicleStatus.available;
-      return gmaps.Marker(
-        markerId: gmaps.MarkerId(vehicle.id),
-        position: gmaps.LatLng(vehicle.latitude!, vehicle.longitude!),
-        icon: gmaps.BitmapDescriptor.defaultMarkerWithHue(
-          isAvailable
-              ? gmaps.BitmapDescriptor.hueGreen
-              : gmaps.BitmapDescriptor.hueRed,
-        ),
-        infoWindow: gmaps.InfoWindow(
-          title: vehicle.displayName,
-          snippet: isAvailable
-              ? '${vehicle.formattedPricePerHour} • Có sẵn'
-              : 'Không khả dụng',
-          onTap: () => context.push('/vehicle/${vehicle.id}'),
-        ),
-        onTap: () => context.push('/vehicle/${vehicle.id}'),
-      );
-    }).toSet();
+          final isAvailable =
+              vehicle.isAvailable && vehicle.status == VehicleStatus.available;
+          return gmaps.Marker(
+            markerId: gmaps.MarkerId(vehicle.id),
+            position: gmaps.LatLng(vehicle.latitude!, vehicle.longitude!),
+            icon: gmaps.BitmapDescriptor.defaultMarkerWithHue(
+              isAvailable
+                  ? gmaps.BitmapDescriptor.hueGreen
+                  : gmaps.BitmapDescriptor.hueRed,
+            ),
+            infoWindow: gmaps.InfoWindow(
+              title: vehicle.displayName,
+              snippet: isAvailable
+                  ? '${vehicle.formattedPricePerHour} • Có sẵn'
+                  : 'Không khả dụng',
+              onTap: () => context.push('/vehicle/${vehicle.id}'),
+            ),
+            onTap: () => context.push('/vehicle/${vehicle.id}'),
+          );
+        })
+        .toSet();
   }
 
   Set<gmaps.Circle> _buildGoogleCircles() {
@@ -157,32 +160,37 @@ class _VehicleMapPageState extends State<VehicleMapPage> {
 
   List<fm.Marker> _buildOsmVehicleMarkers(List<VehicleEntity> vehicles) {
     return vehicles
-        .where((vehicle) => vehicle.latitude != null && vehicle.longitude != null)
+        .where(
+          (vehicle) => vehicle.latitude != null && vehicle.longitude != null,
+        )
         .map((vehicle) {
-      final isAvailable =
-          vehicle.isAvailable && vehicle.status == VehicleStatus.available;
-      return fm.Marker(
-        point: ll.LatLng(vehicle.latitude!, vehicle.longitude!),
-        width: 48,
-        height: 48,
-        alignment: Alignment.bottomCenter,
-        child: GestureDetector(
-          onTap: () => context.push('/vehicle/${vehicle.id}'),
-          child: Icon(
-            Icons.location_on,
-            size: 44,
-            color: isAvailable ? Colors.green.shade700 : Colors.red.shade700,
-            shadows: const [
-              Shadow(
-                blurRadius: 4,
-                color: Colors.black26,
-                offset: Offset(0, 1),
+          final isAvailable =
+              vehicle.isAvailable && vehicle.status == VehicleStatus.available;
+          return fm.Marker(
+            point: ll.LatLng(vehicle.latitude!, vehicle.longitude!),
+            width: 48,
+            height: 48,
+            alignment: Alignment.bottomCenter,
+            child: GestureDetector(
+              onTap: () => context.push('/vehicle/${vehicle.id}'),
+              child: Icon(
+                Icons.location_on,
+                size: 44,
+                color: isAvailable
+                    ? Colors.green.shade700
+                    : Colors.red.shade700,
+                shadows: const [
+                  Shadow(
+                    blurRadius: 4,
+                    color: Colors.black26,
+                    offset: Offset(0, 1),
+                  ),
+                ],
               ),
-            ],
-          ),
-        ),
-      );
-    }).toList();
+            ),
+          );
+        })
+        .toList();
   }
 
   List<fm.CircleMarker> _buildOsmRadiusCircles() {
@@ -213,14 +221,14 @@ class _VehicleMapPageState extends State<VehicleMapPage> {
               color: Colors.white,
               shape: BoxShape.circle,
               boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.2),
-                  blurRadius: 6,
-                ),
+                BoxShadow(color: Colors.black.withOpacity(0.2), blurRadius: 6),
               ],
             ),
-            child: const Icon(Icons.person_pin_circle,
-                color: AppColors.primary, size: 28),
+            child: const Icon(
+              Icons.person_pin_circle,
+              color: AppColors.primary,
+              size: 28,
+            ),
           ),
         ),
       );
@@ -282,8 +290,9 @@ class _VehicleMapPageState extends State<VehicleMapPage> {
               }
             },
             builder: (context, state) {
-              final vehicles =
-                  state is VehicleListLoaded ? state.vehicles : <VehicleEntity>[];
+              final vehicles = state is VehicleListLoaded
+                  ? state.vehicles
+                  : <VehicleEntity>[];
               return useGoogleMapWidget
                   ? _buildGoogleMap(vehicles)
                   : _buildOsmMap(vehicles);
@@ -322,8 +331,11 @@ class _VehicleMapPageState extends State<VehicleMapPage> {
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Icon(Icons.location_off,
-                            size: 64, color: AppColors.warning),
+                        const Icon(
+                          Icons.location_off,
+                          size: 64,
+                          color: AppColors.warning,
+                        ),
                         const SizedBox(height: 16),
                         Text(
                           'Cần quyền truy cập vị trí',
@@ -404,7 +416,7 @@ class _VehicleMapPageState extends State<VehicleMapPage> {
                           Padding(
                             padding: const EdgeInsets.only(top: 2),
                             child: Text(
-                              'Bản đồ OpenStreetMap (sandbox)',
+                              'Bản đồ',
                               style: GoogleFonts.poppins(
                                 fontSize: 11,
                                 color: AppColors.textMuted,
@@ -432,8 +444,10 @@ class _VehicleMapPageState extends State<VehicleMapPage> {
               right: 16,
               bottom: MediaQuery.of(context).size.height * 0.32 + 16,
               child: Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 8,
+                ),
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(16),
@@ -461,7 +475,9 @@ class _VehicleMapPageState extends State<VehicleMapPage> {
                         ),
                         Container(
                           padding: const EdgeInsets.symmetric(
-                              horizontal: 10, vertical: 4),
+                            horizontal: 10,
+                            vertical: 4,
+                          ),
                           decoration: BoxDecoration(
                             color: AppColors.primary.withOpacity(0.1),
                             borderRadius: BorderRadius.circular(12),

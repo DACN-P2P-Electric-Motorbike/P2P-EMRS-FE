@@ -17,9 +17,10 @@ enum PaymentWebViewResult { success, cancelled, dismissed }
 ///
 /// The page loads [paymentUrl] in a `WebView` and watches navigation. The
 /// gateway redirects to one of the API's return / cancel endpoints (already
-/// configured by `payments.service.ts`); when we see that prefix we pop the
-/// route with the matching [PaymentWebViewResult] so the caller can refresh
-/// payment state instead of asking the user to come back manually.
+/// configured by `payments.service.ts`); we let that API page finish loading
+/// first, then pop the route with the matching [PaymentWebViewResult] so the
+/// caller can refresh payment state instead of asking the user to come back
+/// manually.
 ///
 /// Flutter web is **not** supported — `webview_flutter` has no real web
 /// implementation. The payment page keeps the existing popup-tab +
@@ -54,11 +55,10 @@ class _PaymentWebViewPageState extends State<PaymentWebViewPage> {
   bool _isLoading = true;
   bool _popped = false;
 
-  /// Return-URL path fragments served by the API
-  /// (`payments.controller.ts`). We pop as soon as the WebView navigates to
-  /// any of these, before the gateway's HTML loads its closing `<script>`.
-  /// The webhook (server side) is what actually marks the payment
-  /// `COMPLETED` — these URLs are just the completion *signal*.
+  /// Return-URL path fragments served by the API (`payments.controller.ts`).
+  /// The WebView must allow these URLs to load; otherwise the backend return
+  /// handler never gets a chance to reconcile the gateway result when a
+  /// webhook is delayed or missing.
   static const List<String> _successPathFragments = [
     '/payments/payos-return',
     '/payments/momo-return',
@@ -79,17 +79,15 @@ class _PaymentWebViewPageState extends State<PaymentWebViewPage> {
           onPageStarted: (_) {
             if (mounted) setState(() => _isLoading = true);
           },
-          onPageFinished: (_) {
-            if (mounted) setState(() => _isLoading = false);
-          },
-          onNavigationRequest: (request) {
-            final result = _classify(request.url);
+          onPageFinished: (url) {
+            final result = _classify(url);
             if (result != null) {
               _popOnce(result);
-              return NavigationDecision.prevent;
+              return;
             }
-            return NavigationDecision.navigate;
+            if (mounted) setState(() => _isLoading = false);
           },
+          onNavigationRequest: (_) => NavigationDecision.navigate,
         ),
       )
       ..loadRequest(Uri.parse(widget.paymentUrl));
