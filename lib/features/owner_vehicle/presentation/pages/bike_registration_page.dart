@@ -79,9 +79,18 @@ class _BikeRegistrationContentState extends State<_BikeRegistrationContent> {
 
   // Step 3: Pricing & Location
   final _pricePerDayController = TextEditingController();
+  final _dailyKmLimitController = TextEditingController();
+  final _excessKmPriceController = TextEditingController();
+  final _weeklyDiscountController = TextEditingController();
+  final _monthlyDiscountController = TextEditingController();
   final _addressController = TextEditingController();
   double? _pickedLatitude;
   double? _pickedLongitude;
+  bool _instantBook = false;
+  bool _allowSmoke = false;
+  bool _allowPets = false;
+  String _geoRestriction = 'no_restriction';
+  double _batteryReturnMin = 20;
 
   @override
   void dispose() {
@@ -90,6 +99,10 @@ class _BikeRegistrationContentState extends State<_BikeRegistrationContent> {
     _licensePlateController.dispose();
     _licenseNumberController.dispose();
     _pricePerDayController.dispose();
+    _dailyKmLimitController.dispose();
+    _excessKmPriceController.dispose();
+    _weeklyDiscountController.dispose();
+    _monthlyDiscountController.dispose();
     _addressController.dispose();
     super.dispose();
   }
@@ -151,6 +164,19 @@ class _BikeRegistrationContentState extends State<_BikeRegistrationContent> {
       return;
     }
 
+    final dailyKmLimit = _parseOptionalInt(_dailyKmLimitController.text);
+    final excessKmPrice = _parseOptionalDouble(_excessKmPriceController.text);
+    final weeklyDiscount = _parseOptionalDouble(_weeklyDiscountController.text);
+    final monthlyDiscount = _parseOptionalDouble(
+      _monthlyDiscountController.text,
+    );
+
+    if ((weeklyDiscount != null && weeklyDiscount > 100) ||
+        (monthlyDiscount != null && monthlyDiscount > 100)) {
+      _showError('Ưu đãi không được vượt quá 100%');
+      return;
+    }
+
     // Upload images first if there are any to upload
     if (_vehicleImageBytes != null ||
         _licenseFrontBytes != null ||
@@ -170,6 +196,15 @@ class _BikeRegistrationContentState extends State<_BikeRegistrationContent> {
       features: _selectedFeatures,
       pricePerHour: pricePerDay / 24,
       pricePerDay: pricePerDay,
+      instantBook: _instantBook,
+      dailyKmLimit: dailyKmLimit,
+      excessKmPrice: excessKmPrice,
+      weeklyDiscount: weeklyDiscount,
+      monthlyDiscount: monthlyDiscount,
+      allowSmoke: _allowSmoke,
+      allowPets: _allowPets,
+      geoRestriction: _geoRestriction,
+      batteryReturnMin: _batteryReturnMin.round(),
       address: _addressController.text.isNotEmpty
           ? _addressController.text.trim()
           : 'Ho Chi Minh City',
@@ -223,8 +258,19 @@ class _BikeRegistrationContentState extends State<_BikeRegistrationContent> {
   }
 
   void _showError(String message) {
+    final needsKyc = message.toLowerCase().contains('kyc');
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message), backgroundColor: AppColors.error),
+      SnackBar(
+        content: Text(message),
+        backgroundColor: AppColors.error,
+        action: needsKyc
+            ? SnackBarAction(
+                label: 'Xác minh',
+                textColor: Colors.white,
+                onPressed: () => context.push('/kyc'),
+              )
+            : null,
+      ),
     );
   }
 
@@ -726,6 +772,9 @@ class _BikeRegistrationContentState extends State<_BikeRegistrationContent> {
           ),
           const SizedBox(height: 24),
 
+          _buildRentalPolicySection(),
+          const SizedBox(height: 24),
+
           // Địa chỉ nhận xe
           _buildLabel('Địa chỉ nhận xe *'),
           _buildTextField(
@@ -856,11 +905,227 @@ class _BikeRegistrationContentState extends State<_BikeRegistrationContent> {
                       ? '-'
                       : '${_formatNumber(int.tryParse(_pricePerDayController.text) ?? 0)} VND/ngày',
                 ),
+                _buildSummaryRow('Đặt xe nhanh', _instantBook ? 'Bật' : 'Tắt'),
+                _buildSummaryRow(
+                  'Pin tối thiểu khi trả',
+                  '${_batteryReturnMin.round()}%',
+                ),
               ],
             ),
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildRentalPolicySection() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Chính sách thuê',
+            style: GoogleFonts.poppins(
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+              color: AppColors.textPrimary,
+            ),
+          ),
+          const SizedBox(height: 12),
+          _buildPolicyToggle(
+            icon: Icons.flash_on,
+            title: 'Đặt xe nhanh',
+            subtitle: 'Tự động xác nhận booking nếu khung giờ còn trống',
+            value: _instantBook,
+            onChanged: (value) => setState(() => _instantBook = value),
+          ),
+          const Divider(height: 24),
+          Row(
+            children: [
+              Expanded(
+                child: _buildPolicyNumberField(
+                  controller: _dailyKmLimitController,
+                  label: 'Km/ngày',
+                  hintText: 'VD: 100',
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _buildPolicyNumberField(
+                  controller: _excessKmPriceController,
+                  label: 'Phí vượt/km',
+                  hintText: 'VD: 3000',
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: _buildPolicyNumberField(
+                  controller: _weeklyDiscountController,
+                  label: 'Giảm theo tuần (%)',
+                  hintText: 'VD: 10',
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _buildPolicyNumberField(
+                  controller: _monthlyDiscountController,
+                  label: 'Giảm theo tháng (%)',
+                  hintText: 'VD: 20',
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          _buildLabel('Phạm vi di chuyển'),
+          Container(
+            decoration: BoxDecoration(
+              color: AppColors.inputBackground,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: DropdownButtonFormField<String>(
+              initialValue: _geoRestriction,
+              decoration: const InputDecoration(
+                border: InputBorder.none,
+                contentPadding: EdgeInsets.symmetric(horizontal: 16),
+              ),
+              items: const [
+                DropdownMenuItem(
+                  value: 'no_restriction',
+                  child: Text('Không giới hạn'),
+                ),
+                DropdownMenuItem(value: 'city', child: Text('Trong thành phố')),
+                DropdownMenuItem(
+                  value: 'district',
+                  child: Text('Trong quận/huyện'),
+                ),
+                DropdownMenuItem(
+                  value: 'province',
+                  child: Text('Trong tỉnh/thành'),
+                ),
+              ],
+              onChanged: (value) {
+                if (value != null) {
+                  setState(() => _geoRestriction = value);
+                }
+              },
+            ),
+          ),
+          const SizedBox(height: 16),
+          Text(
+            'Pin tối thiểu khi trả: ${_batteryReturnMin.round()}%',
+            style: GoogleFonts.poppins(
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+              color: AppColors.textPrimary,
+            ),
+          ),
+          Slider(
+            value: _batteryReturnMin,
+            min: 0,
+            max: 100,
+            divisions: 20,
+            label: '${_batteryReturnMin.round()}%',
+            onChanged: (value) => setState(() => _batteryReturnMin = value),
+          ),
+          const Divider(height: 24),
+          _buildPolicyToggle(
+            icon: Icons.smoke_free,
+            title: 'Cho phép hút thuốc',
+            subtitle:
+                'Bật nếu bạn cho phép người thuê hút thuốc khi sử dụng xe',
+            value: _allowSmoke,
+            onChanged: (value) => setState(() => _allowSmoke = value),
+          ),
+          _buildPolicyToggle(
+            icon: Icons.pets_outlined,
+            title: 'Cho phép thú cưng',
+            subtitle: 'Bật nếu người thuê có thể chở thú cưng',
+            value: _allowPets,
+            onChanged: (value) => setState(() => _allowPets = value),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPolicyToggle({
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required bool value,
+    required ValueChanged<bool> onChanged,
+  }) {
+    return SwitchListTile.adaptive(
+      contentPadding: EdgeInsets.zero,
+      secondary: Icon(
+        icon,
+        color: value ? AppColors.primary : AppColors.textMuted,
+      ),
+      title: Text(
+        title,
+        style: GoogleFonts.poppins(
+          fontSize: 14,
+          fontWeight: FontWeight.w600,
+          color: AppColors.textPrimary,
+        ),
+      ),
+      subtitle: Text(
+        subtitle,
+        style: GoogleFonts.poppins(
+          fontSize: 12,
+          color: AppColors.textSecondary,
+        ),
+      ),
+      value: value,
+      activeThumbColor: AppColors.primary,
+      onChanged: onChanged,
+    );
+  }
+
+  Widget _buildPolicyNumberField({
+    required TextEditingController controller,
+    required String label,
+    required String hintText,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildLabel(label),
+        Container(
+          decoration: BoxDecoration(
+            color: AppColors.inputBackground,
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: TextField(
+            controller: controller,
+            keyboardType: TextInputType.number,
+            inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+            style: GoogleFonts.poppins(fontSize: 14),
+            decoration: InputDecoration(
+              hintText: hintText,
+              hintStyle: GoogleFonts.poppins(
+                color: AppColors.textMuted,
+                fontSize: 13,
+              ),
+              border: InputBorder.none,
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 12,
+                vertical: 14,
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 
@@ -1327,6 +1592,18 @@ class _BikeRegistrationContentState extends State<_BikeRegistrationContent> {
       return vehicleLabel(context, 'vehicleCustomModel');
     }
     return vehicleTypeLabel(context, type.toApiString());
+  }
+
+  int? _parseOptionalInt(String value) {
+    final trimmed = value.trim();
+    if (trimmed.isEmpty) return null;
+    return int.tryParse(trimmed);
+  }
+
+  double? _parseOptionalDouble(String value) {
+    final trimmed = value.trim();
+    if (trimmed.isEmpty) return null;
+    return double.tryParse(trimmed);
   }
 
   /// Format number with thousand separators

@@ -13,6 +13,7 @@ abstract class VehicleRemoteDataSource {
   Future<List<VehicleModel>> getAvailableVehicles({
     DateTime? startTime,
     DateTime? endTime,
+    bool? instantBookOnly,
   });
   Future<VehicleModel> getVehicleById(String id);
   Future<List<VehicleModel>> searchVehicles({
@@ -29,6 +30,7 @@ abstract class VehicleRemoteDataSource {
     double radius = 5.0,
     DateTime? startTime,
     DateTime? endTime,
+    bool? instantBookOnly,
   });
 }
 
@@ -46,8 +48,13 @@ class VehicleRemoteDataSourceImpl implements VehicleRemoteDataSource {
   Future<List<VehicleModel>> getAvailableVehicles({
     DateTime? startTime,
     DateTime? endTime,
+    bool? instantBookOnly,
   }) async {
-    final queryParameters = _availabilityQuery(startTime, endTime);
+    final queryParameters = _availabilityQuery(
+      startTime,
+      endTime,
+      instantBookOnly,
+    );
     final cacheKey = 'vehicles.available:${_cacheSuffix(queryParameters)}';
     final cached = await _cachedVehicleList(cacheKey);
     if (cached != null) {
@@ -112,6 +119,7 @@ class VehicleRemoteDataSourceImpl implements VehicleRemoteDataSource {
     double radius = 5.0,
     DateTime? startTime,
     DateTime? endTime,
+    bool? instantBookOnly,
   }) async {
     final queryParameters = <String, dynamic>{
       'latitude': latitude,
@@ -124,6 +132,7 @@ class VehicleRemoteDataSourceImpl implements VehicleRemoteDataSource {
     if (endTime != null) {
       queryParameters['endTime'] = VietnamTime.toApiIsoString(endTime);
     }
+    if (instantBookOnly == true) queryParameters['instantBook'] = true;
 
     final cacheKey = 'vehicles.nearby:${_cacheSuffix(queryParameters)}';
     final cached = await _cachedVehicleList(cacheKey);
@@ -138,6 +147,7 @@ class VehicleRemoteDataSourceImpl implements VehicleRemoteDataSource {
   Map<String, dynamic> _availabilityQuery(
     DateTime? startTime,
     DateTime? endTime,
+    bool? instantBookOnly,
   ) {
     final queryParameters = <String, dynamic>{};
     if (startTime != null) {
@@ -146,6 +156,7 @@ class VehicleRemoteDataSourceImpl implements VehicleRemoteDataSource {
     if (endTime != null) {
       queryParameters['endTime'] = VietnamTime.toApiIsoString(endTime);
     }
+    if (instantBookOnly == true) queryParameters['instantBook'] = true;
     return queryParameters;
   }
 

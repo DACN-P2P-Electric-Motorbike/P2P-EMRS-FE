@@ -259,6 +259,15 @@ class VehicleEntity extends Equatable {
   final double pricePerHour;
   final double? pricePerDay;
   final double? deposit;
+  final bool instantBook;
+  final int? dailyKmLimit;
+  final double? excessKmPrice;
+  final double? weeklyDiscount;
+  final double? monthlyDiscount;
+  final bool allowSmoke;
+  final bool allowPets;
+  final String? geoRestriction;
+  final int? batteryReturnMin;
   final bool isAvailable;
   final String address;
   final double? latitude;
@@ -292,6 +301,15 @@ class VehicleEntity extends Equatable {
     required this.pricePerHour,
     this.pricePerDay,
     this.deposit,
+    this.instantBook = false,
+    this.dailyKmLimit,
+    this.excessKmPrice,
+    this.weeklyDiscount,
+    this.monthlyDiscount,
+    this.allowSmoke = false,
+    this.allowPets = false,
+    this.geoRestriction,
+    this.batteryReturnMin,
     this.isAvailable = true,
     required this.address,
     this.latitude,
@@ -360,6 +378,15 @@ class VehicleEntity extends Equatable {
     pricePerHour,
     pricePerDay,
     deposit,
+    instantBook,
+    dailyKmLimit,
+    excessKmPrice,
+    weeklyDiscount,
+    monthlyDiscount,
+    allowSmoke,
+    allowPets,
+    geoRestriction,
+    batteryReturnMin,
     isAvailable,
     address,
     latitude,

@@ -72,6 +72,11 @@ class ApiConstants {
   static const String uploadVehicleImage = '/upload/vehicle-image';
   static const String uploadVehicleImages = '/upload/vehicle-images';
   static const String uploadLicense = '/upload/license';
+  static const String uploadKyc = '/upload/kyc';
+
+  /// KYC endpoints
+  static const String kycSubmit = '/kyc/submit';
+  static const String kycStatus = '/kyc/status';
 
   static const String authBecomeOwner = '/auth/become-owner';
 }

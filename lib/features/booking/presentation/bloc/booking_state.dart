@@ -1,5 +1,6 @@
 import 'package:equatable/equatable.dart';
 import '../../domain/entities/booking.dart';
+import '../../domain/entities/booking_lock.dart';
 
 /// Base class for booking states
 abstract class BookingState extends Equatable {
@@ -47,6 +48,16 @@ class BookingCreated extends BookingState {
 
   @override
   List<Object> get props => [booking];
+}
+
+/// Temporary booking lock created successfully
+class BookingLockCreated extends BookingState {
+  final BookingLock lock;
+
+  const BookingLockCreated(this.lock);
+
+  @override
+  List<Object> get props => [lock];
 }
 
 /// Booking updated successfully

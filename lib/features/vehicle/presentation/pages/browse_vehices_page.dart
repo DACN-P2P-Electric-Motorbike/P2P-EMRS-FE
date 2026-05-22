@@ -45,6 +45,7 @@ class _BrowseVehiclesViewState extends State<_BrowseVehiclesView> {
   int? _minBatteryLevel;
   List<VehicleFeature> _selectedFeatures = [];
   String _sortBy = 'default'; // default, price_low, price_high, rating
+  bool _instantBookOnly = false;
 
   // GPS / nearby filter
   bool _nearbyEnabled = false;
@@ -75,6 +76,7 @@ class _BrowseVehiclesViewState extends State<_BrowseVehiclesView> {
       type: _selectedType,
       minBatteryLevel: _minBatteryLevel,
       features: _selectedFeatures.isEmpty ? null : _selectedFeatures,
+      instantBookOnly: _instantBookOnly,
       sortBy: _sortBy,
     );
   }
@@ -90,6 +92,7 @@ class _BrowseVehiclesViewState extends State<_BrowseVehiclesView> {
         _minBatteryLevel = null;
         _selectedFeatures = [];
         _sortBy = 'default';
+        _instantBookOnly = false;
         _nearbyEnabled = false;
         _desiredStartTime = null;
         _desiredEndTime = null;
@@ -104,6 +107,7 @@ class _BrowseVehiclesViewState extends State<_BrowseVehiclesView> {
     await context.read<VehicleListCubit>().loadVehicles(
       startTime: _desiredStartTime,
       endTime: _desiredEndTime,
+      instantBookOnly: _instantBookOnly,
     );
   }
 
@@ -116,6 +120,7 @@ class _BrowseVehiclesViewState extends State<_BrowseVehiclesView> {
       radiusKm: _nearbyRadius,
       startTime: _desiredStartTime,
       endTime: _desiredEndTime,
+      instantBookOnly: _instantBookOnly,
     );
   }
 
@@ -169,7 +174,8 @@ class _BrowseVehiclesViewState extends State<_BrowseVehiclesView> {
         _searchController.text.trim().isNotEmpty ||
         _nearbyEnabled ||
         _desiredStartTime != null ||
-        _desiredEndTime != null;
+        _desiredEndTime != null ||
+        _instantBookOnly;
   }
 
   @override
@@ -361,15 +367,21 @@ class _BrowseVehiclesViewState extends State<_BrowseVehiclesView> {
                               sortBy: _sortBy,
                               selectedStartTime: _desiredStartTime,
                               selectedEndTime: _desiredEndTime,
+                              instantBookOnly: _instantBookOnly,
                             ),
                           );
 
                       if (result != null && mounted) {
                         final newStartTime = result['startTime'] as DateTime?;
                         final newEndTime = result['endTime'] as DateTime?;
+                        final newInstantBookOnly =
+                            result['instantBookOnly'] as bool? ?? false;
                         final timeChanged =
                             newStartTime != _desiredStartTime ||
                             newEndTime != _desiredEndTime;
+                        final serverFilterChanged =
+                            timeChanged ||
+                            newInstantBookOnly != _instantBookOnly;
 
                         setState(() {
                           _selectedBrand = result['brand'];
@@ -380,9 +392,10 @@ class _BrowseVehiclesViewState extends State<_BrowseVehiclesView> {
                           _sortBy = result['sortBy'] ?? 'default';
                           _desiredStartTime = newStartTime;
                           _desiredEndTime = newEndTime;
+                          _instantBookOnly = newInstantBookOnly;
                         });
 
-                        if (timeChanged) {
+                        if (serverFilterChanged) {
                           if (_nearbyEnabled) {
                             await _loadNearbyVehiclesFromServer();
                           } else {
@@ -528,6 +541,17 @@ class _BrowseVehiclesViewState extends State<_BrowseVehiclesView> {
               if (mounted) {
                 setState(() => _sortBy = 'default');
                 _applyFilters();
+              }
+            }),
+          if (_instantBookOnly)
+            _buildFilterChip('Đặt xe nhanh', () {
+              if (mounted) {
+                setState(() => _instantBookOnly = false);
+                if (_nearbyEnabled) {
+                  _loadNearbyVehiclesFromServer();
+                } else {
+                  _loadVehiclesFromServer();
+                }
               }
             }),
           if (_desiredStartTime != null && _desiredEndTime != null)
@@ -921,7 +945,7 @@ class _BrowseVehiclesViewState extends State<_BrowseVehiclesView> {
       case 'distance':
         return 'Khoảng cách';
       default:
-        return 'Mặc định';
+        return 'Đề xuất';
     }
   }
 }

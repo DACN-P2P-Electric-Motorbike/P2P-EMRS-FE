@@ -108,6 +108,13 @@ import 'features/notification/presentation/bloc/notification_bloc.dart';
 // Settings Feature
 import 'features/settings/data/privacy_remote_data_source.dart';
 
+// KYC Feature
+import 'features/kyc/data/datasources/kyc_remote_datasource.dart';
+import 'features/kyc/data/repositories/kyc_repository_impl.dart';
+import 'features/kyc/domain/repositories/kyc_repository.dart';
+import 'features/kyc/domain/usecases/kyc_usecases.dart';
+import 'features/kyc/presentation/cubit/kyc_cubit.dart';
+
 /// Global service locator instance
 final sl = GetIt.instance;
 
@@ -144,6 +151,19 @@ Future<void> init() async {
   // Privacy API - Singleton (depends on DioClient)
   sl.registerLazySingleton<PrivacyRemoteDataSource>(
     () => PrivacyRemoteDataSourceImpl(dioClient: sl()),
+  );
+
+  // KYC API - Singleton (depends on DioClient)
+  sl.registerLazySingleton<KycRemoteDataSource>(
+    () => KycRemoteDataSourceImpl(dioClient: sl()),
+  );
+  sl.registerLazySingleton<KycRepository>(
+    () => KycRepositoryImpl(remoteDataSource: sl()),
+  );
+  sl.registerLazySingleton(() => GetKycStatusUseCase(sl()));
+  sl.registerLazySingleton(() => SubmitKycUseCase(sl()));
+  sl.registerFactory(
+    () => KycCubit(getKycStatusUseCase: sl(), submitKycUseCase: sl()),
   );
 
   //============================================================================
@@ -277,6 +297,8 @@ Future<void> init() async {
 
   // Use Cases
   sl.registerLazySingleton(() => CreateBookingUseCase(sl()));
+  sl.registerLazySingleton(() => CreateBookingLockUseCase(sl()));
+  sl.registerLazySingleton(() => ReleaseBookingLockUseCase(sl()));
   sl.registerLazySingleton(() => GetRenterBookingsUseCase(sl()));
   sl.registerLazySingleton(() => GetBookingByIdUseCase(sl()));
   sl.registerLazySingleton(() => CancelBookingUseCase(sl()));
@@ -289,6 +311,7 @@ Future<void> init() async {
   sl.registerFactory(
     () => BookingBloc(
       createBookingUseCase: sl(),
+      createBookingLockUseCase: sl(),
       getRenterBookingsUseCase: sl(),
       getBookingByIdUseCase: sl(),
       cancelBookingUseCase: sl(),

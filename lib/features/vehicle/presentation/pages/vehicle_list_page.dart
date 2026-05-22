@@ -41,6 +41,7 @@ class _VehicleListViewState extends State<_VehicleListView> {
   String _sortBy = 'default'; // default, price_low, price_high, rating
   DateTime? _desiredStartTime;
   DateTime? _desiredEndTime;
+  bool _instantBookOnly = false;
 
   @override
   void dispose() {
@@ -61,6 +62,7 @@ class _VehicleListViewState extends State<_VehicleListView> {
       type: _selectedType,
       minBatteryLevel: _minBatteryLevel,
       features: _selectedFeatures.isEmpty ? null : _selectedFeatures,
+      instantBookOnly: _instantBookOnly,
       sortBy: _sortBy,
     );
   }
@@ -76,6 +78,7 @@ class _VehicleListViewState extends State<_VehicleListView> {
       _sortBy = 'default';
       _desiredStartTime = null;
       _desiredEndTime = null;
+      _instantBookOnly = false;
     });
 
     _loadVehiclesFromServer();
@@ -86,6 +89,7 @@ class _VehicleListViewState extends State<_VehicleListView> {
     await context.read<VehicleListCubit>().loadVehicles(
       startTime: _desiredStartTime,
       endTime: _desiredEndTime,
+      instantBookOnly: _instantBookOnly,
     );
   }
 
@@ -98,7 +102,8 @@ class _VehicleListViewState extends State<_VehicleListView> {
         _sortBy != 'default' ||
         _searchController.text.trim().isNotEmpty ||
         _desiredStartTime != null ||
-        _desiredEndTime != null;
+        _desiredEndTime != null ||
+        _instantBookOnly;
   }
 
   @override
@@ -178,6 +183,7 @@ class _VehicleListViewState extends State<_VehicleListView> {
                                   sortBy: _sortBy,
                                   selectedStartTime: _desiredStartTime,
                                   selectedEndTime: _desiredEndTime,
+                                  instantBookOnly: _instantBookOnly,
                                 ),
                               );
 
@@ -185,9 +191,14 @@ class _VehicleListViewState extends State<_VehicleListView> {
                             final newStartTime =
                                 result['startTime'] as DateTime?;
                             final newEndTime = result['endTime'] as DateTime?;
+                            final newInstantBookOnly =
+                                result['instantBookOnly'] as bool? ?? false;
                             final timeChanged =
                                 newStartTime != _desiredStartTime ||
                                 newEndTime != _desiredEndTime;
+                            final serverFilterChanged =
+                                timeChanged ||
+                                newInstantBookOnly != _instantBookOnly;
 
                             setState(() {
                               _selectedBrand = result['brand'];
@@ -198,9 +209,10 @@ class _VehicleListViewState extends State<_VehicleListView> {
                               _sortBy = result['sortBy'] ?? 'default';
                               _desiredStartTime = newStartTime;
                               _desiredEndTime = newEndTime;
+                              _instantBookOnly = newInstantBookOnly;
                             });
 
-                            if (timeChanged) {
+                            if (serverFilterChanged) {
                               await _loadVehiclesFromServer();
                             } else {
                               _applyFilters();
@@ -351,6 +363,11 @@ class _VehicleListViewState extends State<_VehicleListView> {
                           _loadVehiclesFromServer();
                         },
                       ),
+                    if (_instantBookOnly)
+                      _buildFilterChip('Đặt xe nhanh', () {
+                        setState(() => _instantBookOnly = false);
+                        _loadVehiclesFromServer();
+                      }),
                   ],
                 ),
               ),
@@ -583,7 +600,7 @@ class _VehicleListViewState extends State<_VehicleListView> {
       case 'distance':
         return 'Khoảng cách';
       default:
-        return 'Mặc định';
+        return 'Đề xuất';
     }
   }
 }

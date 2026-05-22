@@ -88,6 +88,12 @@ class _VehicleCardState extends State<VehicleCard> {
                         ),
                       ),
                     ),
+                    if (vehicle.instantBook)
+                      Positioned(
+                        top: 52,
+                        left: 12,
+                        child: _buildInstantBadge(),
+                      ),
 
                     // Battery level
                     Positioned(
@@ -243,6 +249,14 @@ class _VehicleCardState extends State<VehicleCard> {
                           ),
                         ),
 
+                      if (vehicle.instantBook ||
+                          vehicle.dailyKmLimit != null ||
+                          vehicle.weeklyDiscount != null ||
+                          vehicle.monthlyDiscount != null) ...[
+                        _buildPolicyChips(),
+                        const SizedBox(height: 10),
+                      ],
+
                       // Bottom row - Price and Rating
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -376,6 +390,95 @@ class _VehicleCardState extends State<VehicleCard> {
     if (level >= 80) return AppColors.success;
     if (level >= 50) return AppColors.warning;
     return AppColors.error;
+  }
+
+  Widget _buildInstantBadge() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: AppColors.warning,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: const Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.flash_on, size: 14, color: Colors.white),
+          SizedBox(width: 4),
+          Text(
+            'Đặt nhanh',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPolicyChips() {
+    final chips = <Widget>[];
+
+    if (vehicle.instantBook) {
+      chips.add(
+        _buildPolicyChip(
+          icon: Icons.flash_on,
+          label: 'Duyệt tự động',
+          color: AppColors.warning,
+        ),
+      );
+    }
+    if (vehicle.dailyKmLimit != null) {
+      chips.add(
+        _buildPolicyChip(
+          icon: Icons.route,
+          label: '${vehicle.dailyKmLimit} km/ngày',
+          color: AppColors.info,
+        ),
+      );
+    }
+    if (vehicle.weeklyDiscount != null || vehicle.monthlyDiscount != null) {
+      chips.add(
+        _buildPolicyChip(
+          icon: Icons.local_offer_outlined,
+          label: 'Ưu đãi dài ngày',
+          color: AppColors.success,
+        ),
+      );
+    }
+
+    return Wrap(spacing: 6, runSpacing: 6, children: chips);
+  }
+
+  Widget _buildPolicyChip({
+    required IconData icon,
+    required String label,
+    required Color color,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: color.withOpacity(0.3)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 12, color: color),
+          const SizedBox(width: 4),
+          Text(
+            label,
+            style: GoogleFonts.poppins(
+              fontSize: 10,
+              fontWeight: FontWeight.w600,
+              color: color,
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   IconData _getFeatureIcon(VehicleFeature feature) {

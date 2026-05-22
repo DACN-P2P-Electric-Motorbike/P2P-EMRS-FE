@@ -13,6 +13,7 @@ class FilterBottomSheet extends StatefulWidget {
   final String sortBy;
   final DateTime? selectedStartTime;
   final DateTime? selectedEndTime;
+  final bool instantBookOnly;
 
   const FilterBottomSheet({
     super.key,
@@ -24,6 +25,7 @@ class FilterBottomSheet extends StatefulWidget {
     this.sortBy = 'default',
     this.selectedStartTime,
     this.selectedEndTime,
+    this.instantBookOnly = false,
   });
 
   @override
@@ -39,6 +41,7 @@ class _FilterBottomSheetState extends State<FilterBottomSheet> {
   late String _sortBy;
   DateTime? _selectedStartTime;
   DateTime? _selectedEndTime;
+  late bool _instantBookOnly;
 
   @override
   void initState() {
@@ -51,6 +54,7 @@ class _FilterBottomSheetState extends State<FilterBottomSheet> {
     _sortBy = widget.sortBy;
     _selectedStartTime = widget.selectedStartTime;
     _selectedEndTime = widget.selectedEndTime;
+    _instantBookOnly = widget.instantBookOnly;
   }
 
   @override
@@ -124,7 +128,7 @@ class _FilterBottomSheetState extends State<FilterBottomSheet> {
                       runSpacing: 8,
                       children: [
                         _buildChoiceChip(
-                          'Mặc định',
+                          'Đề xuất',
                           _sortBy == 'default',
                           () => setState(() => _sortBy = 'default'),
                         ),
@@ -235,6 +239,45 @@ class _FilterBottomSheetState extends State<FilterBottomSheet> {
                           label: const Text('Xóa thời gian'),
                         ),
                       ),
+
+                    const SizedBox(height: 24),
+
+                    _buildSectionTitle('Đặt xe nhanh'),
+                    const SizedBox(height: 12),
+                    Container(
+                      decoration: BoxDecoration(
+                        color: AppColors.surfaceVariant,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: AppColors.border),
+                      ),
+                      child: SwitchListTile.adaptive(
+                        value: _instantBookOnly,
+                        onChanged: (value) =>
+                            setState(() => _instantBookOnly = value),
+                        activeThumbColor: AppColors.primary,
+                        secondary: Icon(
+                          Icons.flash_on,
+                          color: _instantBookOnly
+                              ? AppColors.primary
+                              : AppColors.textSecondary,
+                        ),
+                        title: Text(
+                          'Chỉ xe duyệt tự động',
+                          style: GoogleFonts.poppins(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.textPrimary,
+                          ),
+                        ),
+                        subtitle: Text(
+                          'Không cần chờ chủ xe xác nhận',
+                          style: GoogleFonts.poppins(
+                            fontSize: 12,
+                            color: AppColors.textSecondary,
+                          ),
+                        ),
+                      ),
+                    ),
 
                     const SizedBox(height: 24),
 
@@ -456,6 +499,7 @@ class _FilterBottomSheetState extends State<FilterBottomSheet> {
       _sortBy = 'default';
       _selectedStartTime = null;
       _selectedEndTime = null;
+      _instantBookOnly = false;
     });
   }
 
@@ -491,6 +535,7 @@ class _FilterBottomSheetState extends State<FilterBottomSheet> {
       'sortBy': _sortBy,
       'startTime': _selectedStartTime,
       'endTime': _selectedEndTime,
+      'instantBookOnly': _instantBookOnly,
     });
   }
 

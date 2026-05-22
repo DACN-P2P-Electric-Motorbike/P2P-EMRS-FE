@@ -27,6 +27,22 @@ class CreateBookingEvent extends BookingEvent {
   List<Object?> get props => [vehicleId, startTime, endTime, notes];
 }
 
+/// Create a temporary booking lock event
+class CreateBookingLockEvent extends BookingEvent {
+  final String vehicleId;
+  final DateTime startTime;
+  final DateTime endTime;
+
+  const CreateBookingLockEvent({
+    required this.vehicleId,
+    required this.startTime,
+    required this.endTime,
+  });
+
+  @override
+  List<Object?> get props => [vehicleId, startTime, endTime];
+}
+
 /// Load renter bookings event
 class LoadRenterBookingsEvent extends BookingEvent {
   final BookingStatus? status;

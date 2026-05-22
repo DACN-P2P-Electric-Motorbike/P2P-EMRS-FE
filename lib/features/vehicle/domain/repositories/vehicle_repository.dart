@@ -8,6 +8,7 @@ abstract class VehicleRepository {
   Future<Either<Failure, List<VehicleEntity>>> getAvailableVehicles({
     DateTime? startTime,
     DateTime? endTime,
+    bool? instantBookOnly,
   });
 
   /// Get vehicle by ID
@@ -30,6 +31,7 @@ abstract class VehicleRepository {
     double radius = 5.0,
     DateTime? startTime,
     DateTime? endTime,
+    bool? instantBookOnly,
   });
 
   /// Save/bookmark a vehicle

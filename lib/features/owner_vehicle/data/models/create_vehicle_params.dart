@@ -10,6 +10,15 @@ class CreateVehicleParams extends Equatable {
   final List<VehicleFeature> features;
   final double pricePerHour;
   final double? pricePerDay;
+  final bool instantBook;
+  final int? dailyKmLimit;
+  final double? excessKmPrice;
+  final double? weeklyDiscount;
+  final double? monthlyDiscount;
+  final bool allowSmoke;
+  final bool allowPets;
+  final String? geoRestriction;
+  final int? batteryReturnMin;
   final String address;
   final double? latitude;
   final double? longitude;
@@ -28,6 +37,15 @@ class CreateVehicleParams extends Equatable {
     this.features = const [],
     required this.pricePerHour,
     this.pricePerDay,
+    this.instantBook = false,
+    this.dailyKmLimit,
+    this.excessKmPrice,
+    this.weeklyDiscount,
+    this.monthlyDiscount,
+    this.allowSmoke = false,
+    this.allowPets = false,
+    this.geoRestriction,
+    this.batteryReturnMin,
     required this.address,
     this.latitude,
     this.longitude,
@@ -47,6 +65,9 @@ class CreateVehicleParams extends Equatable {
       'brand': brand.toApiString(),
       'type': type.toApiString(),
       'pricePerHour': pricePerHour,
+      'instantBook': instantBook,
+      'allowSmoke': allowSmoke,
+      'allowPets': allowPets,
       'address': address,
       'images': images,
     };
@@ -55,6 +76,14 @@ class CreateVehicleParams extends Equatable {
       json['features'] = features.map((f) => f.toApiString()).toList();
     }
     if (pricePerDay != null) json['pricePerDay'] = pricePerDay;
+    if (dailyKmLimit != null) json['dailyKmLimit'] = dailyKmLimit;
+    if (excessKmPrice != null) json['excessKmPrice'] = excessKmPrice;
+    if (weeklyDiscount != null) json['weeklyDiscount'] = weeklyDiscount;
+    if (monthlyDiscount != null) json['monthlyDiscount'] = monthlyDiscount;
+    if (geoRestriction != null && geoRestriction!.isNotEmpty) {
+      json['geoRestriction'] = geoRestriction;
+    }
+    if (batteryReturnMin != null) json['batteryReturnMin'] = batteryReturnMin;
     if (latitude != null) json['latitude'] = latitude;
     if (longitude != null) json['longitude'] = longitude;
     if (description != null && description!.isNotEmpty) {
@@ -79,6 +108,15 @@ class CreateVehicleParams extends Equatable {
     features,
     pricePerHour,
     pricePerDay,
+    instantBook,
+    dailyKmLimit,
+    excessKmPrice,
+    weeklyDiscount,
+    monthlyDiscount,
+    allowSmoke,
+    allowPets,
+    geoRestriction,
+    batteryReturnMin,
     address,
     latitude,
     longitude,

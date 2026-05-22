@@ -1,6 +1,7 @@
 import 'package:dartz/dartz.dart';
 import '../../../../core/error/failures.dart';
 import '../entities/booking.dart';
+import '../entities/booking_lock.dart';
 
 /// Abstract repository interface for bookings
 /// Following Dependency Inversion Principle - Domain layer defines the contract
@@ -12,6 +13,16 @@ abstract class BookingRepository {
     required DateTime endTime,
     String? notes,
   });
+
+  /// Create a temporary checkout lock for the selected booking window
+  Future<Either<Failure, BookingLock>> createBookingLock({
+    required String vehicleId,
+    required DateTime startTime,
+    required DateTime endTime,
+  });
+
+  /// Release a temporary checkout lock
+  Future<Either<Failure, void>> releaseBookingLock(String lockId);
 
   /// Get renter bookings
   Future<Either<Failure, List<BookingEntity>>> getRenterBookings({

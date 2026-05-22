@@ -8,11 +8,16 @@ import '../repositories/vehicle_repository.dart';
 class GetAvailableVehiclesParams extends Equatable {
   final DateTime? startTime;
   final DateTime? endTime;
+  final bool? instantBookOnly;
 
-  const GetAvailableVehiclesParams({this.startTime, this.endTime});
+  const GetAvailableVehiclesParams({
+    this.startTime,
+    this.endTime,
+    this.instantBookOnly,
+  });
 
   @override
-  List<Object?> get props => [startTime, endTime];
+  List<Object?> get props => [startTime, endTime, instantBookOnly];
 }
 
 class GetAvailableVehicles
@@ -28,6 +33,7 @@ class GetAvailableVehicles
     return await repository.getAvailableVehicles(
       startTime: params.startTime,
       endTime: params.endTime,
+      instantBookOnly: params.instantBookOnly,
     );
   }
 }

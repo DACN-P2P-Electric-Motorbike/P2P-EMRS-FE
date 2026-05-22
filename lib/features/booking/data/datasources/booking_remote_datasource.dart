@@ -5,6 +5,7 @@ import '../../../../core/cache/hive_cache_service.dart';
 import '../../../../core/error/exceptions.dart';
 import '../../../../core/network/dio_client.dart';
 import '../../../../core/utils/vietnam_time.dart';
+import '../../domain/entities/booking_lock.dart';
 import '../models/booking_model.dart';
 
 /// Abstract class for booking remote data source
@@ -16,6 +17,16 @@ abstract class BookingRemoteDataSource {
     required DateTime endTime,
     String? notes,
   });
+
+  /// Create a temporary booking lock while the renter confirms checkout
+  Future<BookingLock> createBookingLock({
+    required String vehicleId,
+    required DateTime startTime,
+    required DateTime endTime,
+  });
+
+  /// Release a temporary booking lock
+  Future<void> releaseBookingLock(String lockId);
 
   /// Get renter bookings
   Future<List<BookingModel>> getRenterBookings({String? status});
@@ -86,6 +97,57 @@ class BookingRemoteDataSourceImpl implements BookingRemoteDataSource {
 
       throw ServerException(
         message: 'Failed to create booking',
+        statusCode: response.statusCode,
+      );
+    } on DioException catch (e) {
+      throw ServerException.fromDioException(e);
+    }
+  }
+
+  @override
+  Future<BookingLock> createBookingLock({
+    required String vehicleId,
+    required DateTime startTime,
+    required DateTime endTime,
+  }) async {
+    try {
+      final response = await _dioClient.post(
+        '/bookings/lock',
+        data: {
+          'vehicleId': vehicleId,
+          'startTime': VietnamTime.toApiIsoString(startTime),
+          'endTime': VietnamTime.toApiIsoString(endTime),
+        },
+      );
+
+      if (response.statusCode == 201) {
+        final data = Map<String, dynamic>.from(response.data as Map);
+        return BookingLock(
+          id: data['id'] as String,
+          expiresAt: DateTime.parse(data['expiresAt'] as String),
+        );
+      }
+
+      throw ServerException(
+        message: 'Failed to create booking lock',
+        statusCode: response.statusCode,
+      );
+    } on DioException catch (e) {
+      throw ServerException.fromDioException(e);
+    }
+  }
+
+  @override
+  Future<void> releaseBookingLock(String lockId) async {
+    try {
+      final response = await _dioClient.delete('/bookings/lock/$lockId');
+
+      if (response.statusCode == 204 || response.statusCode == 200) {
+        return;
+      }
+
+      throw ServerException(
+        message: 'Failed to release booking lock',
         statusCode: response.statusCode,
       );
     } on DioException catch (e) {

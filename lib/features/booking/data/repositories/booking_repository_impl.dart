@@ -2,6 +2,7 @@ import 'package:dartz/dartz.dart';
 import '../../../../core/error/exceptions.dart';
 import '../../../../core/error/failures.dart';
 import '../../domain/entities/booking.dart';
+import '../../domain/entities/booking_lock.dart';
 import '../../domain/repositories/booking_repository.dart';
 import '../datasources/booking_remote_datasource.dart';
 
@@ -27,6 +28,42 @@ class BookingRepositoryImpl implements BookingRepository {
         notes: notes,
       );
       return Right(model.toEntity());
+    } on NetworkException {
+      return const Left(ConnectionFailure());
+    } on ServerException catch (e) {
+      return Left(ServerFailure(message: e.message, statusCode: e.statusCode));
+    } catch (e) {
+      return Left(ServerFailure(message: e.toString()));
+    }
+  }
+
+  @override
+  Future<Either<Failure, BookingLock>> createBookingLock({
+    required String vehicleId,
+    required DateTime startTime,
+    required DateTime endTime,
+  }) async {
+    try {
+      final lock = await _remoteDataSource.createBookingLock(
+        vehicleId: vehicleId,
+        startTime: startTime,
+        endTime: endTime,
+      );
+      return Right(lock);
+    } on NetworkException {
+      return const Left(ConnectionFailure());
+    } on ServerException catch (e) {
+      return Left(ServerFailure(message: e.message, statusCode: e.statusCode));
+    } catch (e) {
+      return Left(ServerFailure(message: e.toString()));
+    }
+  }
+
+  @override
+  Future<Either<Failure, void>> releaseBookingLock(String lockId) async {
+    try {
+      await _remoteDataSource.releaseBookingLock(lockId);
+      return const Right(null);
     } on NetworkException {
       return const Left(ConnectionFailure());
     } on ServerException catch (e) {

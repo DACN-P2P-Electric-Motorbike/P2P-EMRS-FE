@@ -386,6 +386,13 @@ class _VehicleDetailContent extends StatelessWidget {
                           const SizedBox(height: 24),
                         ],
 
+                        if (_hasVehiclePolicies(vehicle)) ...[
+                          _buildSectionTitle('Chính sách thuê'),
+                          const SizedBox(height: 12),
+                          _buildPolicySection(vehicle),
+                          const SizedBox(height: 24),
+                        ],
+
                         // Specifications
                         _buildSectionTitle('Thông số kỹ thuật'),
                         const SizedBox(height: 16),
@@ -625,7 +632,7 @@ class _VehicleDetailContent extends StatelessWidget {
             ),
             child: Text(
               vehicle.isAvailable && vehicle.status == VehicleStatus.available
-                  ? 'Đặt xe ngay'
+                  ? (vehicle.instantBook ? 'Đặt xe nhanh' : 'Đặt xe ngay')
                   : 'Không khả dụng',
               style: GoogleFonts.poppins(
                 fontSize: 16,
@@ -690,6 +697,141 @@ class _VehicleDetailContent extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  bool _hasVehiclePolicies(VehicleEntity vehicle) {
+    return vehicle.instantBook ||
+        vehicle.dailyKmLimit != null ||
+        vehicle.excessKmPrice != null ||
+        vehicle.weeklyDiscount != null ||
+        vehicle.monthlyDiscount != null ||
+        vehicle.allowSmoke ||
+        vehicle.allowPets ||
+        vehicle.geoRestriction != null ||
+        vehicle.batteryReturnMin != null;
+  }
+
+  Widget _buildPolicySection(VehicleEntity vehicle) {
+    final policies = <Widget>[
+      if (vehicle.instantBook)
+        _buildPolicyRow(
+          icon: Icons.flash_on,
+          label: 'Đặt xe nhanh',
+          value: 'Tự động xác nhận khi gửi yêu cầu',
+          color: AppColors.warning,
+        ),
+      if (vehicle.dailyKmLimit != null)
+        _buildPolicyRow(
+          icon: Icons.route,
+          label: 'Giới hạn quãng đường',
+          value: '${vehicle.dailyKmLimit} km/ngày',
+        ),
+      if (vehicle.excessKmPrice != null)
+        _buildPolicyRow(
+          icon: Icons.payments_outlined,
+          label: 'Phí vượt giới hạn',
+          value: '${_formatPrice(vehicle.excessKmPrice!)}/km',
+        ),
+      if (vehicle.weeklyDiscount != null || vehicle.monthlyDiscount != null)
+        _buildPolicyRow(
+          icon: Icons.local_offer_outlined,
+          label: 'Ưu đãi dài ngày',
+          value: [
+            if (vehicle.weeklyDiscount != null)
+              'Tuần ${_formatPercent(vehicle.weeklyDiscount!)}%',
+            if (vehicle.monthlyDiscount != null)
+              'Tháng ${_formatPercent(vehicle.monthlyDiscount!)}%',
+          ].join(' · '),
+          color: AppColors.success,
+        ),
+      _buildPolicyRow(
+        icon: Icons.smoke_free,
+        label: 'Hút thuốc',
+        value: vehicle.allowSmoke ? 'Được phép' : 'Không được phép',
+      ),
+      _buildPolicyRow(
+        icon: Icons.pets_outlined,
+        label: 'Thú cưng',
+        value: vehicle.allowPets ? 'Được phép' : 'Không được phép',
+      ),
+      if (vehicle.geoRestriction != null)
+        _buildPolicyRow(
+          icon: Icons.map_outlined,
+          label: 'Phạm vi di chuyển',
+          value: _geoRestrictionLabel(vehicle.geoRestriction!),
+        ),
+      if (vehicle.batteryReturnMin != null)
+        _buildPolicyRow(
+          icon: Icons.battery_saver,
+          label: 'Pin khi trả xe',
+          value: 'Tối thiểu ${vehicle.batteryReturnMin}%',
+        ),
+    ];
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceVariant,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(children: policies),
+    );
+  }
+
+  Widget _buildPolicyRow({
+    required IconData icon,
+    required String label,
+    required String value,
+    Color color = AppColors.primary,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: Row(
+        children: [
+          Icon(icon, size: 20, color: color),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              label,
+              style: GoogleFonts.poppins(
+                fontSize: 13,
+                color: AppColors.textSecondary,
+              ),
+            ),
+          ),
+          Flexible(
+            child: Text(
+              value,
+              textAlign: TextAlign.right,
+              style: GoogleFonts.poppins(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: AppColors.textPrimary,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _formatPercent(double value) {
+    return value % 1 == 0 ? value.toStringAsFixed(0) : value.toStringAsFixed(1);
+  }
+
+  String _geoRestrictionLabel(String value) {
+    switch (value) {
+      case 'city':
+        return 'Trong thành phố';
+      case 'district':
+        return 'Trong quận/huyện';
+      case 'province':
+        return 'Trong tỉnh/thành';
+      case 'no_restriction':
+        return 'Không giới hạn';
+      default:
+        return value;
+    }
   }
 
   Color _getStatusColor(VehicleStatus status) {

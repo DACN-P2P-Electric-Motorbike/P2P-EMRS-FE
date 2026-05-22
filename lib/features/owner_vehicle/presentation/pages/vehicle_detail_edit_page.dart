@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:go_router/go_router.dart';
@@ -209,6 +210,11 @@ class _VehicleDetailContentState extends State<_VehicleDetailContent> {
                       // Features
                       if (vehicle.features.isNotEmpty) ...[
                         _buildFeaturesSection(vehicle),
+                        const SizedBox(height: 20),
+                      ],
+
+                      if (_hasRentalPolicies(vehicle)) ...[
+                        _buildRentalPolicySection(vehicle),
                         const SizedBox(height: 20),
                       ],
 
@@ -678,6 +684,143 @@ class _VehicleDetailContentState extends State<_VehicleDetailContent> {
     );
   }
 
+  bool _hasRentalPolicies(VehicleEntity vehicle) {
+    return vehicle.instantBook ||
+        vehicle.dailyKmLimit != null ||
+        vehicle.excessKmPrice != null ||
+        vehicle.weeklyDiscount != null ||
+        vehicle.monthlyDiscount != null ||
+        vehicle.allowSmoke ||
+        vehicle.allowPets ||
+        vehicle.geoRestriction != null ||
+        vehicle.batteryReturnMin != null;
+  }
+
+  Widget _buildRentalPolicySection(VehicleEntity vehicle) {
+    final discountText = [
+      if (vehicle.weeklyDiscount != null)
+        'Tuần ${_formatPercent(vehicle.weeklyDiscount!)}%',
+      if (vehicle.monthlyDiscount != null)
+        'Tháng ${_formatPercent(vehicle.monthlyDiscount!)}%',
+    ].join(' · ');
+
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Chính sách thuê',
+            style: GoogleFonts.poppins(
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+              color: AppColors.textPrimary,
+            ),
+          ),
+          const SizedBox(height: 12),
+          if (vehicle.instantBook)
+            _buildPolicyRow(
+              icon: Icons.flash_on,
+              label: 'Đặt xe nhanh',
+              value: 'Tự động xác nhận',
+              color: AppColors.warning,
+            ),
+          if (vehicle.dailyKmLimit != null)
+            _buildPolicyRow(
+              icon: Icons.route,
+              label: 'Giới hạn quãng đường',
+              value: '${vehicle.dailyKmLimit} km/ngày',
+            ),
+          if (vehicle.excessKmPrice != null)
+            _buildPolicyRow(
+              icon: Icons.payments_outlined,
+              label: 'Phí vượt giới hạn',
+              value: '${_formatPrice(vehicle.excessKmPrice!)}/km',
+            ),
+          if (discountText.isNotEmpty)
+            _buildPolicyRow(
+              icon: Icons.local_offer_outlined,
+              label: 'Ưu đãi dài ngày',
+              value: discountText,
+              color: AppColors.success,
+            ),
+          if (vehicle.allowSmoke)
+            _buildPolicyRow(
+              icon: Icons.smoke_free,
+              label: 'Hút thuốc',
+              value: 'Được phép',
+            ),
+          if (vehicle.allowPets)
+            _buildPolicyRow(
+              icon: Icons.pets_outlined,
+              label: 'Thú cưng',
+              value: 'Được phép',
+            ),
+          if (vehicle.geoRestriction != null)
+            _buildPolicyRow(
+              icon: Icons.map_outlined,
+              label: 'Phạm vi di chuyển',
+              value: _geoRestrictionLabel(vehicle.geoRestriction!),
+            ),
+          if (vehicle.batteryReturnMin != null)
+            _buildPolicyRow(
+              icon: Icons.battery_saver,
+              label: 'Pin khi trả xe',
+              value: 'Tối thiểu ${vehicle.batteryReturnMin}%',
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPolicyRow({
+    required IconData icon,
+    required String label,
+    required String value,
+    Color color = AppColors.primary,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: Row(
+        children: [
+          Icon(icon, size: 20, color: color),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              label,
+              style: GoogleFonts.poppins(
+                fontSize: 13,
+                color: AppColors.textSecondary,
+              ),
+            ),
+          ),
+          Flexible(
+            child: Text(
+              value,
+              textAlign: TextAlign.right,
+              style: GoogleFonts.poppins(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: AppColors.textPrimary,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildLocationSection(BuildContext context, VehicleEntity vehicle) {
     return Container(
       padding: const EdgeInsets.all(20),
@@ -815,17 +958,37 @@ class _VehicleDetailContentState extends State<_VehicleDetailContent> {
 
   void _showEditVehicleSheet(BuildContext context, VehicleEntity vehicle) {
     final ownerVehicleBloc = context.read<OwnerVehicleBloc>();
-    // 1. Khởi tạo các Controller với dữ liệu hiện tại
     final nameController = TextEditingController(text: vehicle.model);
     final priceController = TextEditingController(
-      text: vehicle.pricePerHour.toString(),
+      text: vehicle.pricePerHour.toStringAsFixed(0),
+    );
+    final pricePerDayController = TextEditingController(
+      text: vehicle.pricePerDay?.toStringAsFixed(0) ?? '',
+    );
+    final dailyKmLimitController = TextEditingController(
+      text: vehicle.dailyKmLimit?.toString() ?? '',
+    );
+    final excessKmPriceController = TextEditingController(
+      text: vehicle.excessKmPrice?.toStringAsFixed(0) ?? '',
+    );
+    final weeklyDiscountController = TextEditingController(
+      text: vehicle.weeklyDiscount?.toStringAsFixed(0) ?? '',
+    );
+    final monthlyDiscountController = TextEditingController(
+      text: vehicle.monthlyDiscount?.toStringAsFixed(0) ?? '',
     );
     final descriptionController = TextEditingController(
       text: vehicle.description,
     );
     final formKey = GlobalKey<FormState>();
+    var instantBook = vehicle.instantBook;
+    var allowSmoke = vehicle.allowSmoke;
+    var allowPets = vehicle.allowPets;
+    var geoRestriction = vehicle.geoRestriction ?? 'no_restriction';
+    var enforceBatteryReturn = vehicle.batteryReturnMin != null;
+    var batteryReturnMin = (vehicle.batteryReturnMin ?? 20).toDouble();
+    var isUploading = false;
 
-    // 2. Quản lý danh sách ảnh: Tách biệt ảnh cũ (URL) và ảnh mới (Bytes)
     List<String> existingUrls = List.from(vehicle.images);
     List<Uint8List> newImageBytes = [];
     List<String> newImageNames = [];
@@ -839,9 +1002,6 @@ class _VehicleDetailContentState extends State<_VehicleDetailContent> {
       ),
       builder: (sheetContext) => StatefulBuilder(
         builder: (context, setSheetState) {
-          bool isUploading = false; // Trạng thái loading riêng trong popup
-
-          // Hàm chọn ảnh từ thiết bị (Logic từ file register_vehicle_page)
           Future<void> _pickImage() async {
             final result = await FilePicker.platform.pickFiles(
               type: FileType.image,
@@ -861,7 +1021,6 @@ class _VehicleDetailContentState extends State<_VehicleDetailContent> {
             }
           }
 
-          // Hàm xử lý tổng hợp: Upload ảnh mới -> Gộp URL -> Cập nhật API
           Future<void> _handleUpdate() async {
             if (!formKey.currentState!.validate()) return;
 
@@ -882,27 +1041,56 @@ class _VehicleDetailContentState extends State<_VehicleDetailContent> {
                 }
               }
 
-              // Bước 2: Tạo Params và gửi event cập nhật cho Bloc
+              final fieldsToClear = <String>{};
+              final pricePerDay = _optionalDouble(
+                pricePerDayController.text,
+                clearField: 'pricePerDay',
+                fieldsToClear: fieldsToClear,
+              );
+              final dailyKmLimit = _optionalInt(
+                dailyKmLimitController.text,
+                clearField: 'dailyKmLimit',
+                fieldsToClear: fieldsToClear,
+              );
+              final excessKmPrice = _optionalDouble(
+                excessKmPriceController.text,
+                clearField: 'excessKmPrice',
+                fieldsToClear: fieldsToClear,
+              );
+              final weeklyDiscount = _optionalDouble(
+                weeklyDiscountController.text,
+                clearField: 'weeklyDiscount',
+                fieldsToClear: fieldsToClear,
+              );
+              final monthlyDiscount = _optionalDouble(
+                monthlyDiscountController.text,
+                clearField: 'monthlyDiscount',
+                fieldsToClear: fieldsToClear,
+              );
+              if (!enforceBatteryReturn) {
+                fieldsToClear.add('batteryReturnMin');
+              }
+
               final updateParams = UpdateVehicleParams(
                 model: nameController.text.trim(),
                 pricePerHour: double.tryParse(priceController.text.trim()),
+                pricePerDay: pricePerDay,
+                instantBook: instantBook,
+                dailyKmLimit: dailyKmLimit,
+                excessKmPrice: excessKmPrice,
+                weeklyDiscount: weeklyDiscount,
+                monthlyDiscount: monthlyDiscount,
+                allowSmoke: allowSmoke,
+                allowPets: allowPets,
+                geoRestriction: geoRestriction,
+                batteryReturnMin: enforceBatteryReturn
+                    ? batteryReturnMin.round()
+                    : null,
                 description: descriptionController.text.trim(),
-                images:
-                    finalImageUrls, // Danh sách bao gồm URL cũ giữ lại và URL mới vừa upload
+                images: finalImageUrls,
+                fieldsToClear: fieldsToClear,
               );
 
-              // if (context.mounted) {
-              //   context.read<OwnerVehicleBloc>().add(
-              //     UpdateVehicleDetails(
-              //       vehicleId: vehicle.id,
-              //       params: updateParams,
-              //     ),
-              //   );
-              //   Navigator.pop(sheetContext);
-              // }
-
-              // 2. SỬ DỤNG BIẾN ownerVehicleBloc ĐÃ LẤY Ở TRÊN
-              // Không dùng context.read ở đây nữa vì context này là sheetContext
               ownerVehicleBloc.add(
                 UpdateVehicleDetails(
                   vehicleId: vehicle.id,
@@ -913,7 +1101,6 @@ class _VehicleDetailContentState extends State<_VehicleDetailContent> {
                 Navigator.pop(sheetContext);
               }
             } catch (e) {
-              // Hiển thị lỗi dùng context của Sheet
               ScaffoldMessenger.of(sheetContext).showSnackBar(
                 SnackBar(
                   content: Text('Lỗi: $e'),
@@ -921,7 +1108,9 @@ class _VehicleDetailContentState extends State<_VehicleDetailContent> {
                 ),
               );
             } finally {
-              setSheetState(() => isUploading = false);
+              if (sheetContext.mounted) {
+                setSheetState(() => isUploading = false);
+              }
             }
           }
 
@@ -960,7 +1149,6 @@ class _VehicleDetailContentState extends State<_VehicleDetailContent> {
                     ),
                     const SizedBox(height: 24),
 
-                    // Nhập Tên Model
                     TextFormField(
                       controller: nameController,
                       decoration: InputDecoration(
@@ -975,7 +1163,6 @@ class _VehicleDetailContentState extends State<_VehicleDetailContent> {
                     ),
                     const SizedBox(height: 16),
 
-                    // Nhập Giá thuê
                     TextFormField(
                       controller: priceController,
                       decoration: InputDecoration(
@@ -987,11 +1174,38 @@ class _VehicleDetailContentState extends State<_VehicleDetailContent> {
                         ),
                       ),
                       keyboardType: TextInputType.number,
-                      validator: (v) => v!.isEmpty ? 'Vui lòng nhập giá' : null,
+                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                      validator: (v) {
+                        final value = double.tryParse(v?.trim() ?? '');
+                        if (value == null) return 'Vui lòng nhập giá';
+                        if (value < 1000) return 'Giá tối thiểu 1.000đ';
+                        return null;
+                      },
                     ),
                     const SizedBox(height: 16),
 
-                    // Nhập Mô tả
+                    TextFormField(
+                      controller: pricePerDayController,
+                      decoration: InputDecoration(
+                        labelText: 'Giá thuê mỗi ngày',
+                        prefixIcon: const Icon(Icons.today_outlined),
+                        suffixText: 'đ',
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      keyboardType: TextInputType.number,
+                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                      validator: (v) {
+                        if (v == null || v.trim().isEmpty) return null;
+                        final value = double.tryParse(v.trim());
+                        if (value == null) return 'Giá không hợp lệ';
+                        if (value < 1000) return 'Giá tối thiểu 1.000đ';
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 16),
+
                     TextFormField(
                       controller: descriptionController,
                       decoration: InputDecoration(
@@ -1006,7 +1220,198 @@ class _VehicleDetailContentState extends State<_VehicleDetailContent> {
                     ),
                     const SizedBox(height: 24),
 
-                    // QUẢN LÝ HÌNH ẢNH
+                    Text(
+                      'Chính sách thuê',
+                      style: GoogleFonts.poppins(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    SwitchListTile.adaptive(
+                      contentPadding: EdgeInsets.zero,
+                      secondary: Icon(
+                        Icons.flash_on,
+                        color: instantBook
+                            ? AppColors.primary
+                            : AppColors.textMuted,
+                      ),
+                      title: Text(
+                        'Đặt xe nhanh',
+                        style: GoogleFonts.poppins(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      subtitle: Text(
+                        'Tự động xác nhận booking khi khung giờ còn trống',
+                        style: GoogleFonts.poppins(fontSize: 12),
+                      ),
+                      value: instantBook,
+                      activeThumbColor: AppColors.primary,
+                      onChanged: (value) =>
+                          setSheetState(() => instantBook = value),
+                    ),
+                    const Divider(height: 24),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _buildPolicyNumberField(
+                            controller: dailyKmLimitController,
+                            label: 'Km/ngày',
+                            hintText: 'Bỏ trống = không giới hạn',
+                            validator: (value) {
+                              if (value == null || value.trim().isEmpty) {
+                                return null;
+                              }
+                              final parsed = int.tryParse(value.trim());
+                              if (parsed == null || parsed < 1) {
+                                return 'Tối thiểu 1';
+                              }
+                              return null;
+                            },
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: _buildPolicyNumberField(
+                            controller: excessKmPriceController,
+                            label: 'Phí vượt/km',
+                            hintText: 'VD: 3000',
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _buildPolicyNumberField(
+                            controller: weeklyDiscountController,
+                            label: 'Giảm tuần (%)',
+                            hintText: 'VD: 10',
+                            validator: _discountValidator,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: _buildPolicyNumberField(
+                            controller: monthlyDiscountController,
+                            label: 'Giảm tháng (%)',
+                            hintText: 'VD: 20',
+                            validator: _discountValidator,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    DropdownButtonFormField<String>(
+                      initialValue: geoRestriction,
+                      decoration: InputDecoration(
+                        labelText: 'Phạm vi di chuyển',
+                        prefixIcon: const Icon(Icons.map_outlined),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      items: const [
+                        DropdownMenuItem(
+                          value: 'no_restriction',
+                          child: Text('Không giới hạn'),
+                        ),
+                        DropdownMenuItem(
+                          value: 'city',
+                          child: Text('Trong thành phố'),
+                        ),
+                        DropdownMenuItem(
+                          value: 'district',
+                          child: Text('Trong quận/huyện'),
+                        ),
+                        DropdownMenuItem(
+                          value: 'province',
+                          child: Text('Trong tỉnh/thành'),
+                        ),
+                      ],
+                      onChanged: (value) {
+                        if (value != null) {
+                          setSheetState(() => geoRestriction = value);
+                        }
+                      },
+                    ),
+                    const SizedBox(height: 12),
+                    SwitchListTile.adaptive(
+                      contentPadding: EdgeInsets.zero,
+                      secondary: Icon(
+                        Icons.battery_saver,
+                        color: enforceBatteryReturn
+                            ? AppColors.primary
+                            : AppColors.textMuted,
+                      ),
+                      title: Text(
+                        'Yêu cầu pin tối thiểu khi trả',
+                        style: GoogleFonts.poppins(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      subtitle: Text(
+                        enforceBatteryReturn
+                            ? '${batteryReturnMin.round()}%'
+                            : 'Không áp dụng',
+                        style: GoogleFonts.poppins(fontSize: 12),
+                      ),
+                      value: enforceBatteryReturn,
+                      activeThumbColor: AppColors.primary,
+                      onChanged: (value) =>
+                          setSheetState(() => enforceBatteryReturn = value),
+                    ),
+                    if (enforceBatteryReturn)
+                      Slider(
+                        value: batteryReturnMin,
+                        min: 0,
+                        max: 100,
+                        divisions: 20,
+                        label: '${batteryReturnMin.round()}%',
+                        onChanged: (value) =>
+                            setSheetState(() => batteryReturnMin = value),
+                      ),
+                    const Divider(height: 24),
+                    SwitchListTile.adaptive(
+                      contentPadding: EdgeInsets.zero,
+                      secondary: Icon(
+                        Icons.smoke_free,
+                        color: allowSmoke
+                            ? AppColors.primary
+                            : AppColors.textMuted,
+                      ),
+                      title: Text(
+                        'Cho phép hút thuốc',
+                        style: GoogleFonts.poppins(fontSize: 14),
+                      ),
+                      value: allowSmoke,
+                      activeThumbColor: AppColors.primary,
+                      onChanged: (value) =>
+                          setSheetState(() => allowSmoke = value),
+                    ),
+                    SwitchListTile.adaptive(
+                      contentPadding: EdgeInsets.zero,
+                      secondary: Icon(
+                        Icons.pets_outlined,
+                        color: allowPets
+                            ? AppColors.primary
+                            : AppColors.textMuted,
+                      ),
+                      title: Text(
+                        'Cho phép thú cưng',
+                        style: GoogleFonts.poppins(fontSize: 14),
+                      ),
+                      value: allowPets,
+                      activeThumbColor: AppColors.primary,
+                      onChanged: (value) =>
+                          setSheetState(() => allowPets = value),
+                    ),
+                    const SizedBox(height: 24),
+
                     Text(
                       'Hình ảnh xe (${existingUrls.length + newImageBytes.length})',
                       style: GoogleFonts.poppins(
@@ -1050,7 +1455,6 @@ class _VehicleDetailContentState extends State<_VehicleDetailContent> {
 
                     const SizedBox(height: 32),
 
-                    // Nút hành động chính
                     SizedBox(
                       width: double.infinity,
                       child: ElevatedButton(
@@ -1076,6 +1480,68 @@ class _VehicleDetailContentState extends State<_VehicleDetailContent> {
           );
         },
       ),
+    ).whenComplete(() {
+      nameController.dispose();
+      priceController.dispose();
+      pricePerDayController.dispose();
+      dailyKmLimitController.dispose();
+      excessKmPriceController.dispose();
+      weeklyDiscountController.dispose();
+      monthlyDiscountController.dispose();
+      descriptionController.dispose();
+    });
+  }
+
+  int? _optionalInt(
+    String value, {
+    required String clearField,
+    required Set<String> fieldsToClear,
+  }) {
+    final trimmed = value.trim();
+    if (trimmed.isEmpty) {
+      fieldsToClear.add(clearField);
+      return null;
+    }
+    return int.tryParse(trimmed);
+  }
+
+  double? _optionalDouble(
+    String value, {
+    required String clearField,
+    required Set<String> fieldsToClear,
+  }) {
+    final trimmed = value.trim();
+    if (trimmed.isEmpty) {
+      fieldsToClear.add(clearField);
+      return null;
+    }
+    return double.tryParse(trimmed);
+  }
+
+  String? _discountValidator(String? value) {
+    if (value == null || value.trim().isEmpty) return null;
+    final parsed = double.tryParse(value.trim());
+    if (parsed == null) return 'Không hợp lệ';
+    if (parsed < 0 || parsed > 100) return '0-100%';
+    return null;
+  }
+
+  Widget _buildPolicyNumberField({
+    required TextEditingController controller,
+    required String label,
+    required String hintText,
+    String? Function(String?)? validator,
+  }) {
+    return TextFormField(
+      controller: controller,
+      decoration: InputDecoration(
+        labelText: label,
+        hintText: hintText,
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+      ),
+      keyboardType: TextInputType.number,
+      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+      validator: validator,
     );
   }
 
@@ -1098,6 +1564,29 @@ class _VehicleDetailContentState extends State<_VehicleDetailContent> {
         ],
       ),
     );
+  }
+
+  String _formatPrice(double price) {
+    return '${price.toStringAsFixed(0).replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (m) => '${m[1]},')}đ';
+  }
+
+  String _formatPercent(double value) {
+    return value % 1 == 0 ? value.toStringAsFixed(0) : value.toStringAsFixed(1);
+  }
+
+  String _geoRestrictionLabel(String value) {
+    switch (value) {
+      case 'city':
+        return 'Trong thành phố';
+      case 'district':
+        return 'Trong quận/huyện';
+      case 'province':
+        return 'Trong tỉnh/thành';
+      case 'no_restriction':
+        return 'Không giới hạn';
+      default:
+        return value;
+    }
   }
 
   Color _getStatusColor(VehicleStatus status) {

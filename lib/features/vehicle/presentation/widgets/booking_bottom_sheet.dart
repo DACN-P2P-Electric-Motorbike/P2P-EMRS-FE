@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -7,6 +9,7 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/widgets/app_network_image.dart';
 import '../../../../injection_container.dart';
+import '../../../booking/domain/repositories/booking_repository.dart';
 import '../../../booking/presentation/bloc/booking_bloc.dart';
 import '../../../booking/presentation/bloc/booking_event.dart';
 import '../../../booking/presentation/bloc/booking_state.dart';
@@ -45,6 +48,12 @@ class _EnhancedBookingContentState extends State<_EnhancedBookingContent> {
   String _rentalType = 'hourly'; // hourly or daily
   final _notesController = TextEditingController();
   bool _isProcessing = false;
+  String? _activeLockId;
+  DateTime? _lockExpiresAt;
+  Duration _remainingLockTime = Duration.zero;
+  Timer? _lockTimer;
+  late final BookingBloc _bookingBloc;
+  late final BookingRepository _bookingRepository;
   static const _minRentalDuration = Duration(minutes: 30);
   static const _maxRentalDuration = Duration(days: 30);
 
@@ -54,7 +63,19 @@ class _EnhancedBookingContentState extends State<_EnhancedBookingContent> {
   }
 
   @override
+  void initState() {
+    super.initState();
+    _bookingBloc = context.read<BookingBloc>();
+    _bookingRepository = sl<BookingRepository>();
+  }
+
+  @override
   void dispose() {
+    _lockTimer?.cancel();
+    final lockId = _activeLockId;
+    if (lockId != null) {
+      unawaited(_bookingRepository.releaseBookingLock(lockId));
+    }
     _notesController.dispose();
     super.dispose();
   }
@@ -136,6 +157,8 @@ class _EnhancedBookingContentState extends State<_EnhancedBookingContent> {
     return BlocListener<BookingBloc, BookingState>(
       listener: (context, state) {
         if (state is BookingCreated) {
+          _lockTimer?.cancel();
+          _activeLockId = null;
           // Save booking ID and router/navigator before closing
           final bookingId = state.booking.id;
           final router = GoRouter.of(context);
@@ -162,7 +185,9 @@ class _EnhancedBookingContentState extends State<_EnhancedBookingContent> {
                           ),
                         ),
                         Text(
-                          'Chờ chủ xe xác nhận',
+                          widget.vehicle.instantBook
+                              ? 'Xe đã được xác nhận tự động'
+                              : 'Chờ chủ xe xác nhận',
                           style: GoogleFonts.poppins(fontSize: 12),
                         ),
                       ],
@@ -186,9 +211,19 @@ class _EnhancedBookingContentState extends State<_EnhancedBookingContent> {
           controller.closed.then((_) {
             router.go('/bookings/$bookingId');
           });
+        } else if (state is BookingLockCreated) {
+          setState(() {
+            _isProcessing = false;
+            _activeLockId = state.lock.id;
+            _lockExpiresAt = state.lock.expiresAt;
+          });
+          _startLockTimer();
         } else if (state is BookingFailure) {
           // Show error message
           setState(() => _isProcessing = false);
+          final needsKyc = state.message.toLowerCase().contains('kyc');
+          final router = GoRouter.of(context);
+          final navigator = Navigator.of(context);
 
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
@@ -202,6 +237,16 @@ class _EnhancedBookingContentState extends State<_EnhancedBookingContent> {
               backgroundColor: AppColors.error,
               duration: const Duration(seconds: 4),
               behavior: SnackBarBehavior.floating,
+              action: needsKyc
+                  ? SnackBarAction(
+                      label: 'Xác minh',
+                      textColor: Colors.white,
+                      onPressed: () {
+                        navigator.pop();
+                        router.push('/kyc');
+                      },
+                    )
+                  : null,
             ),
           );
         }
@@ -252,6 +297,11 @@ class _EnhancedBookingContentState extends State<_EnhancedBookingContent> {
                       if (_totalPrice > 0) _buildPriceBreakdown(),
 
                       const SizedBox(height: 24),
+
+                      if (_activeLockId != null) ...[
+                        _buildLockCountdownCard(),
+                        const SizedBox(height: 24),
+                      ],
 
                       // Important notes
                       _buildImportantNotes(),
@@ -315,7 +365,10 @@ class _EnhancedBookingContentState extends State<_EnhancedBookingContent> {
             ),
           ),
           IconButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () {
+              _releaseActiveLock();
+              Navigator.pop(context);
+            },
             icon: const Icon(Icons.close),
             tooltip: 'Đóng',
           ),
@@ -509,6 +562,7 @@ class _EnhancedBookingContentState extends State<_EnhancedBookingContent> {
     final isSelected = _rentalType == value;
     return InkWell(
       onTap: () => setState(() {
+        _releaseActiveLock();
         _rentalType = value;
         // Reset times when switching
         if (value == 'daily') {
@@ -597,7 +651,10 @@ class _EnhancedBookingContentState extends State<_EnhancedBookingContent> {
               },
             );
             if (date != null) {
-              setState(() => _startDate = date);
+              setState(() {
+                _releaseActiveLock();
+                _startDate = date;
+              });
             }
           },
           onTimeTap: _rentalType == 'hourly'
@@ -617,7 +674,10 @@ class _EnhancedBookingContentState extends State<_EnhancedBookingContent> {
                     },
                   );
                   if (time != null) {
-                    setState(() => _startTime = time);
+                    setState(() {
+                      _releaseActiveLock();
+                      _startTime = time;
+                    });
                   }
                 }
               : null,
@@ -650,7 +710,10 @@ class _EnhancedBookingContentState extends State<_EnhancedBookingContent> {
               },
             );
             if (date != null) {
-              setState(() => _endDate = date);
+              setState(() {
+                _releaseActiveLock();
+                _endDate = date;
+              });
             }
           },
           onTimeTap: _rentalType == 'hourly'
@@ -670,7 +733,10 @@ class _EnhancedBookingContentState extends State<_EnhancedBookingContent> {
                     },
                   );
                   if (time != null) {
-                    setState(() => _endTime = time);
+                    setState(() {
+                      _releaseActiveLock();
+                      _endTime = time;
+                    });
                   }
                 }
               : null,
@@ -1005,8 +1071,18 @@ class _EnhancedBookingContentState extends State<_EnhancedBookingContent> {
             ],
           ),
           const SizedBox(height: 12),
-          _buildNote('Booking sẽ ở trạng thái "Chờ xác nhận"'),
-          _buildNote('Chủ xe có thể chấp nhận hoặc từ chối yêu cầu'),
+          _buildNote(
+            _activeLockId == null
+                ? 'Giữ chỗ trước khi xác nhận để tránh trùng lịch'
+                : 'Chỗ đang được giữ tạm thời trong lúc bạn xác nhận',
+          ),
+          _buildNote(
+            widget.vehicle.instantBook
+                ? 'Xe đặt nhanh sẽ tự động xác nhận sau khi gửi yêu cầu'
+                : 'Booking sẽ ở trạng thái "Chờ xác nhận"',
+          ),
+          if (!widget.vehicle.instantBook)
+            _buildNote('Chủ xe có thể chấp nhận hoặc từ chối yêu cầu'),
           _buildNote('Bạn sẽ nhận thông báo khi có phản hồi'),
           if (widget.vehicle.deposit != null)
             _buildNote('Tiền cọc sẽ được hoàn lại sau khi trả xe'),
@@ -1093,16 +1169,22 @@ class _EnhancedBookingContentState extends State<_EnhancedBookingContent> {
                     : Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          const Icon(Icons.check_circle_outline, size: 20),
+                          Icon(
+                            _activeLockId == null
+                                ? Icons.lock_clock
+                                : Icons.check_circle_outline,
+                            size: 20,
+                          ),
                           const SizedBox(width: 8),
-                          Text(
-                            validationMessage ??
-                                (_totalPrice > 0
-                                    ? 'Xác nhận đặt xe - ${_formatPrice(_totalPrice)}'
-                                    : 'Chọn thời gian thuê'),
-                            style: GoogleFonts.poppins(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
+                          Flexible(
+                            child: Text(
+                              validationMessage ?? _bookingButtonLabel,
+                              style: GoogleFonts.poppins(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
                             ),
                           ),
                         ],
@@ -1160,8 +1242,18 @@ class _EnhancedBookingContentState extends State<_EnhancedBookingContent> {
 
     setState(() => _isProcessing = true);
 
-    // Dispatch create booking event
-    context.read<BookingBloc>().add(
+    if (_activeLockId == null) {
+      _bookingBloc.add(
+        CreateBookingLockEvent(
+          vehicleId: widget.vehicle.id,
+          startTime: _startDateTime!,
+          endTime: _endDateTime!,
+        ),
+      );
+      return;
+    }
+
+    _bookingBloc.add(
       CreateBookingEvent(
         vehicleId: widget.vehicle.id,
         startTime: _startDateTime!,
@@ -1171,6 +1263,114 @@ class _EnhancedBookingContentState extends State<_EnhancedBookingContent> {
             : _notesController.text.trim(),
       ),
     );
+  }
+
+  String get _bookingButtonLabel {
+    if (_totalPrice <= 0) return 'Chọn thời gian thuê';
+    final price = _formatPrice(_totalPrice);
+    if (_activeLockId == null) return 'Giữ chỗ 15 phút - $price';
+    return 'Xác nhận đặt xe - $price';
+  }
+
+  Widget _buildLockCountdownCard() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.warning.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.warning.withOpacity(0.35)),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.lock_clock, color: AppColors.warning, size: 24),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Đang giữ chỗ',
+                  style: GoogleFonts.poppins(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  'Hoàn tất xác nhận trước khi hết thời gian',
+                  style: GoogleFonts.poppins(
+                    fontSize: 12,
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Text(
+            _formatDuration(_remainingLockTime),
+            style: GoogleFonts.poppins(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: AppColors.warning,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _startLockTimer() {
+    _lockTimer?.cancel();
+    _tickLockTimer();
+    _lockTimer = Timer.periodic(
+      const Duration(seconds: 1),
+      (_) => _tickLockTimer(),
+    );
+  }
+
+  void _tickLockTimer() {
+    final expiresAt = _lockExpiresAt;
+    if (expiresAt == null) return;
+
+    final remaining = expiresAt.difference(DateTime.now());
+    if (remaining <= Duration.zero) {
+      _lockTimer?.cancel();
+      if (!mounted) return;
+      setState(() {
+        _activeLockId = null;
+        _lockExpiresAt = null;
+        _remainingLockTime = Duration.zero;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Thời gian giữ chỗ đã hết, vui lòng giữ chỗ lại.'),
+          backgroundColor: AppColors.warning,
+        ),
+      );
+      return;
+    }
+
+    if (mounted) {
+      setState(() => _remainingLockTime = remaining);
+    }
+  }
+
+  void _releaseActiveLock() {
+    final lockId = _activeLockId;
+    if (lockId == null) return;
+
+    _lockTimer?.cancel();
+    _activeLockId = null;
+    _lockExpiresAt = null;
+    _remainingLockTime = Duration.zero;
+    unawaited(_bookingRepository.releaseBookingLock(lockId));
+  }
+
+  String _formatDuration(Duration value) {
+    final minutes = value.inMinutes.remainder(60).toString().padLeft(2, '0');
+    final seconds = value.inSeconds.remainder(60).toString().padLeft(2, '0');
+    return '$minutes:$seconds';
   }
 
   String _formatPrice(double price) {
