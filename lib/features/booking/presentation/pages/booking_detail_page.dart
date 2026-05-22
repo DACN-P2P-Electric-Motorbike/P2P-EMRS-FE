@@ -12,6 +12,8 @@ import '../../../../core/theme/app_theme.dart';
 import '../../../../core/usecases/usecase.dart';
 import '../../../../core/utils/vietnam_time.dart';
 import '../../../../injection_container.dart';
+import '../../../handover/presentation/pages/check_in_page.dart';
+import '../../../handover/presentation/pages/handover_summary_page.dart';
 import '../../../payment/presentation/pages/payment_page.dart';
 import '../../../review/domain/usecases/review_usecases.dart';
 import '../../../review/presentation/pages/create_review_page.dart';
@@ -567,6 +569,39 @@ class _BookingDetailPageState extends State<BookingDetailPage> {
       );
     }
 
+    if (widget.isOwnerView && (booking.isConfirmed || booking.isOngoing)) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        child: SizedBox(
+          width: double.infinity,
+          child: ElevatedButton.icon(
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => HandoverSummaryPage(
+                  bookingId: booking.id,
+                  allowCheckOut: booking.isOngoing,
+                ),
+              ),
+            ),
+            icon: const Icon(Icons.assignment_turned_in_outlined),
+            label: Text(
+              'Biên bản bàn giao',
+              style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
+            ),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primary,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(vertical: 16),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
     // Renter actions for CONFIRMED bookings
     if (!widget.isOwnerView && booking.isConfirmed) {
       final canStartTrip = booking.isPaymentCompleted;
@@ -1075,10 +1110,24 @@ class _StartTripButtonState extends State<_StartTripButton> {
     if (rawMessage.contains('startBattery')) {
       return 'Không có thông tin pin lúc bắt đầu chuyến đi. Vui lòng tải lại booking và thử lại.';
     }
+    if (rawMessage.contains('check-in handover')) {
+      return 'Vui lòng hoàn tất biên bản nhận xe và xác nhận từ hai bên trước khi bắt đầu.';
+    }
     return rawMessage;
   }
 
   Future<void> _handleStartTrip() async {
+    final handoverReady = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => CheckInPage(
+          bookingId: widget.booking.id,
+          initialBatteryLevel: widget.booking.vehicleBatteryLevel,
+        ),
+      ),
+    );
+
+    if (!mounted || handoverReady != true) return;
     setState(() => _isGettingLocation = true);
 
     double? lat;

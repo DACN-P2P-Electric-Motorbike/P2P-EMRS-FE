@@ -115,6 +115,13 @@ import 'features/kyc/domain/repositories/kyc_repository.dart';
 import 'features/kyc/domain/usecases/kyc_usecases.dart';
 import 'features/kyc/presentation/cubit/kyc_cubit.dart';
 
+// Handover Feature
+import 'features/handover/data/datasources/handover_remote_datasource.dart';
+import 'features/handover/data/repositories/handover_repository_impl.dart';
+import 'features/handover/domain/repositories/handover_repository.dart';
+import 'features/handover/domain/usecases/handover_usecases.dart';
+import 'features/handover/presentation/cubit/handover_cubit.dart';
+
 /// Global service locator instance
 final sl = GetIt.instance;
 
@@ -164,6 +171,26 @@ Future<void> init() async {
   sl.registerLazySingleton(() => SubmitKycUseCase(sl()));
   sl.registerFactory(
     () => KycCubit(getKycStatusUseCase: sl(), submitKycUseCase: sl()),
+  );
+
+  // Handover API - Singleton (depends on DioClient)
+  sl.registerLazySingleton<HandoverRemoteDataSource>(
+    () => HandoverRemoteDataSourceImpl(dioClient: sl()),
+  );
+  sl.registerLazySingleton<HandoverRepository>(
+    () => HandoverRepositoryImpl(remoteDataSource: sl()),
+  );
+  sl.registerLazySingleton(() => GetHandoverByBookingUseCase(sl()));
+  sl.registerLazySingleton(() => CreateCheckInUseCase(sl()));
+  sl.registerLazySingleton(() => CreateCheckOutUseCase(sl()));
+  sl.registerLazySingleton(() => ConfirmHandoverUseCase(sl()));
+  sl.registerFactory(
+    () => HandoverCubit(
+      getByBooking: sl(),
+      createCheckIn: sl(),
+      createCheckOut: sl(),
+      confirm: sl(),
+    ),
   );
 
   //============================================================================

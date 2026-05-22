@@ -45,6 +45,12 @@ class ApiConstants {
   static String endTrip(String id) => '/trips/$id/end';
   static String tripById(String id) => '/trips/$id';
 
+  /// Handover endpoints
+  static const String handoverCheckIn = '/handover/check-in';
+  static const String handoverCheckOut = '/handover/check-out';
+  static String handoverByBooking(String bookingId) => '/handover/$bookingId';
+  static String confirmHandover(String id) => '/handover/$id/confirm';
+
   /// Payment endpoints
   static const String payments = '/payments';
   static const String paymentByBooking = '/payments/by-booking';
@@ -73,6 +79,7 @@ class ApiConstants {
   static const String uploadVehicleImages = '/upload/vehicle-images';
   static const String uploadLicense = '/upload/license';
   static const String uploadKyc = '/upload/kyc';
+  static const String uploadHandover = '/upload/handover';
 
   /// KYC endpoints
   static const String kycSubmit = '/kyc/submit';
