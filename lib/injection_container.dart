@@ -123,6 +123,13 @@ import 'features/handover/domain/repositories/handover_repository.dart';
 import 'features/handover/domain/usecases/handover_usecases.dart';
 import 'features/handover/presentation/cubit/handover_cubit.dart';
 
+// Financial Feature
+import 'features/financial/data/datasources/financial_remote_datasource.dart';
+import 'features/financial/data/repositories/financial_repository_impl.dart';
+import 'features/financial/domain/repositories/financial_repository.dart';
+import 'features/financial/domain/usecases/financial_usecases.dart';
+import 'features/financial/presentation/cubit/financial_cubit.dart';
+
 /// Global service locator instance
 final sl = GetIt.instance;
 
@@ -193,6 +200,17 @@ Future<void> init() async {
       confirm: sl(),
     ),
   );
+
+  // Financial API - Singleton (depends on DioClient)
+  sl.registerLazySingleton<FinancialRemoteDataSource>(
+    () => FinancialRemoteDataSourceImpl(dioClient: sl()),
+  );
+  sl.registerLazySingleton<FinancialRepository>(
+    () => FinancialRepositoryImpl(remoteDataSource: sl()),
+  );
+  sl.registerLazySingleton(() => GetFinancialSummaryUseCase(sl()));
+  sl.registerLazySingleton(() => CreateManualPostTripChargeUseCase(sl()));
+  sl.registerFactory(() => FinancialCubit(getFinancialSummary: sl()));
 
   //============================================================================
   // FEATURES - AUTH
@@ -335,6 +353,7 @@ Future<void> init() async {
   sl.registerLazySingleton(() => ReleaseBookingLockUseCase(sl()));
   sl.registerLazySingleton(() => GetRenterBookingsUseCase(sl()));
   sl.registerLazySingleton(() => GetBookingByIdUseCase(sl()));
+  sl.registerLazySingleton(() => GetCancellationRefundPreviewUseCase(sl()));
   sl.registerLazySingleton(() => CancelBookingUseCase(sl()));
   sl.registerLazySingleton(() => GetOwnerBookingsUseCase(sl()));
   sl.registerLazySingleton(() => GetPendingBookingsUseCase(sl()));

@@ -37,6 +37,8 @@ class ApiConstants {
 
   /// Booking endpoints
   static const String bookings = '/bookings';
+  static String bookingCancellationPreview(String id) =>
+      '/bookings/$id/cancellation-preview';
   static String vehicleSchedule(String vehicleId) =>
       '/bookings/vehicle/$vehicleId/schedule';
 
@@ -63,6 +65,12 @@ class ApiConstants {
   static String initiatePayOS(String id) => '/payments/$id/initiate-payos';
   static String initiateMoMo(String id) => '/payments/$id/initiate-momo';
   static String refundPayment(String id) => '/payments/$id/refund';
+
+  /// Financial endpoints
+  static String financialByBooking(String bookingId) =>
+      '/financial/bookings/$bookingId';
+  static String financialChargesByBooking(String bookingId) =>
+      '/financial/bookings/$bookingId/charges';
 
   /// Privacy endpoints
   static const String privacyExport = '/privacy/export';

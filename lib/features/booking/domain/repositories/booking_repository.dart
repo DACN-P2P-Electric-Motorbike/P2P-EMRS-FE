@@ -2,6 +2,7 @@ import 'package:dartz/dartz.dart';
 import '../../../../core/error/failures.dart';
 import '../entities/booking.dart';
 import '../entities/booking_lock.dart';
+import '../entities/cancellation_refund_preview.dart';
 
 /// Abstract repository interface for bookings
 /// Following Dependency Inversion Principle - Domain layer defines the contract
@@ -43,6 +44,10 @@ abstract class BookingRepository {
     String bookingId,
     String reason,
   );
+
+  /// Preview cancellation refund policy
+  Future<Either<Failure, CancellationRefundPreview>>
+  getCancellationRefundPreview(String bookingId);
 
   /// Get owner bookings
   Future<Either<Failure, List<BookingEntity>>> getOwnerBookings({

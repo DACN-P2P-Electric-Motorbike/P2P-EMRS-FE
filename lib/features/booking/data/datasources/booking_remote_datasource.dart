@@ -2,11 +2,13 @@ import 'dart:async';
 
 import 'package:dio/dio.dart';
 import '../../../../core/cache/hive_cache_service.dart';
+import '../../../../core/constants/api_constants.dart';
 import '../../../../core/error/exceptions.dart';
 import '../../../../core/network/dio_client.dart';
 import '../../../../core/utils/vietnam_time.dart';
 import '../../domain/entities/booking_lock.dart';
 import '../models/booking_model.dart';
+import '../models/cancellation_refund_preview_model.dart';
 
 /// Abstract class for booking remote data source
 abstract class BookingRemoteDataSource {
@@ -42,6 +44,11 @@ abstract class BookingRemoteDataSource {
 
   /// Cancel booking
   Future<BookingModel> cancelBooking(String bookingId, String reason);
+
+  /// Preview cancellation refund policy
+  Future<CancellationRefundPreviewModel> getCancellationRefundPreview(
+    String bookingId,
+  );
 
   /// Get owner bookings
   Future<List<BookingModel>> getOwnerBookings({String? status});
@@ -275,6 +282,30 @@ class BookingRemoteDataSourceImpl implements BookingRemoteDataSource {
 
       throw ServerException(
         message: 'Failed to cancel booking',
+        statusCode: response.statusCode,
+      );
+    } on DioException catch (e) {
+      throw ServerException.fromDioException(e);
+    }
+  }
+
+  @override
+  Future<CancellationRefundPreviewModel> getCancellationRefundPreview(
+    String bookingId,
+  ) async {
+    try {
+      final response = await _dioClient.get(
+        ApiConstants.bookingCancellationPreview(bookingId),
+      );
+
+      if (response.statusCode == 200) {
+        return CancellationRefundPreviewModel.fromJson(
+          Map<String, dynamic>.from(response.data as Map),
+        );
+      }
+
+      throw ServerException(
+        message: 'Failed to get cancellation preview',
         statusCode: response.statusCode,
       );
     } on DioException catch (e) {

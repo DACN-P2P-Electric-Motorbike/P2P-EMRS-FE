@@ -4,6 +4,7 @@ import '../../../../core/error/failures.dart';
 import '../../../../core/usecases/usecase.dart';
 import '../entities/booking.dart';
 import '../entities/booking_lock.dart';
+import '../entities/cancellation_refund_preview.dart';
 import '../repositories/booking_repository.dart';
 
 /// Create booking lock use case
@@ -132,6 +133,31 @@ class CancelBookingUseCase
     CancelBookingParams params,
   ) async {
     return await _repository.cancelBooking(params.bookingId, params.reason);
+  }
+}
+
+/// Preview cancellation refund policy use case
+class GetCancellationRefundPreviewParams extends Equatable {
+  final String bookingId;
+
+  const GetCancellationRefundPreviewParams(this.bookingId);
+
+  @override
+  List<Object> get props => [bookingId];
+}
+
+class GetCancellationRefundPreviewUseCase
+    implements
+        UseCase<CancellationRefundPreview, GetCancellationRefundPreviewParams> {
+  final BookingRepository _repository;
+
+  GetCancellationRefundPreviewUseCase(this._repository);
+
+  @override
+  Future<Either<Failure, CancellationRefundPreview>> call(
+    GetCancellationRefundPreviewParams params,
+  ) async {
+    return _repository.getCancellationRefundPreview(params.bookingId);
   }
 }
 

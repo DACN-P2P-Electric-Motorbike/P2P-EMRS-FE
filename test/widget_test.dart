@@ -9,6 +9,11 @@ import 'package:fe_capstone_project/core/localization/app_localizations.dart';
 import 'package:fe_capstone_project/features/booking/domain/entities/booking.dart';
 import 'package:fe_capstone_project/features/auth/data/models/user_model.dart';
 import 'package:fe_capstone_project/features/auth/domain/entities/user.dart';
+import 'package:fe_capstone_project/features/booking/data/models/cancellation_refund_preview_model.dart';
+import 'package:fe_capstone_project/features/financial/data/datasources/financial_remote_datasource.dart';
+import 'package:fe_capstone_project/features/financial/data/models/financial_summary_model.dart';
+import 'package:fe_capstone_project/features/financial/data/repositories/financial_repository_impl.dart';
+import 'package:fe_capstone_project/features/financial/domain/entities/financial_summary.dart';
 import 'package:fe_capstone_project/features/review/data/models/review_model.dart';
 import 'package:fe_capstone_project/features/review/domain/entities/review_entity.dart';
 import 'package:fe_capstone_project/features/settings/data/privacy_remote_data_source.dart';
@@ -93,6 +98,117 @@ void main() {
     expect(booking.isPaymentCompleted, isTrue);
     expect(booking.vehicleBatteryLevel, 87);
   });
+
+  test('FinancialSummaryModel parses deposit and post-trip charges', () {
+    final model = FinancialSummaryModel.fromJson({
+      'bookingId': 'booking-id',
+      'deposit': {
+        'id': 'deposit-id',
+        'bookingId': 'booking-id',
+        'paymentId': 'payment-id',
+        'status': 'PENDING_CHARGES',
+        'heldAmount': 300000,
+        'pendingChargeAmount': 25000,
+        'capturedAmount': 0,
+        'releasedAmount': 275000,
+        'refundedAmount': 0,
+        'notes': 'Pending post-trip review',
+        'heldAt': '2026-05-23T03:00:00.000Z',
+        'releaseDueAt': null,
+        'releasedAt': null,
+        'disputedAt': null,
+        'createdAt': '2026-05-23T03:00:00.000Z',
+        'updatedAt': '2026-05-23T04:00:00.000Z',
+      },
+      'charges': [
+        {
+          'id': 'charge-id',
+          'bookingId': 'booking-id',
+          'tripId': 'trip-id',
+          'type': 'LOW_BATTERY',
+          'status': 'PENDING_REVIEW',
+          'source': 'SYSTEM',
+          'amount': 25000,
+          'quantity': 5,
+          'unitPrice': 5000,
+          'description': 'Returned battery 5% below minimum',
+          'reviewedBy': null,
+          'reviewedAt': null,
+          'createdAt': '2026-05-23T04:00:00.000Z',
+          'updatedAt': '2026-05-23T04:00:00.000Z',
+        },
+      ],
+      'totalPendingCharges': 25000,
+      'totalApprovedCharges': 0,
+      'totalCapturedCharges': 0,
+      'releasableDeposit': 275000,
+    });
+
+    final summary = model.toEntity();
+    expect(summary.deposit?.status, DepositLedgerStatus.pendingCharges);
+    expect(summary.charges.single.type, PostTripChargeType.lowBattery);
+    expect(summary.charges.single.status, PostTripChargeStatus.pendingReview);
+    expect(summary.releasableDeposit, 275000);
+    expect(summary.hasFinancialActivity, isTrue);
+  });
+
+  test('CancellationRefundPreviewModel parses rental and deposit split', () {
+    final model = CancellationRefundPreviewModel.fromJson({
+      'bookingId': 'booking-id',
+      'cancelledBy': 'RENTER',
+      'cancellable': true,
+      'hoursUntilStart': 12,
+      'policyCode': 'RENTER_STANDARD_PARTIAL_REFUND',
+      'rentalRefundRate': 0.5,
+      'trustPenalty': 5,
+      'rentalAmount': 100000,
+      'depositAmount': 500000,
+      'paidAmount': 600000,
+      'refundableRentalAmount': 50000,
+      'refundableDepositAmount': 500000,
+      'refundAmount': 550000,
+      'forfeitedRentalAmount': 50000,
+      'forfeitedDepositAmount': 0,
+      'forfeitedAmount': 50000,
+      'isPaid': true,
+      'paymentStatus': 'COMPLETED',
+      'refundType': 'partial',
+    });
+
+    final preview = model.toEntity();
+    expect(preview.policyDisplayText, 'Hoàn 50% tiền thuê');
+    expect(preview.refundableDepositAmount, 500000);
+    expect(preview.refundAmount, 550000);
+    expect(preview.forfeitedRentalAmount, 50000);
+    expect(preview.trustPenalty, 5);
+  });
+
+  test(
+    'FinancialRepositoryImpl maps manual charge type to API value',
+    () async {
+      final remoteDataSource = _FakeFinancialRemoteDataSource();
+      final repository = FinancialRepositoryImpl(
+        remoteDataSource: remoteDataSource,
+      );
+
+      final result = await repository.createManualPostTripCharge(
+        bookingId: 'booking-id',
+        type: PostTripChargeType.roadsideAssistance,
+        amount: 75000,
+        description: 'Roadside support fee',
+        evidenceUrls: const ['https://example.com/evidence.jpg'],
+      );
+
+      expect(result.isRight(), isTrue);
+      expect(remoteDataSource.lastBookingId, 'booking-id');
+      expect(remoteDataSource.lastType, 'ROADSIDE_ASSISTANCE');
+      expect(remoteDataSource.lastAmount, 75000);
+      expect(remoteDataSource.lastDescription, 'Roadside support fee');
+      expect(remoteDataSource.lastEvidenceUrls, [
+        'https://example.com/evidence.jpg',
+      ]);
+    },
+  );
 
   test('VietnamTime formats UTC API timestamps as GMT+7', () {
     final utcTime = DateTime.parse('2026-05-10T03:00:00.000Z');
@@ -474,6 +590,48 @@ class _FakePrivacyRemoteDataSource implements PrivacyRemoteDataSource {
       dueAt: DateTime(2026, 5, 2, 10, 30),
       createdAt: DateTime(2026, 4, 29, 10, 30),
       completedAt: null,
+    );
+  }
+}
+
+class _FakeFinancialRemoteDataSource implements FinancialRemoteDataSource {
+  String? lastBookingId;
+  String? lastType;
+  double? lastAmount;
+  String? lastDescription;
+  List<String>? lastEvidenceUrls;
+
+  @override
+  Future<FinancialSummaryModel> getBookingFinancialSummary(String bookingId) {
+    return Future.value(_emptySummary(bookingId));
+  }
+
+  @override
+  Future<FinancialSummaryModel> createManualPostTripCharge({
+    required String bookingId,
+    required String type,
+    required double amount,
+    required String description,
+    double? quantity,
+    double? unitPrice,
+    List<String>? evidenceUrls,
+  }) {
+    lastBookingId = bookingId;
+    lastType = type;
+    lastAmount = amount;
+    lastDescription = description;
+    lastEvidenceUrls = evidenceUrls;
+    return Future.value(_emptySummary(bookingId));
+  }
+
+  FinancialSummaryModel _emptySummary(String bookingId) {
+    return FinancialSummaryModel(
+      bookingId: bookingId,
+      charges: const [],
+      totalPendingCharges: 0,
+      totalApprovedCharges: 0,
+      totalCapturedCharges: 0,
+      releasableDeposit: 0,
     );
   }
 }
