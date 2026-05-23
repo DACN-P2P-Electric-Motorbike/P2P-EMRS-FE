@@ -71,6 +71,8 @@ class ApiConstants {
       '/financial/bookings/$bookingId';
   static String financialChargesByBooking(String bookingId) =>
       '/financial/bookings/$bookingId/charges';
+  static String disputeFinancialCharge(String chargeId) =>
+      '/financial/charges/$chargeId/dispute';
 
   /// Privacy endpoints
   static const String privacyExport = '/privacy/export';

@@ -17,6 +17,12 @@ abstract class FinancialRemoteDataSource {
     double? unitPrice,
     List<String>? evidenceUrls,
   });
+
+  Future<FinancialSummaryModel> disputePostTripCharge({
+    required String chargeId,
+    required String reason,
+    List<String>? evidenceUrls,
+  });
 }
 
 class FinancialRemoteDataSourceImpl implements FinancialRemoteDataSource {
@@ -76,6 +82,34 @@ class FinancialRemoteDataSourceImpl implements FinancialRemoteDataSource {
       }
       throw ServerException(
         message: 'Failed to create post-trip charge',
+        statusCode: response.statusCode,
+      );
+    } on DioException catch (e) {
+      throw ServerException.fromDioException(e);
+    }
+  }
+
+  @override
+  Future<FinancialSummaryModel> disputePostTripCharge({
+    required String chargeId,
+    required String reason,
+    List<String>? evidenceUrls,
+  }) async {
+    try {
+      final response = await _dioClient.post(
+        ApiConstants.disputeFinancialCharge(chargeId),
+        data: {
+          'reason': reason,
+          if (evidenceUrls != null) 'evidenceUrls': evidenceUrls,
+        },
+      );
+      if (response.statusCode == 200) {
+        return FinancialSummaryModel.fromJson(
+          _responseMap(response.data, 'Failed to dispute post-trip charge'),
+        );
+      }
+      throw ServerException(
+        message: 'Failed to dispute post-trip charge',
         statusCode: response.statusCode,
       );
     } on DioException catch (e) {

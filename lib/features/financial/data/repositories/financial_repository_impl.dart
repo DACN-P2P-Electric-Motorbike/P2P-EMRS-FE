@@ -60,6 +60,28 @@ class FinancialRepositoryImpl implements FinancialRepository {
     }
   }
 
+  @override
+  Future<Either<Failure, FinancialSummaryEntity>> disputePostTripCharge({
+    required String chargeId,
+    required String reason,
+    List<String>? evidenceUrls,
+  }) async {
+    try {
+      final summary = await _remoteDataSource.disputePostTripCharge(
+        chargeId: chargeId,
+        reason: reason,
+        evidenceUrls: evidenceUrls,
+      );
+      return Right(summary.toEntity());
+    } on ServerException catch (e) {
+      return Left(ServerFailure(message: e.message, statusCode: e.statusCode));
+    } on ConnectionException {
+      return const Left(ConnectionFailure());
+    } catch (e) {
+      return Left(ServerFailure(message: e.toString()));
+    }
+  }
+
   String _chargeTypeToApi(PostTripChargeType type) {
     switch (type) {
       case PostTripChargeType.lateReturn:

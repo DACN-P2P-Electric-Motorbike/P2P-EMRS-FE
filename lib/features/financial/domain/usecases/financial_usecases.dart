@@ -67,3 +67,33 @@ class CreateManualPostTripChargeUseCase
     );
   }
 }
+
+class DisputePostTripChargeParams {
+  final String chargeId;
+  final String reason;
+  final List<String>? evidenceUrls;
+
+  const DisputePostTripChargeParams({
+    required this.chargeId,
+    required this.reason,
+    this.evidenceUrls,
+  });
+}
+
+class DisputePostTripChargeUseCase
+    implements UseCase<FinancialSummaryEntity, DisputePostTripChargeParams> {
+  final FinancialRepository repository;
+
+  DisputePostTripChargeUseCase(this.repository);
+
+  @override
+  Future<Either<Failure, FinancialSummaryEntity>> call(
+    DisputePostTripChargeParams params,
+  ) {
+    return repository.disputePostTripCharge(
+      chargeId: params.chargeId,
+      reason: params.reason,
+      evidenceUrls: params.evidenceUrls,
+    );
+  }
+}

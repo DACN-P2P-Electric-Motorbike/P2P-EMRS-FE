@@ -210,6 +210,7 @@ Future<void> init() async {
   );
   sl.registerLazySingleton(() => GetFinancialSummaryUseCase(sl()));
   sl.registerLazySingleton(() => CreateManualPostTripChargeUseCase(sl()));
+  sl.registerLazySingleton(() => DisputePostTripChargeUseCase(sl()));
   sl.registerFactory(() => FinancialCubit(getFinancialSummary: sl()));
 
   //============================================================================

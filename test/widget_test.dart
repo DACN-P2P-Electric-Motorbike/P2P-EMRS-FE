@@ -210,6 +210,26 @@ void main() {
     },
   );
 
+  test('FinancialRepositoryImpl forwards renter charge disputes', () async {
+    final remoteDataSource = _FakeFinancialRemoteDataSource();
+    final repository = FinancialRepositoryImpl(
+      remoteDataSource: remoteDataSource,
+    );
+
+    final result = await repository.disputePostTripCharge(
+      chargeId: 'charge-id',
+      reason: 'Damage existed before pickup',
+      evidenceUrls: const ['https://example.com/check-in.jpg'],
+    );
+
+    expect(result.isRight(), isTrue);
+    expect(remoteDataSource.lastDisputeChargeId, 'charge-id');
+    expect(remoteDataSource.lastDisputeReason, 'Damage existed before pickup');
+    expect(remoteDataSource.lastDisputeEvidenceUrls, [
+      'https://example.com/check-in.jpg',
+    ]);
+  });
+
   test('VietnamTime formats UTC API timestamps as GMT+7', () {
     final utcTime = DateTime.parse('2026-05-10T03:00:00.000Z');
 
@@ -600,6 +620,9 @@ class _FakeFinancialRemoteDataSource implements FinancialRemoteDataSource {
   double? lastAmount;
   String? lastDescription;
   List<String>? lastEvidenceUrls;
+  String? lastDisputeChargeId;
+  String? lastDisputeReason;
+  List<String>? lastDisputeEvidenceUrls;
 
   @override
   Future<FinancialSummaryModel> getBookingFinancialSummary(String bookingId) {
@@ -622,6 +645,18 @@ class _FakeFinancialRemoteDataSource implements FinancialRemoteDataSource {
     lastDescription = description;
     lastEvidenceUrls = evidenceUrls;
     return Future.value(_emptySummary(bookingId));
+  }
+
+  @override
+  Future<FinancialSummaryModel> disputePostTripCharge({
+    required String chargeId,
+    required String reason,
+    List<String>? evidenceUrls,
+  }) {
+    lastDisputeChargeId = chargeId;
+    lastDisputeReason = reason;
+    lastDisputeEvidenceUrls = evidenceUrls;
+    return Future.value(_emptySummary('booking-id'));
   }
 
   FinancialSummaryModel _emptySummary(String bookingId) {

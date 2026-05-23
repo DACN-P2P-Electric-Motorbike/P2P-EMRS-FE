@@ -181,7 +181,11 @@ class _BookingDetailPageState extends State<BookingDetailPage> {
             const SizedBox(height: 16),
             BlocProvider(
               create: (_) => sl<FinancialCubit>()..load(booking.id),
-              child: const FinancialSummaryCard(),
+              child: FinancialSummaryCard(
+                allowDisputes: !widget.isOwnerView,
+                onDisputeCharge: (charge) =>
+                    _showDisputeChargeDialog(context, booking, charge),
+              ),
             ),
           ],
 
@@ -1317,6 +1321,142 @@ class _BookingDetailPageState extends State<BookingDetailPage> {
                         ),
                       )
                     : const Text('Gửi phí'),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  void _showDisputeChargeDialog(
+    BuildContext context,
+    BookingEntity booking,
+    PostTripChargeEntity charge,
+  ) {
+    final reasonController = TextEditingController();
+    final formKey = GlobalKey<FormState>();
+    var isSubmitting = false;
+    final bookingBloc = context.read<BookingBloc>();
+    final currency = NumberFormat.currency(locale: 'vi_VN', symbol: 'đ');
+
+    showDialog(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, setDialogState) {
+          Future<void> submit() async {
+            if (!(formKey.currentState?.validate() ?? false)) return;
+            setDialogState(() => isSubmitting = true);
+
+            final messenger = ScaffoldMessenger.of(context);
+            final navigator = Navigator.of(dialogContext);
+            final result = await sl<DisputePostTripChargeUseCase>()(
+              DisputePostTripChargeParams(
+                chargeId: charge.id,
+                reason: reasonController.text.trim(),
+              ),
+            );
+
+            if (!mounted || !dialogContext.mounted) return;
+            result.fold(
+              (failure) {
+                setDialogState(() => isSubmitting = false);
+                messenger.showSnackBar(
+                  SnackBar(
+                    content: Text(failure.message),
+                    backgroundColor: AppColors.error,
+                  ),
+                );
+              },
+              (_) {
+                navigator.pop();
+                messenger.showSnackBar(
+                  const SnackBar(
+                    content: Text('Đã gửi khiếu nại phí sau chuyến'),
+                    backgroundColor: AppColors.success,
+                  ),
+                );
+                bookingBloc.add(LoadBookingByIdEvent(booking.id));
+              },
+            );
+          }
+
+          return AlertDialog(
+            title: Text(
+              'Khiếu nại phí',
+              style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
+            ),
+            content: Form(
+              key: formKey,
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '${charge.type.displayText} - ${currency.format(charge.amount)}',
+                      style: GoogleFonts.poppins(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.textPrimary,
+                      ),
+                    ),
+                    if (charge.description.trim().isNotEmpty) ...[
+                      const SizedBox(height: 8),
+                      Text(
+                        charge.description,
+                        style: GoogleFonts.poppins(
+                          fontSize: 12,
+                          color: AppColors.textSecondary,
+                          height: 1.4,
+                        ),
+                      ),
+                    ],
+                    const SizedBox(height: 14),
+                    TextFormField(
+                      controller: reasonController,
+                      enabled: !isSubmitting,
+                      maxLines: 4,
+                      decoration: InputDecoration(
+                        labelText: 'Lý do khiếu nại *',
+                        hintText: 'Mô tả vì sao bạn không đồng ý với phí này',
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      validator: (value) {
+                        if (value == null || value.trim().isEmpty) {
+                          return 'Nhập lý do khiếu nại';
+                        }
+                        return null;
+                      },
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: isSubmitting
+                    ? null
+                    : () => Navigator.pop(dialogContext),
+                child: const Text('Hủy'),
+              ),
+              ElevatedButton(
+                onPressed: isSubmitting ? null : submit,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.warning,
+                ),
+                child: isSubmitting
+                    ? const SizedBox(
+                        height: 18,
+                        width: 18,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      )
+                    : const Text('Gửi khiếu nại'),
               ),
             ],
           );

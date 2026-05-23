@@ -9,7 +9,14 @@ import '../cubit/financial_cubit.dart';
 import '../cubit/financial_state.dart';
 
 class FinancialSummaryCard extends StatelessWidget {
-  const FinancialSummaryCard({super.key});
+  final bool allowDisputes;
+  final ValueChanged<PostTripChargeEntity>? onDisputeCharge;
+
+  const FinancialSummaryCard({
+    super.key,
+    this.allowDisputes = false,
+    this.onDisputeCharge,
+  });
 
   static final NumberFormat _currency = NumberFormat.currency(
     locale: 'vi_VN',
@@ -218,6 +225,11 @@ class FinancialSummaryCard extends StatelessWidget {
 
   Widget _buildChargeRow(PostTripChargeEntity charge) {
     final color = _chargeStatusColor(charge.status);
+    final canDispute =
+        allowDisputes &&
+        onDisputeCharge != null &&
+        (charge.status == PostTripChargeStatus.pendingReview ||
+            charge.status == PostTripChargeStatus.approved);
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
       padding: const EdgeInsets.all(12),
@@ -271,6 +283,24 @@ class FinancialSummaryCard extends StatelessWidget {
               ),
             ),
           ),
+          if (canDispute) ...[
+            const SizedBox(height: 8),
+            Align(
+              alignment: Alignment.centerRight,
+              child: TextButton.icon(
+                onPressed: () => onDisputeCharge?.call(charge),
+                icon: const Icon(Icons.report_problem_outlined, size: 16),
+                label: Text(
+                  'Khiếu nại phí',
+                  style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
+                ),
+                style: TextButton.styleFrom(
+                  foregroundColor: AppColors.warning,
+                  visualDensity: VisualDensity.compact,
+                ),
+              ),
+            ),
+          ],
         ],
       ),
     );

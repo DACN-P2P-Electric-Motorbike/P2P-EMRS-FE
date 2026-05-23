@@ -17,4 +17,10 @@ abstract class FinancialRepository {
     double? unitPrice,
     List<String>? evidenceUrls,
   });
+
+  Future<Either<Failure, FinancialSummaryEntity>> disputePostTripCharge({
+    required String chargeId,
+    required String reason,
+    List<String>? evidenceUrls,
+  });
 }
