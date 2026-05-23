@@ -6,6 +6,7 @@ import '../../../../core/cache/hive_cache_service.dart';
 import '../../../../core/error/exceptions.dart';
 import '../../../../core/network/dio_client.dart';
 import '../models/vehicle_model.dart';
+import '../models/availability_window_model.dart';
 import '../models/create_vehicle_params.dart';
 import '../models/update_vehicle_params.dart';
 
@@ -25,6 +26,20 @@ abstract class OwnerVehicleRemoteDataSource {
 
   /// Toggle vehicle availability (on/off for rent)
   Future<VehicleModel> toggleAvailability(String id);
+
+  /// Get owner-managed availability windows for a vehicle
+  Future<List<VehicleAvailabilityWindowModel>> getAvailabilityWindows(
+    String vehicleId,
+  );
+
+  /// Create an owner-managed availability window
+  Future<VehicleAvailabilityWindowModel> createAvailabilityWindow(
+    String vehicleId,
+    CreateAvailabilityWindowParams params,
+  );
+
+  /// Delete an owner-managed availability window
+  Future<void> deleteAvailabilityWindow(String vehicleId, String windowId);
 
   /// Delete a vehicle
   Future<void> deleteVehicle(String id);
@@ -128,6 +143,61 @@ class OwnerVehicleRemoteDataSourceImpl implements OwnerVehicleRemoteDataSource {
       await _cache.write('owner.vehicle:$id', vehicle.toJson());
       await _cache.delete('owner.vehicles');
       return vehicle;
+    } on DioException catch (e) {
+      throw ServerException.fromDioException(e);
+    }
+  }
+
+  @override
+  Future<List<VehicleAvailabilityWindowModel>> getAvailabilityWindows(
+    String vehicleId,
+  ) async {
+    try {
+      final response = await _dioClient.get(
+        ApiConstants.vehicleAvailability(vehicleId),
+      );
+      if (response.data is! List) return [];
+
+      return (response.data as List)
+          .whereType<Map>()
+          .map(
+            (json) => VehicleAvailabilityWindowModel.fromJson(
+              Map<String, dynamic>.from(json),
+            ),
+          )
+          .toList();
+    } on DioException catch (e) {
+      throw ServerException.fromDioException(e);
+    }
+  }
+
+  @override
+  Future<VehicleAvailabilityWindowModel> createAvailabilityWindow(
+    String vehicleId,
+    CreateAvailabilityWindowParams params,
+  ) async {
+    try {
+      final response = await _dioClient.post(
+        ApiConstants.vehicleAvailability(vehicleId),
+        data: params.toJson(),
+      );
+      return VehicleAvailabilityWindowModel.fromJson(
+        response.data as Map<String, dynamic>,
+      );
+    } on DioException catch (e) {
+      throw ServerException.fromDioException(e);
+    }
+  }
+
+  @override
+  Future<void> deleteAvailabilityWindow(
+    String vehicleId,
+    String windowId,
+  ) async {
+    try {
+      await _dioClient.delete(
+        ApiConstants.vehicleAvailabilityWindow(vehicleId, windowId),
+      );
     } on DioException catch (e) {
       throw ServerException.fromDioException(e);
     }

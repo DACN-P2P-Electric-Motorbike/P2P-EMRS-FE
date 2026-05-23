@@ -83,6 +83,9 @@ class _BikeRegistrationContentState extends State<_BikeRegistrationContent> {
   final _excessKmPriceController = TextEditingController();
   final _weeklyDiscountController = TextEditingController();
   final _monthlyDiscountController = TextEditingController();
+  final _firstRegistrationYearController = TextEditingController();
+  final _batteryHealthController = TextEditingController();
+  final _batteryCycleCountController = TextEditingController();
   final _addressController = TextEditingController();
   double? _pickedLatitude;
   double? _pickedLongitude;
@@ -91,6 +94,9 @@ class _BikeRegistrationContentState extends State<_BikeRegistrationContent> {
   bool _allowPets = false;
   String _geoRestriction = 'no_restriction';
   double _batteryReturnMin = 20;
+  VehicleCondition? _selectedCondition;
+  BatteryType? _selectedBatteryType;
+  DateTime? _batteryLastServicedAt;
 
   @override
   void dispose() {
@@ -103,6 +109,9 @@ class _BikeRegistrationContentState extends State<_BikeRegistrationContent> {
     _excessKmPriceController.dispose();
     _weeklyDiscountController.dispose();
     _monthlyDiscountController.dispose();
+    _firstRegistrationYearController.dispose();
+    _batteryHealthController.dispose();
+    _batteryCycleCountController.dispose();
     _addressController.dispose();
     super.dispose();
   }
@@ -170,10 +179,32 @@ class _BikeRegistrationContentState extends State<_BikeRegistrationContent> {
     final monthlyDiscount = _parseOptionalDouble(
       _monthlyDiscountController.text,
     );
+    final firstRegistrationYear = _parseOptionalInt(
+      _firstRegistrationYearController.text,
+    );
+    final batteryHealth = _parseOptionalInt(_batteryHealthController.text);
+    final batteryCycleCount = _parseOptionalInt(
+      _batteryCycleCountController.text,
+    );
 
     if ((weeklyDiscount != null && weeklyDiscount > 100) ||
         (monthlyDiscount != null && monthlyDiscount > 100)) {
       _showError('Ưu đãi không được vượt quá 100%');
+      return;
+    }
+    final currentYear = DateTime.now().year;
+    if (firstRegistrationYear != null &&
+        (firstRegistrationYear < 2000 ||
+            firstRegistrationYear > currentYear + 1)) {
+      _showError('Năm đăng ký phải nằm trong khoảng 2000-${currentYear + 1}');
+      return;
+    }
+    if (batteryHealth != null && (batteryHealth < 0 || batteryHealth > 100)) {
+      _showError('Sức khỏe pin phải từ 0 đến 100%');
+      return;
+    }
+    if (batteryCycleCount != null && batteryCycleCount < 0) {
+      _showError('Số chu kỳ pin không được âm');
       return;
     }
 
@@ -205,6 +236,12 @@ class _BikeRegistrationContentState extends State<_BikeRegistrationContent> {
       allowPets: _allowPets,
       geoRestriction: _geoRestriction,
       batteryReturnMin: _batteryReturnMin.round(),
+      firstRegistrationYear: firstRegistrationYear,
+      condition: _selectedCondition,
+      batteryType: _selectedBatteryType,
+      batteryHealth: batteryHealth,
+      batteryCycleCount: batteryCycleCount,
+      batteryLastServicedAt: _batteryLastServicedAt,
       address: _addressController.text.isNotEmpty
           ? _addressController.text.trim()
           : 'Ho Chi Minh City',
@@ -254,6 +291,19 @@ class _BikeRegistrationContentState extends State<_BikeRegistrationContent> {
           _addressController.text = result.address;
         }
       });
+    }
+  }
+
+  Future<void> _pickBatteryServiceDate() async {
+    final now = DateTime.now();
+    final date = await showDatePicker(
+      context: context,
+      initialDate: _batteryLastServicedAt ?? now,
+      firstDate: DateTime(2000),
+      lastDate: now,
+    );
+    if (date != null && mounted) {
+      setState(() => _batteryLastServicedAt = date);
     }
   }
 
@@ -775,6 +825,9 @@ class _BikeRegistrationContentState extends State<_BikeRegistrationContent> {
           _buildRentalPolicySection(),
           const SizedBox(height: 24),
 
+          _buildEvConditionSection(),
+          const SizedBox(height: 24),
+
           // Địa chỉ nhận xe
           _buildLabel('Địa chỉ nhận xe *'),
           _buildTextField(
@@ -840,8 +893,8 @@ class _BikeRegistrationContentState extends State<_BikeRegistrationContent> {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        '• Bật "Sẵn sàng cho thuê" = xe hiển thị cho người thuê\n'
-                        '• Tắt khi bạn không muốn cho thuê nữa',
+                        '• Bật "Hiển thị trong tìm kiếm" để xe xuất hiện khi lịch còn trống\n'
+                        '• Thêm khung lịch rảnh hoặc ngày bận sau khi xe được duyệt',
                         style: GoogleFonts.poppins(
                           fontSize: 11,
                           color: AppColors.info,
@@ -910,7 +963,134 @@ class _BikeRegistrationContentState extends State<_BikeRegistrationContent> {
                   'Pin tối thiểu khi trả',
                   '${_batteryReturnMin.round()}%',
                 ),
+                _buildSummaryRow(
+                  'Tình trạng xe',
+                  _selectedCondition?.displayName ?? '-',
+                ),
+                _buildSummaryRow(
+                  'Loại pin',
+                  _selectedBatteryType?.displayName ?? '-',
+                ),
+                _buildSummaryRow(
+                  'Sức khỏe pin',
+                  _batteryHealthController.text.isEmpty
+                      ? '-'
+                      : '${_batteryHealthController.text}%',
+                ),
               ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEvConditionSection() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Tình trạng xe điện',
+            style: GoogleFonts.poppins(
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+              color: AppColors.textPrimary,
+            ),
+          ),
+          const SizedBox(height: 12),
+          _buildLabel('Tình trạng xe'),
+          _buildDropdown<VehicleCondition>(
+            hint: 'Chọn tình trạng xe',
+            value: _selectedCondition,
+            items: VehicleCondition.values,
+            itemLabel: (condition) => condition.displayName,
+            onChanged: (value) => setState(() => _selectedCondition = value),
+          ),
+          const SizedBox(height: 16),
+          _buildLabel('Loại pin'),
+          _buildDropdown<BatteryType>(
+            hint: 'Chọn loại pin',
+            value: _selectedBatteryType,
+            items: BatteryType.values,
+            itemLabel: (type) => type.displayName,
+            onChanged: (value) => setState(() => _selectedBatteryType = value),
+          ),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              Expanded(
+                child: _buildPolicyNumberField(
+                  controller: _firstRegistrationYearController,
+                  label: 'Năm đăng ký',
+                  hintText: 'VD: 2023',
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _buildPolicyNumberField(
+                  controller: _batteryHealthController,
+                  label: 'Sức khỏe pin (%)',
+                  hintText: 'VD: 92',
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          _buildPolicyNumberField(
+            controller: _batteryCycleCountController,
+            label: 'Số chu kỳ sạc',
+            hintText: 'VD: 180',
+          ),
+          const SizedBox(height: 16),
+          _buildLabel('Ngày bảo dưỡng pin gần nhất'),
+          InkWell(
+            onTap: _pickBatteryServiceDate,
+            borderRadius: BorderRadius.circular(12),
+            child: Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+              decoration: BoxDecoration(
+                color: AppColors.inputBackground,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.event_available_outlined,
+                    color: AppColors.primary,
+                    size: 20,
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      _batteryLastServicedAt == null
+                          ? 'Chọn ngày'
+                          : _formatDate(_batteryLastServicedAt!),
+                      style: GoogleFonts.poppins(
+                        fontSize: 14,
+                        color: _batteryLastServicedAt == null
+                            ? AppColors.textMuted
+                            : AppColors.textPrimary,
+                      ),
+                    ),
+                  ),
+                  if (_batteryLastServicedAt != null)
+                    IconButton(
+                      onPressed: () =>
+                          setState(() => _batteryLastServicedAt = null),
+                      icon: const Icon(Icons.close, size: 18),
+                      color: AppColors.textMuted,
+                      tooltip: 'Xóa ngày',
+                    ),
+                ],
+              ),
             ),
           ),
         ],
@@ -1617,6 +1797,12 @@ class _BikeRegistrationContentState extends State<_BikeRegistrationContent> {
       result.write(str[i]);
     }
     return result.toString();
+  }
+
+  String _formatDate(DateTime date) {
+    final day = date.day.toString().padLeft(2, '0');
+    final month = date.month.toString().padLeft(2, '0');
+    return '$day/$month/${date.year}';
   }
 
   Widget _buildMultiSelectDropdown() {

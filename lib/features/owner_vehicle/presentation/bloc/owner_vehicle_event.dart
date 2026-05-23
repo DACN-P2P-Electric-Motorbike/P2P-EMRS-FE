@@ -89,6 +89,44 @@ class ToggleVehicleAvailability extends OwnerVehicleEvent {
   List<Object?> get props => [vehicleId];
 }
 
+/// Event to load owner-managed availability windows
+class LoadVehicleAvailability extends OwnerVehicleEvent {
+  final String vehicleId;
+
+  const LoadVehicleAvailability(this.vehicleId);
+
+  @override
+  List<Object?> get props => [vehicleId];
+}
+
+/// Event to create an owner-managed availability window
+class CreateVehicleAvailability extends OwnerVehicleEvent {
+  final String vehicleId;
+  final CreateAvailabilityWindowParams params;
+
+  const CreateVehicleAvailability({
+    required this.vehicleId,
+    required this.params,
+  });
+
+  @override
+  List<Object?> get props => [vehicleId, params];
+}
+
+/// Event to delete an owner-managed availability window
+class DeleteVehicleAvailability extends OwnerVehicleEvent {
+  final String vehicleId;
+  final String windowId;
+
+  const DeleteVehicleAvailability({
+    required this.vehicleId,
+    required this.windowId,
+  });
+
+  @override
+  List<Object?> get props => [vehicleId, windowId];
+}
+
 /// Event to reset state (clear messages)
 class ResetOwnerVehicleState extends OwnerVehicleEvent {
   const ResetOwnerVehicleState();

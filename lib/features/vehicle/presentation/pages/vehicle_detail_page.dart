@@ -434,6 +434,45 @@ class _VehicleDetailContent extends StatelessWidget {
                                 label: 'Năm sản xuất',
                                 value: '${vehicle.year}',
                               ),
+                            if (vehicle.firstRegistrationYear != null)
+                              _buildSpecCard(
+                                icon: Icons.event_outlined,
+                                label: 'Năm đăng ký',
+                                value: '${vehicle.firstRegistrationYear}',
+                              ),
+                            if (vehicle.condition != null)
+                              _buildSpecCard(
+                                icon: Icons.verified_outlined,
+                                label: 'Tình trạng',
+                                value: vehicle.condition!.displayName,
+                              ),
+                            if (vehicle.batteryType != null)
+                              _buildSpecCard(
+                                icon: Icons.battery_unknown_outlined,
+                                label: 'Loại pin',
+                                value: vehicle.batteryType!.displayName,
+                              ),
+                            if (vehicle.batteryHealth != null)
+                              _buildSpecCard(
+                                icon: Icons.health_and_safety_outlined,
+                                label: 'Sức khỏe pin',
+                                value: '${vehicle.batteryHealth}%',
+                                color: _getBatteryColor(vehicle.batteryHealth!),
+                              ),
+                            if (vehicle.batteryCycleCount != null)
+                              _buildSpecCard(
+                                icon: Icons.repeat_outlined,
+                                label: 'Chu kỳ sạc',
+                                value: '${vehicle.batteryCycleCount}',
+                              ),
+                            if (vehicle.batteryLastServicedAt != null)
+                              _buildSpecCard(
+                                icon: Icons.build_circle_outlined,
+                                label: 'Bảo dưỡng pin',
+                                value: _formatDate(
+                                  vehicle.batteryLastServicedAt!,
+                                ),
+                              ),
                             if (vehicle.deposit != null)
                               _buildSpecCard(
                                 icon: Icons.account_balance_wallet,
@@ -872,6 +911,13 @@ class _VehicleDetailContent extends StatelessWidget {
 
   String _formatPrice(double price) {
     return '${price.toStringAsFixed(0).replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (m) => '${m[1]},')}đ';
+  }
+
+  String _formatDate(DateTime value) {
+    final local = value.toLocal();
+    final day = local.day.toString().padLeft(2, '0');
+    final month = local.month.toString().padLeft(2, '0');
+    return '$day/$month/${local.year}';
   }
 }
 

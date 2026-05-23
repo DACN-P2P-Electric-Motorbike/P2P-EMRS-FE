@@ -19,6 +19,12 @@ class CreateVehicleParams extends Equatable {
   final bool allowPets;
   final String? geoRestriction;
   final int? batteryReturnMin;
+  final int? firstRegistrationYear;
+  final VehicleCondition? condition;
+  final BatteryType? batteryType;
+  final int? batteryHealth;
+  final int? batteryCycleCount;
+  final DateTime? batteryLastServicedAt;
   final String address;
   final double? latitude;
   final double? longitude;
@@ -46,6 +52,12 @@ class CreateVehicleParams extends Equatable {
     this.allowPets = false,
     this.geoRestriction,
     this.batteryReturnMin,
+    this.firstRegistrationYear,
+    this.condition,
+    this.batteryType,
+    this.batteryHealth,
+    this.batteryCycleCount,
+    this.batteryLastServicedAt,
     required this.address,
     this.latitude,
     this.longitude,
@@ -84,6 +96,20 @@ class CreateVehicleParams extends Equatable {
       json['geoRestriction'] = geoRestriction;
     }
     if (batteryReturnMin != null) json['batteryReturnMin'] = batteryReturnMin;
+    if (firstRegistrationYear != null) {
+      json['firstRegistrationYear'] = firstRegistrationYear;
+    }
+    if (condition != null) json['condition'] = condition!.toApiString();
+    if (batteryType != null) json['batteryType'] = batteryType!.toApiString();
+    if (batteryHealth != null) json['batteryHealth'] = batteryHealth;
+    if (batteryCycleCount != null) {
+      json['batteryCycleCount'] = batteryCycleCount;
+    }
+    if (batteryLastServicedAt != null) {
+      json['batteryLastServicedAt'] = batteryLastServicedAt!
+          .toUtc()
+          .toIso8601String();
+    }
     if (latitude != null) json['latitude'] = latitude;
     if (longitude != null) json['longitude'] = longitude;
     if (description != null && description!.isNotEmpty) {
@@ -117,6 +143,12 @@ class CreateVehicleParams extends Equatable {
     allowPets,
     geoRestriction,
     batteryReturnMin,
+    firstRegistrationYear,
+    condition,
+    batteryType,
+    batteryHealth,
+    batteryCycleCount,
+    batteryLastServicedAt,
     address,
     latitude,
     longitude,

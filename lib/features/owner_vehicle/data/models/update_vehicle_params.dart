@@ -18,6 +18,12 @@ class UpdateVehicleParams extends Equatable {
   final bool? allowPets;
   final String? geoRestriction;
   final int? batteryReturnMin;
+  final int? firstRegistrationYear;
+  final VehicleCondition? condition;
+  final BatteryType? batteryType;
+  final int? batteryHealth;
+  final int? batteryCycleCount;
+  final DateTime? batteryLastServicedAt;
   final String? address;
   final double? latitude;
   final double? longitude;
@@ -41,6 +47,12 @@ class UpdateVehicleParams extends Equatable {
     this.allowPets,
     this.geoRestriction,
     this.batteryReturnMin,
+    this.firstRegistrationYear,
+    this.condition,
+    this.batteryType,
+    this.batteryHealth,
+    this.batteryCycleCount,
+    this.batteryLastServicedAt,
     this.address,
     this.latitude,
     this.longitude,
@@ -68,6 +80,20 @@ class UpdateVehicleParams extends Equatable {
     if (allowPets != null) json['allowPets'] = allowPets;
     if (geoRestriction != null) json['geoRestriction'] = geoRestriction;
     if (batteryReturnMin != null) json['batteryReturnMin'] = batteryReturnMin;
+    if (firstRegistrationYear != null) {
+      json['firstRegistrationYear'] = firstRegistrationYear;
+    }
+    if (condition != null) json['condition'] = condition!.toApiString();
+    if (batteryType != null) json['batteryType'] = batteryType!.toApiString();
+    if (batteryHealth != null) json['batteryHealth'] = batteryHealth;
+    if (batteryCycleCount != null) {
+      json['batteryCycleCount'] = batteryCycleCount;
+    }
+    if (batteryLastServicedAt != null) {
+      json['batteryLastServicedAt'] = batteryLastServicedAt!
+          .toUtc()
+          .toIso8601String();
+    }
     if (address != null) json['address'] = address;
     if (latitude != null) json['latitude'] = latitude;
     if (longitude != null) json['longitude'] = longitude;
@@ -107,6 +133,12 @@ class UpdateVehicleParams extends Equatable {
     allowPets,
     geoRestriction,
     batteryReturnMin,
+    firstRegistrationYear,
+    condition,
+    batteryType,
+    batteryHealth,
+    batteryCycleCount,
+    batteryLastServicedAt,
     address,
     latitude,
     longitude,

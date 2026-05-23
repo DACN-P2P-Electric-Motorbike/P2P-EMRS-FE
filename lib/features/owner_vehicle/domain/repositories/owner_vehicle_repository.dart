@@ -1,6 +1,7 @@
 import 'package:dartz/dartz.dart';
 import '../../../../core/error/failures.dart';
 import '../entities/vehicle_entity.dart';
+import '../../data/models/availability_window_model.dart';
 import '../../data/models/create_vehicle_params.dart';
 import '../../data/models/update_vehicle_params.dart';
 
@@ -25,6 +26,23 @@ abstract class OwnerVehicleRepository {
 
   /// Toggle vehicle availability (on/off for rent)
   Future<Either<Failure, VehicleEntity>> toggleAvailability(String id);
+
+  /// Get owner-managed availability windows for a vehicle
+  Future<Either<Failure, List<VehicleAvailabilityWindowEntity>>>
+  getAvailabilityWindows(String vehicleId);
+
+  /// Create an owner-managed availability window
+  Future<Either<Failure, VehicleAvailabilityWindowEntity>>
+  createAvailabilityWindow(
+    String vehicleId,
+    CreateAvailabilityWindowParams params,
+  );
+
+  /// Delete an owner-managed availability window
+  Future<Either<Failure, void>> deleteAvailabilityWindow(
+    String vehicleId,
+    String windowId,
+  );
 
   /// Delete a vehicle
   Future<Either<Failure, void>> deleteVehicle(String id);

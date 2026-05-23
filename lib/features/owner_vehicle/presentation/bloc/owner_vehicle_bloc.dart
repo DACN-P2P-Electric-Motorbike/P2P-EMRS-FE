@@ -5,6 +5,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/cache/hive_cache_service.dart';
 import '../../../../core/usecases/usecase.dart';
+import '../../data/models/availability_window_model.dart';
 import '../../data/models/create_vehicle_params.dart';
 import '../../data/models/update_vehicle_params.dart';
 import '../../domain/entities/vehicle_entity.dart';
@@ -14,6 +15,7 @@ import '../../domain/usecases/get_vehicle_by_id_usecase.dart';
 import '../../domain/usecases/register_vehicle_usecase.dart';
 import '../../domain/usecases/toggle_availability_usecase.dart';
 import '../../domain/usecases/update_vehicle_usecase.dart';
+import '../../domain/usecases/vehicle_availability_usecases.dart';
 
 part 'owner_vehicle_event.dart';
 part 'owner_vehicle_state.dart';
@@ -25,6 +27,9 @@ class OwnerVehicleBloc extends Bloc<OwnerVehicleEvent, OwnerVehicleState> {
   final UpdateVehicleUseCase _updateVehicleUseCase;
   final GetVehicleByIdUseCase _getVehicleByIdUseCase;
   final ToggleAvailabilityUseCase _toggleAvailabilityUseCase;
+  final GetVehicleAvailabilityUseCase _getVehicleAvailabilityUseCase;
+  final CreateVehicleAvailabilityUseCase _createVehicleAvailabilityUseCase;
+  final DeleteVehicleAvailabilityUseCase _deleteVehicleAvailabilityUseCase;
   final DeleteVehicleUseCase _deleteVehicleUseCase;
   final HiveCacheService _cache;
   late final StreamSubscription<String> _cacheSubscription;
@@ -36,6 +41,9 @@ class OwnerVehicleBloc extends Bloc<OwnerVehicleEvent, OwnerVehicleState> {
     required UpdateVehicleUseCase updateVehicleUseCase,
     required GetVehicleByIdUseCase getVehicleByIdUseCase,
     required ToggleAvailabilityUseCase toggleAvailabilityUseCase,
+    required GetVehicleAvailabilityUseCase getVehicleAvailabilityUseCase,
+    required CreateVehicleAvailabilityUseCase createVehicleAvailabilityUseCase,
+    required DeleteVehicleAvailabilityUseCase deleteVehicleAvailabilityUseCase,
     required DeleteVehicleUseCase deleteVehicleUseCase,
     required HiveCacheService cache,
   }) : _getMyVehiclesUseCase = getMyVehiclesUseCase,
@@ -43,6 +51,9 @@ class OwnerVehicleBloc extends Bloc<OwnerVehicleEvent, OwnerVehicleState> {
        _updateVehicleUseCase = updateVehicleUseCase,
        _getVehicleByIdUseCase = getVehicleByIdUseCase,
        _toggleAvailabilityUseCase = toggleAvailabilityUseCase,
+       _getVehicleAvailabilityUseCase = getVehicleAvailabilityUseCase,
+       _createVehicleAvailabilityUseCase = createVehicleAvailabilityUseCase,
+       _deleteVehicleAvailabilityUseCase = deleteVehicleAvailabilityUseCase,
        _deleteVehicleUseCase = deleteVehicleUseCase,
        _cache = cache,
        super(OwnerVehicleState.initial()) {
@@ -55,6 +66,9 @@ class OwnerVehicleBloc extends Bloc<OwnerVehicleEvent, OwnerVehicleState> {
     on<LoadVehicleById>(_onLoadVehicleById);
     on<DeleteVehicle>(_onDeleteVehicle);
     on<ToggleVehicleAvailability>(_onToggleAvailability);
+    on<LoadVehicleAvailability>(_onLoadVehicleAvailability);
+    on<CreateVehicleAvailability>(_onCreateVehicleAvailability);
+    on<DeleteVehicleAvailability>(_onDeleteVehicleAvailability);
     on<ResetOwnerVehicleState>(_onResetState);
   }
 
@@ -362,6 +376,117 @@ class OwnerVehicleBloc extends Bloc<OwnerVehicleEvent, OwnerVehicleState> {
                 ? updatedVehicle
                 : null,
             successMessage: statusText,
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> _onLoadVehicleAvailability(
+    LoadVehicleAvailability event,
+    Emitter<OwnerVehicleState> emit,
+  ) async {
+    emit(state.copyWith(isAvailabilityLoading: true, clearError: true));
+
+    final result = await _getVehicleAvailabilityUseCase(event.vehicleId);
+
+    result.fold(
+      (failure) => emit(
+        state.copyWith(
+          isAvailabilityLoading: false,
+          errorMessage: failure.message,
+        ),
+      ),
+      (windows) => emit(
+        state.copyWith(
+          isAvailabilityLoading: false,
+          availabilityWindows: windows,
+        ),
+      ),
+    );
+  }
+
+  Future<void> _onCreateVehicleAvailability(
+    CreateVehicleAvailability event,
+    Emitter<OwnerVehicleState> emit,
+  ) async {
+    emit(
+      state.copyWith(
+        status: OwnerVehicleStatus.updating,
+        isAvailabilityLoading: true,
+        clearError: true,
+        clearSuccess: true,
+      ),
+    );
+
+    final result = await _createVehicleAvailabilityUseCase(
+      CreateVehicleAvailabilityParams(
+        vehicleId: event.vehicleId,
+        windowParams: event.params,
+      ),
+    );
+
+    result.fold(
+      (failure) => emit(
+        state.copyWith(
+          status: OwnerVehicleStatus.error,
+          isAvailabilityLoading: false,
+          errorMessage: failure.message,
+        ),
+      ),
+      (window) {
+        final windows = [...state.availabilityWindows, window]
+          ..sort((a, b) => a.startTime.compareTo(b.startTime));
+        emit(
+          state.copyWith(
+            status: OwnerVehicleStatus.updated,
+            isAvailabilityLoading: false,
+            availabilityWindows: windows,
+            successMessage: 'Đã cập nhật lịch cho thuê',
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> _onDeleteVehicleAvailability(
+    DeleteVehicleAvailability event,
+    Emitter<OwnerVehicleState> emit,
+  ) async {
+    emit(
+      state.copyWith(
+        status: OwnerVehicleStatus.updating,
+        isAvailabilityLoading: true,
+        clearError: true,
+        clearSuccess: true,
+      ),
+    );
+
+    final result = await _deleteVehicleAvailabilityUseCase(
+      DeleteVehicleAvailabilityParams(
+        vehicleId: event.vehicleId,
+        windowId: event.windowId,
+      ),
+    );
+
+    result.fold(
+      (failure) => emit(
+        state.copyWith(
+          status: OwnerVehicleStatus.error,
+          isAvailabilityLoading: false,
+          errorMessage: failure.message,
+        ),
+      ),
+      (_) {
+        final windows = state.availabilityWindows
+            .where((window) => window.id != event.windowId)
+            .toList();
+        emit(
+          state.copyWith(
+            status: OwnerVehicleStatus.updated,
+            isAvailabilityLoading: false,
+            availabilityWindows: windows,
+            successMessage: 'Đã xóa khung lịch',
           ),
         );
       },

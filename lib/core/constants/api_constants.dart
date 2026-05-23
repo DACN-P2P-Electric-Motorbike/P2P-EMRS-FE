@@ -31,6 +31,9 @@ class ApiConstants {
   static String vehicleById(String id) => '/vehicles/$id';
   static String toggleVehicleAvailability(String id) =>
       '/vehicles/$id/toggle-availability';
+  static String vehicleAvailability(String id) => '/vehicles/$id/availability';
+  static String vehicleAvailabilityWindow(String id, String windowId) =>
+      '/vehicles/$id/availability/$windowId';
 
   /// Booking endpoints
   static const String bookings = '/bookings';

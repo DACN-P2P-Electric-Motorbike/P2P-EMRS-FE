@@ -57,6 +57,7 @@ import 'features/owner_vehicle/domain/usecases/get_vehicle_by_id_usecase.dart';
 import 'features/owner_vehicle/domain/usecases/register_vehicle_usecase.dart';
 import 'features/owner_vehicle/domain/usecases/toggle_availability_usecase.dart';
 import 'features/owner_vehicle/domain/usecases/update_vehicle_usecase.dart';
+import 'features/owner_vehicle/domain/usecases/vehicle_availability_usecases.dart';
 
 // Owner Vehicle Feature - Presentation Layer
 import 'features/owner_vehicle/presentation/bloc/owner_vehicle_bloc.dart';
@@ -244,6 +245,9 @@ Future<void> init() async {
   sl.registerLazySingleton(() => UpdateVehicleUseCase(sl()));
   sl.registerLazySingleton(() => GetVehicleByIdUseCase(sl()));
   sl.registerLazySingleton(() => ToggleAvailabilityUseCase(sl()));
+  sl.registerLazySingleton(() => GetVehicleAvailabilityUseCase(sl()));
+  sl.registerLazySingleton(() => CreateVehicleAvailabilityUseCase(sl()));
+  sl.registerLazySingleton(() => DeleteVehicleAvailabilityUseCase(sl()));
   sl.registerLazySingleton(() => DeleteVehicleUseCase(sl()));
 
   // BLoC - Factory
@@ -254,6 +258,9 @@ Future<void> init() async {
       updateVehicleUseCase: sl(),
       getVehicleByIdUseCase: sl(),
       toggleAvailabilityUseCase: sl(),
+      getVehicleAvailabilityUseCase: sl(),
+      createVehicleAvailabilityUseCase: sl(),
+      deleteVehicleAvailabilityUseCase: sl(),
       deleteVehicleUseCase: sl(),
       cache: sl(),
     ),
