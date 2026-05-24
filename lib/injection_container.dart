@@ -227,6 +227,7 @@ Future<void> init() async {
     () => IncidentRepositoryImpl(remoteDataSource: sl()),
   );
   sl.registerLazySingleton(() => GetBookingIncidentsUseCase(sl()));
+  sl.registerLazySingleton(() => GetBookingClaimSummaryUseCase(sl()));
   sl.registerLazySingleton(() => CreateIncidentReportUseCase(sl()));
 
   //============================================================================

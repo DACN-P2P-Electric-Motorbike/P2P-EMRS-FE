@@ -20,6 +20,7 @@ import '../../../financial/presentation/cubit/financial_cubit.dart';
 import '../../../financial/presentation/widgets/financial_summary_card.dart';
 import '../../../handover/presentation/pages/check_in_page.dart';
 import '../../../handover/presentation/pages/handover_summary_page.dart';
+import '../../../incident/domain/entities/claim_summary.dart';
 import '../../../incident/domain/entities/incident_report.dart';
 import '../../../incident/domain/usecases/incident_usecases.dart';
 import '../../../payment/presentation/pages/payment_page.dart';
@@ -589,8 +590,8 @@ class _BookingDetailPageState extends State<BookingDetailPage> {
     BuildContext context,
     BookingEntity booking,
   ) {
-    final reportsFuture = sl<GetBookingIncidentsUseCase>()(
-      GetBookingIncidentsParams(booking.id),
+    final summaryFuture = sl<GetBookingClaimSummaryUseCase>()(
+      GetBookingClaimSummaryParams(booking.id),
     );
 
     return Container(
@@ -608,14 +609,13 @@ class _BookingDetailPageState extends State<BookingDetailPage> {
         ],
       ),
       child: FutureBuilder(
-        future: reportsFuture,
+        future: summaryFuture,
         builder: (context, snapshot) {
-          final reports =
-              snapshot.data?.fold(
-                (_) => <IncidentReportEntity>[],
-                (items) => items,
-              ) ??
-              <IncidentReportEntity>[];
+          final summary = snapshot.data?.fold<BookingClaimSummaryEntity?>(
+            (_) => null,
+            (item) => item,
+          );
+          final reports = summary?.incidents ?? <IncidentReportEntity>[];
           final failureMessage = snapshot.data?.fold(
             (failure) => failure.message,
             (_) => null,
@@ -655,20 +655,209 @@ class _BookingDetailPageState extends State<BookingDetailPage> {
                     color: AppColors.error,
                   ),
                 )
-              else if (reports.isEmpty)
-                Text(
-                  'Chưa có báo cáo sự cố cho booking này.',
-                  style: GoogleFonts.poppins(
-                    fontSize: 13,
-                    color: AppColors.textSecondary,
-                  ),
-                )
-              else
-                ...reports.map(_buildIncidentReportRow),
+              else ...[
+                if (summary != null) _buildClaimSummaryOverview(summary),
+                if (reports.isEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 8),
+                    child: Text(
+                      'Chưa có báo cáo sự cố cho booking này.',
+                      style: GoogleFonts.poppins(
+                        fontSize: 13,
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                  )
+                else ...[
+                  const SizedBox(height: 12),
+                  ...reports.map(_buildIncidentReportRow),
+                ],
+                if (summary != null && summary.timeline.isNotEmpty) ...[
+                  const SizedBox(height: 12),
+                  _buildClaimTimeline(summary.timeline),
+                ],
+              ],
             ],
           );
         },
       ),
+    );
+  }
+
+  Widget _buildClaimSummaryOverview(BookingClaimSummaryEntity summary) {
+    final color = _claimStatusColor(summary.status);
+    final formatter = NumberFormat.currency(
+      locale: 'vi_VN',
+      symbol: '₫',
+      decimalDigits: 0,
+    );
+    final firstActions = summary.nextActions.take(2).toList();
+    final firstBlockers = summary.blockers.take(2).toList();
+
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.06),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: color.withOpacity(0.2)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 5,
+                ),
+                decoration: BoxDecoration(
+                  color: color.withOpacity(0.12),
+                  borderRadius: BorderRadius.circular(999),
+                ),
+                child: Text(
+                  summary.status.displayText,
+                  style: GoogleFonts.poppins(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    color: color,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  '${summary.totals.unresolvedIncidentCount} sự cố mở · ${formatter.format(summary.totals.pendingChargeAmount + summary.totals.approvedChargeAmount)} phí chờ xử lý',
+                  style: GoogleFonts.poppins(
+                    fontSize: 12,
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          if (firstBlockers.isNotEmpty) ...[
+            const SizedBox(height: 10),
+            ...firstBlockers.map(
+              (blocker) => Padding(
+                padding: const EdgeInsets.only(bottom: 4),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.lock_clock_outlined,
+                      size: 14,
+                      color: AppColors.warning,
+                    ),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Text(
+                        _claimBlockerText(blocker),
+                        style: GoogleFonts.poppins(
+                          fontSize: 12,
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+          if (firstActions.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            ...firstActions.map(
+              (action) => Padding(
+                padding: const EdgeInsets.only(bottom: 4),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.task_alt_outlined,
+                      size: 14,
+                      color: AppColors.info,
+                    ),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Text(
+                        '${_claimActorText(action.actor)}: ${_claimActionText(action)}',
+                        style: GoogleFonts.poppins(
+                          fontSize: 12,
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8,
+            runSpacing: 6,
+            children: [
+              _IncidentMetaChip(
+                icon: Icons.account_balance_wallet_outlined,
+                text:
+                    'Cọc còn lại: ${formatter.format(summary.totals.releasableDepositAmount)}',
+              ),
+              _IncidentMetaChip(
+                icon: Icons.payments_outlined,
+                text:
+                    'Payout: ${formatter.format(summary.totals.ownerPayoutAmount)}',
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildClaimTimeline(List<ClaimTimelineEventEntity> timeline) {
+    final recent = timeline.reversed.take(4).toList();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Dòng xử lý',
+          style: GoogleFonts.poppins(
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
+            color: AppColors.textPrimary,
+          ),
+        ),
+        const SizedBox(height: 8),
+        ...recent.map(
+          (event) => Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  width: 8,
+                  height: 8,
+                  margin: const EdgeInsets.only(top: 5),
+                  decoration: BoxDecoration(
+                    color: AppColors.info,
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    '${VietnamTime.format(event.occurredAt, 'dd/MM HH:mm')} · ${_claimTimelineText(event)}',
+                    style: GoogleFonts.poppins(
+                      fontSize: 12,
+                      color: AppColors.textSecondary,
+                      height: 1.35,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
     );
   }
 
@@ -771,6 +960,111 @@ class _BookingDetailPageState extends State<BookingDetailPage> {
         return AppColors.success;
       case IncidentStatus.rejected:
         return AppColors.error;
+    }
+  }
+
+  Color _claimStatusColor(ClaimWorkflowStatus status) {
+    switch (status) {
+      case ClaimWorkflowStatus.noClaim:
+      case ClaimWorkflowStatus.resolved:
+        return AppColors.success;
+      case ClaimWorkflowStatus.open:
+      case ClaimWorkflowStatus.awaitingChargeReview:
+      case ClaimWorkflowStatus.awaitingDepositDecision:
+        return AppColors.warning;
+      case ClaimWorkflowStatus.underReview:
+      case ClaimWorkflowStatus.awaitingPayout:
+        return AppColors.info;
+    }
+  }
+
+  String _claimBlockerText(ClaimBlockerEntity blocker) {
+    switch (blocker.code) {
+      case 'UNRESOLVED_INCIDENTS':
+        return '${blocker.count} sự cố đang mở hoặc đang xét duyệt';
+      case 'UNRESOLVED_POST_TRIP_CHARGES':
+        return '${blocker.count} phí sau chuyến cần admin duyệt';
+      case 'APPROVED_CHARGES_NOT_CAPTURED':
+        return '${blocker.count} phí đã duyệt chưa được khấu trừ hoặc miễn';
+      case 'DEPOSIT_DECISION_PENDING':
+        return 'Tiền cọc đang chờ quyết định xử lý';
+      case 'OWNER_PAYOUT_ON_HOLD':
+        return 'Payout owner đang bị giữ';
+      default:
+        return blocker.label;
+    }
+  }
+
+  String _claimActorText(String actor) {
+    switch (actor.toUpperCase()) {
+      case 'ADMIN':
+        return 'Admin';
+      case 'OWNER':
+        return 'Owner';
+      case 'RENTER':
+        return 'Người thuê';
+      default:
+        return actor;
+    }
+  }
+
+  String _claimActionText(ClaimNextActionEntity action) {
+    switch (action.action) {
+      case 'Move incident reports under review':
+        return 'chuyển sự cố sang đang xét duyệt';
+      case 'Resolve or reject incident reports':
+        return 'kết luận sự cố';
+      case 'Review disputed or pending post-trip charges':
+        return 'duyệt phí sau chuyến';
+      case 'Capture approved charges or waive them':
+        return 'khấu trừ hoặc miễn phí đã duyệt';
+      case 'Release remaining deposit':
+        return 'hoàn phần cọc còn lại';
+      case 'Wait for admin deposit decision':
+        return 'chờ quyết định tiền cọc';
+      case 'Process owner payout':
+        return 'xử lý payout owner';
+      case 'Wait for payout hold to clear':
+        return 'chờ gỡ giữ payout';
+      case 'Create or refresh owner payout':
+        return 'tạo hoặc cập nhật payout owner';
+      default:
+        return action.action;
+    }
+  }
+
+  String _claimTimelineText(ClaimTimelineEventEntity event) {
+    switch (event.type) {
+      case 'BOOKING_CREATED':
+        return 'Booking được tạo';
+      case 'PAYMENT_COMPLETED':
+        return 'Thanh toán hoàn tất';
+      case 'TRIP_COMPLETED':
+        return 'Chuyến đi hoàn tất';
+      case 'DEPOSIT_HELD':
+        return 'Tiền cọc được ghi nhận';
+      case 'DEPOSIT_DISPUTED':
+        return 'Tiền cọc chuyển sang tranh chấp';
+      case 'DEPOSIT_RELEASED':
+        return 'Tiền cọc đã hoàn';
+      case 'POST_TRIP_CHARGE_CREATED':
+        return 'Phí sau chuyến được tạo';
+      case 'POST_TRIP_CHARGE_REVIEWED':
+        return 'Phí sau chuyến được duyệt';
+      case 'INCIDENT_CREATED':
+        return 'Sự cố được báo cáo';
+      case 'INCIDENT_REVIEWED':
+        return 'Sự cố được admin xem xét';
+      case 'INCIDENT_RESOLVED':
+        return 'Sự cố được kết luận';
+      case 'OWNER_PAYOUT_CREATED':
+        return 'Payout owner được chuẩn bị';
+      case 'OWNER_PAYOUT_PROCESSED':
+        return 'Payout owner bắt đầu xử lý';
+      case 'OWNER_PAYOUT_COMPLETED':
+        return 'Payout owner hoàn tất';
+      default:
+        return event.label;
     }
   }
 

@@ -3,10 +3,13 @@ import 'package:dio/dio.dart';
 import '../../../../core/constants/api_constants.dart';
 import '../../../../core/error/exceptions.dart';
 import '../../../../core/network/dio_client.dart';
+import '../models/claim_summary_model.dart';
 import '../models/incident_report_model.dart';
 
 abstract class IncidentRemoteDataSource {
   Future<List<IncidentReportModel>> getBookingIncidents(String bookingId);
+
+  Future<BookingClaimSummaryModel> getBookingClaimSummary(String bookingId);
 
   Future<IncidentReportModel> createIncidentReport({
     required String bookingId,
@@ -49,6 +52,28 @@ class IncidentRemoteDataSourceImpl implements IncidentRemoteDataSource {
       }
       throw ServerException(
         message: 'Failed to get incident reports',
+        statusCode: response.statusCode,
+      );
+    } on DioException catch (e) {
+      throw ServerException.fromDioException(e);
+    }
+  }
+
+  @override
+  Future<BookingClaimSummaryModel> getBookingClaimSummary(
+    String bookingId,
+  ) async {
+    try {
+      final response = await _dioClient.get(
+        ApiConstants.claimSummaryByBooking(bookingId),
+      );
+      if (response.statusCode == 200) {
+        return BookingClaimSummaryModel.fromJson(
+          _responseMap(response.data, 'Failed to get claim summary'),
+        );
+      }
+      throw ServerException(
+        message: 'Failed to get claim summary',
         statusCode: response.statusCode,
       );
     } on DioException catch (e) {

@@ -15,8 +15,10 @@ import 'package:fe_capstone_project/features/financial/data/models/financial_sum
 import 'package:fe_capstone_project/features/financial/data/repositories/financial_repository_impl.dart';
 import 'package:fe_capstone_project/features/financial/domain/entities/financial_summary.dart';
 import 'package:fe_capstone_project/features/incident/data/datasources/incident_remote_datasource.dart';
+import 'package:fe_capstone_project/features/incident/data/models/claim_summary_model.dart';
 import 'package:fe_capstone_project/features/incident/data/models/incident_report_model.dart';
 import 'package:fe_capstone_project/features/incident/data/repositories/incident_repository_impl.dart';
+import 'package:fe_capstone_project/features/incident/domain/entities/claim_summary.dart';
 import 'package:fe_capstone_project/features/incident/domain/entities/incident_report.dart';
 import 'package:fe_capstone_project/features/review/data/models/review_model.dart';
 import 'package:fe_capstone_project/features/review/domain/entities/review_entity.dart';
@@ -284,6 +286,78 @@ void main() {
     expect(incident.isOpen, isTrue);
   });
 
+  test('BookingClaimSummaryModel parses unified claim workflow payload', () {
+    final model = BookingClaimSummaryModel.fromJson({
+      'bookingId': 'booking-id',
+      'status': 'AWAITING_DEPOSIT_DECISION',
+      'statusLabel': 'Awaiting deposit decision',
+      'totals': {
+        'incidentCount': 1,
+        'openIncidentCount': 0,
+        'unresolvedIncidentCount': 1,
+        'pendingChargeAmount': 120000,
+        'approvedChargeAmount': 30000,
+        'capturedChargeAmount': 0,
+        'finalizedChargeAmount': 0,
+        'heldDepositAmount': 500000,
+        'releasableDepositAmount': 350000,
+        'ownerPayoutAmount': 170000,
+      },
+      'blockers': [
+        {
+          'code': 'DEPOSIT_DECISION_PENDING',
+          'label': 'Deposit ledger is DISPUTED',
+          'count': 1,
+          'blocksDepositRelease': true,
+          'blocksOwnerPayout': true,
+        },
+      ],
+      'nextActions': [
+        {
+          'actor': 'ADMIN',
+          'action': 'Capture approved charges or waive them',
+          'reason': '1 approved charge(s) are not finalized',
+          'priority': 'HIGH',
+        },
+      ],
+      'timeline': [
+        {
+          'type': 'INCIDENT_CREATED',
+          'label': 'Incident filed: DAMAGE',
+          'status': 'UNDER_REVIEW',
+          'occurredAt': '2026-05-24T02:00:00.000Z',
+          'sourceId': 'incident-id',
+        },
+      ],
+      'incidents': [
+        {
+          'id': 'incident-id',
+          'bookingId': 'booking-id',
+          'reporterId': 'renter-id',
+          'category': 'DAMAGE',
+          'severity': 'HIGH',
+          'status': 'UNDER_REVIEW',
+          'description': 'Scratch found during checkout',
+          'evidence': const {},
+          'requiredEvidence': const {},
+          'createdAt': '2026-05-24T02:00:00.000Z',
+          'updatedAt': '2026-05-24T03:00:00.000Z',
+        },
+      ],
+      'canReleaseDeposit': false,
+      'canProcessPayout': false,
+    });
+
+    final summary = model.toEntity();
+    expect(summary.status, ClaimWorkflowStatus.awaitingDepositDecision);
+    expect(summary.totals.releasableDepositAmount, 350000);
+    expect(summary.blockers.single.code, 'DEPOSIT_DECISION_PENDING');
+    expect(summary.nextActions.single.actor, 'ADMIN');
+    expect(summary.timeline.single.type, 'INCIDENT_CREATED');
+    expect(summary.incidents.single.category, IncidentCategory.damage);
+    expect(summary.hasActiveClaim, isTrue);
+  });
+
   test(
     'IncidentRepositoryImpl maps incident enums to backend values',
     () async {
@@ -313,6 +387,23 @@ void main() {
       ]);
     },
   );
+
+  test('IncidentRepositoryImpl returns booking claim summary', () async {
+    final remoteDataSource = _FakeIncidentRemoteDataSource();
+    final repository = IncidentRepositoryImpl(
+      remoteDataSource: remoteDataSource,
+    );
+
+    final result = await repository.getBookingClaimSummary('booking-id');
+
+    expect(result.isRight(), isTrue);
+    result.fold((_) => fail('Expected claim summary'), (summary) {
+      expect(summary.bookingId, 'booking-id');
+      expect(summary.status, ClaimWorkflowStatus.open);
+      expect(summary.incidents.single.description, 'Issue reported');
+    });
+    expect(remoteDataSource.lastBookingId, 'booking-id');
+  });
 
   test('VietnamTime formats UTC API timestamps as GMT+7', () {
     final utcTime = DateTime.parse('2026-05-10T03:00:00.000Z');
@@ -485,11 +576,19 @@ void main() {
       message: 'Bạn vừa nhận được 250.000 VND từ chuyến thuê xe.',
       locale: const Locale('en'),
     );
+    final claim = NotificationTextLocalizer.localize(
+      type: 'CLAIM_UPDATED',
+      title: 'Hồ sơ claim đã có kết luận',
+      message: 'Hồ sơ claim CLM-1 đã được chốt.',
+      locale: const Locale('vi'),
+    );
 
     expect(vi.title, 'Đặt xe bị từ chối');
     expect(vi.message, contains('Lý do: Schedule conflict'));
     expect(en.title, 'Payment received');
     expect(en.message, contains('250.000 VND'));
+    expect(claim.title, 'Hồ sơ claim đã có kết luận');
+    expect(claim.message, contains('CLM-1'));
   });
 
   testWidgets('AppAvatar does not load network images in data saver mode', (
@@ -765,6 +864,36 @@ class _FakeIncidentRemoteDataSource implements IncidentRemoteDataSource {
   @override
   Future<List<IncidentReportModel>> getBookingIncidents(String bookingId) {
     return Future.value([_emptyIncident(bookingId)]);
+  }
+
+  @override
+  Future<BookingClaimSummaryModel> getBookingClaimSummary(String bookingId) {
+    lastBookingId = bookingId;
+    return Future.value(
+      BookingClaimSummaryModel(
+        bookingId: bookingId,
+        status: 'OPEN',
+        statusLabel: 'Claim opened',
+        totals: const ClaimSummaryTotalsModel(
+          incidentCount: 1,
+          openIncidentCount: 1,
+          unresolvedIncidentCount: 1,
+          pendingChargeAmount: 0,
+          approvedChargeAmount: 0,
+          capturedChargeAmount: 0,
+          finalizedChargeAmount: 0,
+          heldDepositAmount: 0,
+          releasableDepositAmount: 0,
+          ownerPayoutAmount: 0,
+        ),
+        blockers: const [],
+        nextActions: const [],
+        timeline: const [],
+        incidents: [_emptyIncident(bookingId)],
+        canReleaseDeposit: false,
+        canProcessPayout: false,
+      ),
+    );
   }
 
   @override

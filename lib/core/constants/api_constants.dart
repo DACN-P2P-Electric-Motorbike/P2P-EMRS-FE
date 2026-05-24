@@ -78,6 +78,8 @@ class ApiConstants {
   static const String incidents = '/incidents';
   static String incidentsByBooking(String bookingId) =>
       '/incidents/bookings/$bookingId';
+  static String claimSummaryByBooking(String bookingId) =>
+      '/incidents/bookings/$bookingId/claim-summary';
 
   /// Privacy endpoints
   static const String privacyExport = '/privacy/export';

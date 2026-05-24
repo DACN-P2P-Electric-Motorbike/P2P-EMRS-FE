@@ -189,6 +189,45 @@ class SocketService {
       _notificationController.add({'type': 'PAYMENT_FAILED', 'data': data});
     });
 
+    _socket!.on('deposit_updated', (data) {
+      _logger.i('🔔 Received deposit_updated notification');
+      _logger.d('Deposit update data: $data');
+      _notificationController.add({'type': 'DEPOSIT_UPDATED', 'data': data});
+    });
+
+    _socket!.on('post_trip_charge_updated', (data) {
+      _logger.i('🔔 Received post_trip_charge_updated notification');
+      _logger.d('Post-trip charge update data: $data');
+      _notificationController.add({
+        'type': 'POST_TRIP_CHARGE_UPDATED',
+        'data': data,
+      });
+    });
+
+    _socket!.on('claim_updated', (data) {
+      _logger.i('🔔 Received claim_updated notification');
+      _logger.d('Claim update data: $data');
+      _notificationController.add({'type': 'CLAIM_UPDATED', 'data': data});
+    });
+
+    _socket!.on('payout_updated', (data) {
+      _logger.i('🔔 Received payout_updated notification');
+      _logger.d('Payout update data: $data');
+      _notificationController.add({'type': 'PAYOUT_UPDATED', 'data': data});
+    });
+
+    _socket!.on('booking_reminder', (data) {
+      _logger.i('🔔 Received booking_reminder notification');
+      _logger.d('Booking reminder data: $data');
+      _notificationController.add({'type': 'BOOKING_REMINDER', 'data': data});
+    });
+
+    _socket!.on('trip_reminder', (data) {
+      _logger.i('🔔 Received trip_reminder notification');
+      _logger.d('Trip reminder data: $data');
+      _notificationController.add({'type': 'TRIP_REMINDER', 'data': data});
+    });
+
     // Booking status changes
     _socket!.on('booking_status_changed', (data) {
       _logger.i('📊 Received booking_status_changed event');

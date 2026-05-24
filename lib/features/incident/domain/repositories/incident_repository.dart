@@ -1,10 +1,15 @@
 import 'package:dartz/dartz.dart';
 
 import '../../../../core/error/failures.dart';
+import '../entities/claim_summary.dart';
 import '../entities/incident_report.dart';
 
 abstract class IncidentRepository {
   Future<Either<Failure, List<IncidentReportEntity>>> getBookingIncidents(
+    String bookingId,
+  );
+
+  Future<Either<Failure, BookingClaimSummaryEntity>> getBookingClaimSummary(
     String bookingId,
   );
 

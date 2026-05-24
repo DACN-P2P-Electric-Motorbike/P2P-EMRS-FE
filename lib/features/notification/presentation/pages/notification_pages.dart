@@ -276,6 +276,26 @@ class _NotificationsContentState extends State<_NotificationsContent> {
         // Default to renter view (they're making the payment)
         return false;
 
+      case NotificationType.DEPOSIT_UPDATED:
+        // Deposit updates are sent to renters.
+        return false;
+
+      case NotificationType.POST_TRIP_CHARGE_UPDATED:
+      case NotificationType.CLAIM_UPDATED:
+        // These can be sent to either party; stored notifications do not carry
+        // recipient role metadata, so default to the renter view.
+        return false;
+
+      case NotificationType.PAYOUT_UPDATED:
+        // Payout updates are owner-only.
+        return true;
+
+      case NotificationType.BOOKING_REMINDER:
+      case NotificationType.TRIP_REMINDER:
+        // Reminder records do not persist recipient-role metadata. Default to
+        // renter view for stored notification-list taps.
+        return false;
+
       case NotificationType.SYSTEM_ALERT:
         // System alerts are general, no specific view needed
         return false;

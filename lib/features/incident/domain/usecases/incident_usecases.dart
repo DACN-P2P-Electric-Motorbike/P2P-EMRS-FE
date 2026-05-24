@@ -2,6 +2,7 @@ import 'package:dartz/dartz.dart';
 
 import '../../../../core/error/failures.dart';
 import '../../../../core/usecases/usecase.dart';
+import '../entities/claim_summary.dart';
 import '../entities/incident_report.dart';
 import '../repositories/incident_repository.dart';
 
@@ -22,6 +23,27 @@ class GetBookingIncidentsUseCase
     GetBookingIncidentsParams params,
   ) {
     return repository.getBookingIncidents(params.bookingId);
+  }
+}
+
+class GetBookingClaimSummaryParams {
+  final String bookingId;
+
+  const GetBookingClaimSummaryParams(this.bookingId);
+}
+
+class GetBookingClaimSummaryUseCase
+    implements
+        UseCase<BookingClaimSummaryEntity, GetBookingClaimSummaryParams> {
+  final IncidentRepository repository;
+
+  GetBookingClaimSummaryUseCase(this.repository);
+
+  @override
+  Future<Either<Failure, BookingClaimSummaryEntity>> call(
+    GetBookingClaimSummaryParams params,
+  ) {
+    return repository.getBookingClaimSummary(params.bookingId);
   }
 }
 

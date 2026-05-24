@@ -112,6 +112,36 @@ class NotificationTextLocalizer {
           title: 'Thanh toán thất bại',
           message: 'Giao dịch thanh toán không thành công. Vui lòng thử lại.',
         );
+      case 'DEPOSIT_UPDATED':
+        return LocalizedNotificationText(
+          title: title.isEmpty ? 'Cập nhật tiền cọc' : title,
+          message: message,
+        );
+      case 'POST_TRIP_CHARGE_UPDATED':
+        return LocalizedNotificationText(
+          title: title.isEmpty ? 'Cập nhật phí sau chuyến' : title,
+          message: message,
+        );
+      case 'CLAIM_UPDATED':
+        return LocalizedNotificationText(
+          title: title.isEmpty ? 'Cập nhật hồ sơ claim' : title,
+          message: message,
+        );
+      case 'PAYOUT_UPDATED':
+        return LocalizedNotificationText(
+          title: title.isEmpty ? 'Cập nhật payout' : title,
+          message: message,
+        );
+      case 'BOOKING_REMINDER':
+        return LocalizedNotificationText(
+          title: title.isEmpty ? 'Nhắc lịch đặt xe' : title,
+          message: message,
+        );
+      case 'TRIP_REMINDER':
+        return LocalizedNotificationText(
+          title: title.isEmpty ? 'Nhắc lịch chuyến đi' : title,
+          message: message,
+        );
       default:
         return LocalizedNotificationText(
           title: title.isEmpty ? 'Thông báo' : title,
@@ -207,6 +237,36 @@ class NotificationTextLocalizer {
         return const LocalizedNotificationText(
           title: 'Payment failed',
           message: 'The payment was not successful. Please try again.',
+        );
+      case 'DEPOSIT_UPDATED':
+        return LocalizedNotificationText(
+          title: title.isEmpty ? 'Deposit updated' : title,
+          message: message,
+        );
+      case 'POST_TRIP_CHARGE_UPDATED':
+        return LocalizedNotificationText(
+          title: title.isEmpty ? 'Post-trip charge updated' : title,
+          message: message,
+        );
+      case 'CLAIM_UPDATED':
+        return LocalizedNotificationText(
+          title: title.isEmpty ? 'Claim updated' : title,
+          message: message,
+        );
+      case 'PAYOUT_UPDATED':
+        return LocalizedNotificationText(
+          title: title.isEmpty ? 'Payout updated' : title,
+          message: message,
+        );
+      case 'BOOKING_REMINDER':
+        return LocalizedNotificationText(
+          title: title.isEmpty ? 'Booking reminder' : title,
+          message: message,
+        );
+      case 'TRIP_REMINDER':
+        return LocalizedNotificationText(
+          title: title.isEmpty ? 'Trip reminder' : title,
+          message: message,
         );
       default:
         return LocalizedNotificationText(
