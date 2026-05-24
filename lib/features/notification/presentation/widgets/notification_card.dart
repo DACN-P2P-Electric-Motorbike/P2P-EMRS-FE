@@ -241,6 +241,18 @@ class NotificationCard extends StatelessWidget {
         return Icons.payments;
       case NotificationType.PAYMENT_FAILED:
         return Icons.error;
+      case NotificationType.DEPOSIT_UPDATED:
+        return Icons.account_balance_wallet;
+      case NotificationType.POST_TRIP_CHARGE_UPDATED:
+        return Icons.receipt_long;
+      case NotificationType.CLAIM_UPDATED:
+        return Icons.gavel;
+      case NotificationType.PAYOUT_UPDATED:
+        return Icons.account_balance;
+      case NotificationType.BOOKING_REMINDER:
+        return Icons.event_note;
+      case NotificationType.TRIP_REMINDER:
+        return Icons.alarm;
       case NotificationType.SYSTEM_ALERT:
         return Icons.notifications;
     }
@@ -254,6 +266,13 @@ class NotificationCard extends StatelessWidget {
       case NotificationType.TRIP_COMPLETED:
       case NotificationType.PAYMENT_SUCCESS:
         return AppColors.success;
+      case NotificationType.DEPOSIT_UPDATED:
+      case NotificationType.POST_TRIP_CHARGE_UPDATED:
+      case NotificationType.CLAIM_UPDATED:
+      case NotificationType.PAYOUT_UPDATED:
+      case NotificationType.BOOKING_REMINDER:
+      case NotificationType.TRIP_REMINDER:
+        return AppColors.info;
       case NotificationType.BOOKING_REJECTED:
       case NotificationType.BOOKING_CANCELLED:
       case NotificationType.PAYMENT_FAILED:

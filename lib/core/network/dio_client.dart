@@ -28,10 +28,10 @@ class DioClient {
     _dio.interceptors.addAll([
       _AuthInterceptor(_storageService),
       LogInterceptor(
-        requestBody: true,
-        responseBody: true,
-        error: true,
-        requestHeader: true,
+        requestBody: false,
+        responseBody: false,
+        error: false,
+        requestHeader: false,
         responseHeader: false,
       ),
     ]);

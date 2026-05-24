@@ -104,6 +104,18 @@ class _NotificationToastState extends State<_NotificationToast>
         return Icons.payments;
       case 'PAYMENT_FAILED':
         return Icons.error;
+      case 'DEPOSIT_UPDATED':
+        return Icons.account_balance_wallet;
+      case 'POST_TRIP_CHARGE_UPDATED':
+        return Icons.receipt_long;
+      case 'CLAIM_UPDATED':
+        return Icons.gavel;
+      case 'PAYOUT_UPDATED':
+        return Icons.account_balance;
+      case 'BOOKING_REMINDER':
+        return Icons.event_note;
+      case 'TRIP_REMINDER':
+        return Icons.alarm;
       default:
         return Icons.notifications;
     }
@@ -117,6 +129,13 @@ class _NotificationToastState extends State<_NotificationToast>
       case 'TRIP_COMPLETED':
       case 'PAYMENT_SUCCESS':
         return AppColors.success;
+      case 'DEPOSIT_UPDATED':
+      case 'POST_TRIP_CHARGE_UPDATED':
+      case 'CLAIM_UPDATED':
+      case 'PAYOUT_UPDATED':
+      case 'BOOKING_REMINDER':
+      case 'TRIP_REMINDER':
+        return AppColors.info;
       case 'BOOKING_REJECTED':
       case 'BOOKING_CANCELLED':
       case 'PAYMENT_FAILED':

@@ -97,6 +97,24 @@ class UploadService {
     return UploadResult.fromJson(response.data);
   }
 
+  /// Upload an incident or claim evidence image
+  Future<UploadResult> uploadIncidentImage({
+    required Uint8List fileBytes,
+    required String fileName,
+  }) async {
+    final formData = FormData.fromMap({
+      'file': MultipartFile.fromBytes(fileBytes, filename: fileName),
+    });
+
+    final response = await _dioClient.post(
+      ApiConstants.uploadIncident,
+      data: formData,
+      options: Options(headers: {'Content-Type': 'multipart/form-data'}),
+    );
+
+    return UploadResult.fromJson(response.data);
+  }
+
   /// Upload multiple vehicle images
   Future<List<UploadResult>> uploadVehicleImages({
     required List<Uint8List> filesBytes,

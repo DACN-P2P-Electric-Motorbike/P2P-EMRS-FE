@@ -10,6 +10,12 @@ enum NotificationType {
   TRIP_COMPLETED,
   PAYMENT_SUCCESS,
   PAYMENT_FAILED,
+  DEPOSIT_UPDATED,
+  POST_TRIP_CHARGE_UPDATED,
+  CLAIM_UPDATED,
+  PAYOUT_UPDATED,
+  BOOKING_REMINDER,
+  TRIP_REMINDER,
   SYSTEM_ALERT;
 
   static NotificationType fromString(String value) {
@@ -71,6 +77,18 @@ class NotificationEntity extends Equatable {
         return 'payments';
       case NotificationType.PAYMENT_FAILED:
         return 'error';
+      case NotificationType.DEPOSIT_UPDATED:
+        return 'account_balance_wallet';
+      case NotificationType.POST_TRIP_CHARGE_UPDATED:
+        return 'receipt_long';
+      case NotificationType.CLAIM_UPDATED:
+        return 'gavel';
+      case NotificationType.PAYOUT_UPDATED:
+        return 'account_balance';
+      case NotificationType.BOOKING_REMINDER:
+        return 'event_note';
+      case NotificationType.TRIP_REMINDER:
+        return 'alarm';
       case NotificationType.SYSTEM_ALERT:
         return 'notifications';
     }

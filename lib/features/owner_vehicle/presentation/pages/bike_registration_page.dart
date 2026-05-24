@@ -308,10 +308,13 @@ class _BikeRegistrationContentState extends State<_BikeRegistrationContent> {
   }
 
   void _showError(String message) {
-    final needsKyc = message.toLowerCase().contains('kyc');
+    final displayMessage = _friendlyBecomeOwnerError(message);
+    final needsKyc =
+        displayMessage.toLowerCase().contains('kyc') ||
+        message.toLowerCase().contains('kyc');
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(message),
+        content: Text(displayMessage),
         backgroundColor: AppColors.error,
         action: needsKyc
             ? SnackBarAction(
@@ -322,6 +325,17 @@ class _BikeRegistrationContentState extends State<_BikeRegistrationContent> {
             : null,
       ),
     );
+  }
+
+  String _friendlyBecomeOwnerError(String message) {
+    final lower = message.toLowerCase();
+    if (lower.contains('kyc')) {
+      return 'Bạn cần xác minh KYC trước khi đăng ký xe cho thuê.';
+    }
+    if (lower.contains('type') && lower.contains('subtype')) {
+      return 'Không thể xử lý phản hồi đăng ký. Vui lòng thử lại.';
+    }
+    return message;
   }
 
   void _showSuccessDialog() {
@@ -428,9 +442,11 @@ class _BikeRegistrationContentState extends State<_BikeRegistrationContent> {
               if (state is BecomeOwnerSuccess) {
                 try {
                   // 1. Save new token
-                  await sl<StorageService>().saveToken(
-                    state.response.accessToken,
-                  );
+                  if (state.response.accessToken.isNotEmpty) {
+                    await sl<StorageService>().saveToken(
+                      state.response.accessToken,
+                    );
+                  }
 
                   // 2. Refresh auth to update roles
                   if (context.mounted) {

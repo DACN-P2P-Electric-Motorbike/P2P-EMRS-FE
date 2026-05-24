@@ -56,6 +56,7 @@ class _NotificationListenerWidgetState
       final notificationType = notification['type'] as String? ?? type;
       final title = notification['title'] as String? ?? 'New Notification';
       final message = notification['message'] as String? ?? '';
+      final recipientRole = notificationData['recipientRole'] as String?;
       final localized = NotificationTextLocalizer.localize(
         type: notificationType,
         title: title,
@@ -70,7 +71,11 @@ class _NotificationListenerWidgetState
         type: notificationType,
         onTap: () {
           if (bookingId != null) {
-            _navigateToBooking(bookingId, notificationType);
+            _navigateToBooking(
+              bookingId,
+              notificationType,
+              recipientRole: recipientRole,
+            );
           }
         },
       );
@@ -88,9 +93,15 @@ class _NotificationListenerWidgetState
     });
   }
 
-  void _navigateToBooking(String bookingId, String type) {
-    // Determine if owner view based on notification type
-    final isOwnerView = type == 'BOOKING_REQUEST';
+  void _navigateToBooking(
+    String bookingId,
+    String type, {
+    String? recipientRole,
+  }) {
+    final isOwnerView =
+        recipientRole?.toLowerCase() == 'owner' ||
+        type == 'BOOKING_REQUEST' ||
+        type == 'PAYOUT_UPDATED';
 
     // Use root navigator key to navigate from notification
     rootNavigatorKey.currentState?.push(

@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
@@ -8,6 +9,7 @@ import 'package:intl/intl.dart';
 
 import '../../../../core/services/location_service.dart';
 import '../../../../core/services/socket_service.dart';
+import '../../../../core/services/upload_service.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/usecases/usecase.dart';
 import '../../../../core/utils/vietnam_time.dart';
@@ -18,6 +20,9 @@ import '../../../financial/presentation/cubit/financial_cubit.dart';
 import '../../../financial/presentation/widgets/financial_summary_card.dart';
 import '../../../handover/presentation/pages/check_in_page.dart';
 import '../../../handover/presentation/pages/handover_summary_page.dart';
+import '../../../incident/domain/entities/claim_summary.dart';
+import '../../../incident/domain/entities/incident_report.dart';
+import '../../../incident/domain/usecases/incident_usecases.dart';
 import '../../../payment/presentation/pages/payment_page.dart';
 import '../../../review/domain/usecases/review_usecases.dart';
 import '../../../review/presentation/pages/create_review_page.dart';
@@ -189,6 +194,11 @@ class _BookingDetailPageState extends State<BookingDetailPage> {
             ),
           ],
 
+          if (_shouldShowIncidentPanel(booking)) ...[
+            const SizedBox(height: 16),
+            _buildIncidentReportsCard(context, booking),
+          ],
+
           const SizedBox(height: 16),
 
           // Notes
@@ -214,6 +224,10 @@ class _BookingDetailPageState extends State<BookingDetailPage> {
         (booking.isPaymentCompleted ||
             booking.isOngoing ||
             booking.isCompleted);
+  }
+
+  bool _shouldShowIncidentPanel(BookingEntity booking) {
+    return booking.isConfirmed || booking.isOngoing || booking.isCompleted;
   }
 
   Widget _buildStatusBanner(BookingEntity booking) {
@@ -569,6 +583,488 @@ class _BookingDetailPageState extends State<BookingDetailPage> {
       case 'STANDARD':
       default:
         return 'Tiêu chuẩn';
+    }
+  }
+
+  Widget _buildIncidentReportsCard(
+    BuildContext context,
+    BookingEntity booking,
+  ) {
+    final summaryFuture = sl<GetBookingClaimSummaryUseCase>()(
+      GetBookingClaimSummaryParams(booking.id),
+    );
+
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16),
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: FutureBuilder(
+        future: summaryFuture,
+        builder: (context, snapshot) {
+          final summary = snapshot.data?.fold<BookingClaimSummaryEntity?>(
+            (_) => null,
+            (item) => item,
+          );
+          final reports = summary?.incidents ?? <IncidentReportEntity>[];
+          final failureMessage = snapshot.data?.fold(
+            (failure) => failure.message,
+            (_) => null,
+          );
+
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      'Sự cố / yêu cầu bồi thường',
+                      style: GoogleFonts.poppins(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.textPrimary,
+                      ),
+                    ),
+                  ),
+                  TextButton.icon(
+                    onPressed: () =>
+                        _showIncidentReportDialog(context, booking),
+                    icon: const Icon(Icons.report_problem_outlined, size: 18),
+                    label: const Text('Báo cáo'),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              if (snapshot.connectionState != ConnectionState.done)
+                const LinearProgressIndicator(minHeight: 3)
+              else if (failureMessage != null)
+                Text(
+                  failureMessage,
+                  style: GoogleFonts.poppins(
+                    fontSize: 13,
+                    color: AppColors.error,
+                  ),
+                )
+              else ...[
+                if (summary != null) _buildClaimSummaryOverview(summary),
+                if (reports.isEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 8),
+                    child: Text(
+                      'Chưa có báo cáo sự cố cho booking này.',
+                      style: GoogleFonts.poppins(
+                        fontSize: 13,
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                  )
+                else ...[
+                  const SizedBox(height: 12),
+                  ...reports.map(_buildIncidentReportRow),
+                ],
+                if (summary != null && summary.timeline.isNotEmpty) ...[
+                  const SizedBox(height: 12),
+                  _buildClaimTimeline(summary.timeline),
+                ],
+              ],
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildClaimSummaryOverview(BookingClaimSummaryEntity summary) {
+    final color = _claimStatusColor(summary.status);
+    final formatter = NumberFormat.currency(
+      locale: 'vi_VN',
+      symbol: '₫',
+      decimalDigits: 0,
+    );
+    final firstActions = summary.nextActions.take(2).toList();
+    final firstBlockers = summary.blockers.take(2).toList();
+
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.06),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: color.withOpacity(0.2)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 5,
+                ),
+                decoration: BoxDecoration(
+                  color: color.withOpacity(0.12),
+                  borderRadius: BorderRadius.circular(999),
+                ),
+                child: Text(
+                  summary.status.displayText,
+                  style: GoogleFonts.poppins(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    color: color,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  '${summary.totals.unresolvedIncidentCount} sự cố mở · ${formatter.format(summary.totals.pendingChargeAmount + summary.totals.approvedChargeAmount)} phí chờ xử lý',
+                  style: GoogleFonts.poppins(
+                    fontSize: 12,
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          if (firstBlockers.isNotEmpty) ...[
+            const SizedBox(height: 10),
+            ...firstBlockers.map(
+              (blocker) => Padding(
+                padding: const EdgeInsets.only(bottom: 4),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.lock_clock_outlined,
+                      size: 14,
+                      color: AppColors.warning,
+                    ),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Text(
+                        _claimBlockerText(blocker),
+                        style: GoogleFonts.poppins(
+                          fontSize: 12,
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+          if (firstActions.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            ...firstActions.map(
+              (action) => Padding(
+                padding: const EdgeInsets.only(bottom: 4),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.task_alt_outlined,
+                      size: 14,
+                      color: AppColors.info,
+                    ),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Text(
+                        '${_claimActorText(action.actor)}: ${_claimActionText(action)}',
+                        style: GoogleFonts.poppins(
+                          fontSize: 12,
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8,
+            runSpacing: 6,
+            children: [
+              _IncidentMetaChip(
+                icon: Icons.account_balance_wallet_outlined,
+                text:
+                    'Cọc còn lại: ${formatter.format(summary.totals.releasableDepositAmount)}',
+              ),
+              _IncidentMetaChip(
+                icon: Icons.payments_outlined,
+                text:
+                    'Payout: ${formatter.format(summary.totals.ownerPayoutAmount)}',
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildClaimTimeline(List<ClaimTimelineEventEntity> timeline) {
+    final recent = timeline.reversed.take(4).toList();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Dòng xử lý',
+          style: GoogleFonts.poppins(
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
+            color: AppColors.textPrimary,
+          ),
+        ),
+        const SizedBox(height: 8),
+        ...recent.map(
+          (event) => Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  width: 8,
+                  height: 8,
+                  margin: const EdgeInsets.only(top: 5),
+                  decoration: BoxDecoration(
+                    color: AppColors.info,
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    '${VietnamTime.format(event.occurredAt, 'dd/MM HH:mm')} · ${_claimTimelineText(event)}',
+                    style: GoogleFonts.poppins(
+                      fontSize: 12,
+                      color: AppColors.textSecondary,
+                      height: 1.35,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildIncidentReportRow(IncidentReportEntity report) {
+    final color = _incidentStatusColor(report.status);
+    final evidenceCount =
+        report.evidenceUrls.length + report.handoverPhotoCount;
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.06),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: color.withOpacity(0.2)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  report.category.displayText,
+                  style: GoogleFonts.poppins(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: color.withOpacity(0.12),
+                  borderRadius: BorderRadius.circular(999),
+                ),
+                child: Text(
+                  report.status.displayText,
+                  style: GoogleFonts.poppins(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    color: color,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Text(
+            report.description,
+            style: GoogleFonts.poppins(
+              fontSize: 12,
+              color: AppColors.textSecondary,
+              height: 1.4,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8,
+            runSpacing: 6,
+            children: [
+              _IncidentMetaChip(
+                icon: Icons.priority_high_outlined,
+                text: 'Mức độ: ${report.severity.displayText}',
+              ),
+              _IncidentMetaChip(
+                icon: Icons.image_outlined,
+                text: '$evidenceCount bằng chứng',
+              ),
+              _IncidentMetaChip(
+                icon: Icons.schedule_outlined,
+                text: VietnamTime.format(report.createdAt, 'dd/MM HH:mm'),
+              ),
+            ],
+          ),
+          if (report.adminNotes?.trim().isNotEmpty ?? false) ...[
+            const SizedBox(height: 8),
+            Text(
+              'Admin: ${report.adminNotes}',
+              style: GoogleFonts.poppins(
+                fontSize: 12,
+                color: AppColors.textSecondary,
+                fontStyle: FontStyle.italic,
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Color _incidentStatusColor(IncidentStatus status) {
+    switch (status) {
+      case IncidentStatus.open:
+        return AppColors.warning;
+      case IncidentStatus.underReview:
+        return AppColors.info;
+      case IncidentStatus.resolved:
+        return AppColors.success;
+      case IncidentStatus.rejected:
+        return AppColors.error;
+    }
+  }
+
+  Color _claimStatusColor(ClaimWorkflowStatus status) {
+    switch (status) {
+      case ClaimWorkflowStatus.noClaim:
+      case ClaimWorkflowStatus.resolved:
+        return AppColors.success;
+      case ClaimWorkflowStatus.open:
+      case ClaimWorkflowStatus.awaitingChargeReview:
+      case ClaimWorkflowStatus.awaitingDepositDecision:
+        return AppColors.warning;
+      case ClaimWorkflowStatus.underReview:
+      case ClaimWorkflowStatus.awaitingPayout:
+        return AppColors.info;
+    }
+  }
+
+  String _claimBlockerText(ClaimBlockerEntity blocker) {
+    switch (blocker.code) {
+      case 'UNRESOLVED_INCIDENTS':
+        return '${blocker.count} sự cố đang mở hoặc đang xét duyệt';
+      case 'UNRESOLVED_POST_TRIP_CHARGES':
+        return '${blocker.count} phí sau chuyến cần admin duyệt';
+      case 'APPROVED_CHARGES_NOT_CAPTURED':
+        return '${blocker.count} phí đã duyệt chưa được khấu trừ hoặc miễn';
+      case 'DEPOSIT_DECISION_PENDING':
+        return 'Tiền cọc đang chờ quyết định xử lý';
+      case 'OWNER_PAYOUT_ON_HOLD':
+        return 'Payout owner đang bị giữ';
+      default:
+        return blocker.label;
+    }
+  }
+
+  String _claimActorText(String actor) {
+    switch (actor.toUpperCase()) {
+      case 'ADMIN':
+        return 'Admin';
+      case 'OWNER':
+        return 'Owner';
+      case 'RENTER':
+        return 'Người thuê';
+      default:
+        return actor;
+    }
+  }
+
+  String _claimActionText(ClaimNextActionEntity action) {
+    switch (action.action) {
+      case 'Move incident reports under review':
+        return 'chuyển sự cố sang đang xét duyệt';
+      case 'Resolve or reject incident reports':
+        return 'kết luận sự cố';
+      case 'Review disputed or pending post-trip charges':
+        return 'duyệt phí sau chuyến';
+      case 'Capture approved charges or waive them':
+        return 'khấu trừ hoặc miễn phí đã duyệt';
+      case 'Release remaining deposit':
+        return 'hoàn phần cọc còn lại';
+      case 'Wait for admin deposit decision':
+        return 'chờ quyết định tiền cọc';
+      case 'Process owner payout':
+        return 'xử lý payout owner';
+      case 'Wait for payout hold to clear':
+        return 'chờ gỡ giữ payout';
+      case 'Create or refresh owner payout':
+        return 'tạo hoặc cập nhật payout owner';
+      default:
+        return action.action;
+    }
+  }
+
+  String _claimTimelineText(ClaimTimelineEventEntity event) {
+    switch (event.type) {
+      case 'BOOKING_CREATED':
+        return 'Booking được tạo';
+      case 'PAYMENT_COMPLETED':
+        return 'Thanh toán hoàn tất';
+      case 'TRIP_COMPLETED':
+        return 'Chuyến đi hoàn tất';
+      case 'DEPOSIT_HELD':
+        return 'Tiền cọc được ghi nhận';
+      case 'DEPOSIT_DISPUTED':
+        return 'Tiền cọc chuyển sang tranh chấp';
+      case 'DEPOSIT_RELEASED':
+        return 'Tiền cọc đã hoàn';
+      case 'POST_TRIP_CHARGE_CREATED':
+        return 'Phí sau chuyến được tạo';
+      case 'POST_TRIP_CHARGE_REVIEWED':
+        return 'Phí sau chuyến được duyệt';
+      case 'INCIDENT_CREATED':
+        return 'Sự cố được báo cáo';
+      case 'INCIDENT_REVIEWED':
+        return 'Sự cố được admin xem xét';
+      case 'INCIDENT_RESOLVED':
+        return 'Sự cố được kết luận';
+      case 'OWNER_PAYOUT_CREATED':
+        return 'Payout owner được chuẩn bị';
+      case 'OWNER_PAYOUT_PROCESSED':
+        return 'Payout owner bắt đầu xử lý';
+      case 'OWNER_PAYOUT_COMPLETED':
+        return 'Payout owner hoàn tất';
+      default:
+        return event.label;
     }
   }
 
@@ -1240,6 +1736,304 @@ class _BookingDetailPageState extends State<BookingDetailPage> {
     );
   }
 
+  void _showIncidentReportDialog(BuildContext context, BookingEntity booking) {
+    final descriptionController = TextEditingController();
+    final formKey = GlobalKey<FormState>();
+    var selectedCategory = IncidentCategory.mechanicalIssue;
+    var selectedSeverity = IncidentSeverity.medium;
+    var uploadedEvidenceUrls = <String>[];
+    var isUploading = false;
+    var isSubmitting = false;
+    final bookingBloc = context.read<BookingBloc>();
+
+    showDialog(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, setDialogState) {
+          final requiresEvidence =
+              selectedCategory.requiresEvidence ||
+              selectedSeverity == IncidentSeverity.critical;
+
+          Future<void> pickAndUploadEvidence() async {
+            if (uploadedEvidenceUrls.length >= 10) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Tối đa 10 ảnh bằng chứng.'),
+                  backgroundColor: AppColors.warning,
+                ),
+              );
+              return;
+            }
+
+            final result = await FilePicker.platform.pickFiles(
+              type: FileType.image,
+              allowMultiple: false,
+              withData: true,
+            );
+            if (result == null || result.files.isEmpty) return;
+            final file = result.files.first;
+            final bytes = file.bytes;
+            if (bytes == null) return;
+
+            setDialogState(() => isUploading = true);
+            try {
+              final uploaded = await sl<UploadService>().uploadIncidentImage(
+                fileBytes: bytes,
+                fileName: file.name,
+              );
+              setDialogState(() {
+                uploadedEvidenceUrls = [...uploadedEvidenceUrls, uploaded.url];
+              });
+            } catch (e) {
+              if (!mounted || !context.mounted) return;
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('Tải ảnh bằng chứng thất bại: $e'),
+                  backgroundColor: AppColors.error,
+                ),
+              );
+            } finally {
+              if (dialogContext.mounted) {
+                setDialogState(() => isUploading = false);
+              }
+            }
+          }
+
+          Future<void> submit() async {
+            if (!(formKey.currentState?.validate() ?? false)) return;
+            if (requiresEvidence && uploadedEvidenceUrls.isEmpty) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text(
+                    'Loại sự cố này cần ít nhất một ảnh bằng chứng.',
+                  ),
+                  backgroundColor: AppColors.error,
+                ),
+              );
+              return;
+            }
+
+            setDialogState(() => isSubmitting = true);
+            final messenger = ScaffoldMessenger.of(context);
+            final navigator = Navigator.of(dialogContext);
+            final result = await sl<CreateIncidentReportUseCase>()(
+              CreateIncidentReportParams(
+                bookingId: booking.id,
+                category: selectedCategory,
+                severity: selectedSeverity,
+                description: descriptionController.text.trim(),
+                evidenceUrls: uploadedEvidenceUrls,
+              ),
+            );
+
+            if (!mounted || !dialogContext.mounted) return;
+            result.fold(
+              (failure) {
+                setDialogState(() => isSubmitting = false);
+                messenger.showSnackBar(
+                  SnackBar(
+                    content: Text(failure.message),
+                    backgroundColor: AppColors.error,
+                  ),
+                );
+              },
+              (_) {
+                navigator.pop();
+                messenger.showSnackBar(
+                  const SnackBar(
+                    content: Text('Đã gửi báo cáo sự cố cho Admin'),
+                    backgroundColor: AppColors.success,
+                  ),
+                );
+                bookingBloc.add(LoadBookingByIdEvent(booking.id));
+              },
+            );
+          }
+
+          return AlertDialog(
+            title: Text(
+              'Báo cáo sự cố',
+              style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
+            ),
+            content: Form(
+              key: formKey,
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    DropdownButtonFormField<IncidentCategory>(
+                      initialValue: selectedCategory,
+                      decoration: InputDecoration(
+                        labelText: 'Loại sự cố',
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      items: IncidentCategory.values.map((category) {
+                        return DropdownMenuItem(
+                          value: category,
+                          child: Text(category.displayText),
+                        );
+                      }).toList(),
+                      onChanged: isSubmitting || isUploading
+                          ? null
+                          : (category) {
+                              if (category != null) {
+                                setDialogState(
+                                  () => selectedCategory = category,
+                                );
+                              }
+                            },
+                    ),
+                    const SizedBox(height: 14),
+                    DropdownButtonFormField<IncidentSeverity>(
+                      initialValue: selectedSeverity,
+                      decoration: InputDecoration(
+                        labelText: 'Mức độ',
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      items: IncidentSeverity.values.map((severity) {
+                        return DropdownMenuItem(
+                          value: severity,
+                          child: Text(severity.displayText),
+                        );
+                      }).toList(),
+                      onChanged: isSubmitting || isUploading
+                          ? null
+                          : (severity) {
+                              if (severity != null) {
+                                setDialogState(
+                                  () => selectedSeverity = severity,
+                                );
+                              }
+                            },
+                    ),
+                    const SizedBox(height: 14),
+                    TextFormField(
+                      controller: descriptionController,
+                      enabled: !isSubmitting && !isUploading,
+                      maxLines: 4,
+                      maxLength: 1000,
+                      decoration: InputDecoration(
+                        labelText: 'Mô tả *',
+                        hintText:
+                            'Mô tả sự cố, thời điểm xảy ra và bằng chứng liên quan...',
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      validator: (value) {
+                        if (value == null || value.trim().isEmpty) {
+                          return 'Nhập mô tả sự cố';
+                        }
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 8),
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: requiresEvidence
+                            ? AppColors.warning.withOpacity(0.08)
+                            : AppColors.info.withOpacity(0.06),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: requiresEvidence
+                              ? AppColors.warning.withOpacity(0.25)
+                              : AppColors.info.withOpacity(0.18),
+                        ),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            requiresEvidence
+                                ? 'Loại sự cố này bắt buộc có ảnh bằng chứng.'
+                                : 'Bạn có thể thêm ảnh để Admin xử lý nhanh hơn.',
+                            style: GoogleFonts.poppins(
+                              fontSize: 12,
+                              color: AppColors.textSecondary,
+                            ),
+                          ),
+                          const SizedBox(height: 10),
+                          Wrap(
+                            spacing: 8,
+                            runSpacing: 8,
+                            children: [
+                              ...uploadedEvidenceUrls.asMap().entries.map(
+                                (entry) => Chip(
+                                  label: Text('Ảnh ${entry.key + 1}'),
+                                  deleteIcon: const Icon(Icons.close, size: 16),
+                                  onDeleted: isSubmitting || isUploading
+                                      ? null
+                                      : () {
+                                          setDialogState(() {
+                                            uploadedEvidenceUrls = [
+                                              ...uploadedEvidenceUrls,
+                                            ]..removeAt(entry.key);
+                                          });
+                                        },
+                                ),
+                              ),
+                              ActionChip(
+                                avatar: isUploading
+                                    ? const SizedBox(
+                                        height: 16,
+                                        width: 16,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2,
+                                        ),
+                                      )
+                                    : const Icon(Icons.add_a_photo, size: 18),
+                                label: Text(
+                                  isUploading ? 'Đang tải...' : 'Thêm ảnh',
+                                ),
+                                onPressed: isSubmitting || isUploading
+                                    ? null
+                                    : pickAndUploadEvidence,
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: isSubmitting || isUploading
+                    ? null
+                    : () => Navigator.pop(dialogContext),
+                child: const Text('Hủy'),
+              ),
+              ElevatedButton(
+                onPressed: isSubmitting || isUploading ? null : submit,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.warning,
+                ),
+                child: isSubmitting
+                    ? const SizedBox(
+                        height: 18,
+                        width: 18,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      )
+                    : const Text('Gửi báo cáo'),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
   void _showManualChargeDialog(BuildContext context, BookingEntity booking) {
     final amountController = TextEditingController();
     final descriptionController = TextEditingController();
@@ -1554,6 +2348,38 @@ class _BookingDetailPageState extends State<BookingDetailPage> {
       case PostTripChargeType.lowBattery:
         return 'Pin thấp khi trả xe';
     }
+  }
+}
+
+class _IncidentMetaChip extends StatelessWidget {
+  final IconData icon;
+  final String text;
+
+  const _IncidentMetaChip({required this.icon, required this.text});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+      decoration: BoxDecoration(
+        color: AppColors.textMuted.withOpacity(0.08),
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 13, color: AppColors.textMuted),
+          const SizedBox(width: 4),
+          Text(
+            text,
+            style: GoogleFonts.poppins(
+              fontSize: 11,
+              color: AppColors.textSecondary,
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
 

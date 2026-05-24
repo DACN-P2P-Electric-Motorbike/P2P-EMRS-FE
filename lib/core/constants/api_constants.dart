@@ -74,6 +74,13 @@ class ApiConstants {
   static String disputeFinancialCharge(String chargeId) =>
       '/financial/charges/$chargeId/dispute';
 
+  /// Incident endpoints
+  static const String incidents = '/incidents';
+  static String incidentsByBooking(String bookingId) =>
+      '/incidents/bookings/$bookingId';
+  static String claimSummaryByBooking(String bookingId) =>
+      '/incidents/bookings/$bookingId/claim-summary';
+
   /// Privacy endpoints
   static const String privacyExport = '/privacy/export';
   static const String privacyDeleteRequest = '/privacy/delete-request';
@@ -93,6 +100,7 @@ class ApiConstants {
   static const String uploadLicense = '/upload/license';
   static const String uploadKyc = '/upload/kyc';
   static const String uploadHandover = '/upload/handover';
+  static const String uploadIncident = '/upload/incident';
 
   /// KYC endpoints
   static const String kycSubmit = '/kyc/submit';
