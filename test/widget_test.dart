@@ -20,6 +20,7 @@ import 'package:fe_capstone_project/features/incident/data/models/incident_repor
 import 'package:fe_capstone_project/features/incident/data/repositories/incident_repository_impl.dart';
 import 'package:fe_capstone_project/features/incident/domain/entities/claim_summary.dart';
 import 'package:fe_capstone_project/features/incident/domain/entities/incident_report.dart';
+import 'package:fe_capstone_project/features/renter/data/models/become_owner_response_model.dart';
 import 'package:fe_capstone_project/features/review/data/models/review_model.dart';
 import 'package:fe_capstone_project/features/review/domain/entities/review_entity.dart';
 import 'package:fe_capstone_project/features/settings/data/privacy_remote_data_source.dart';
@@ -111,6 +112,31 @@ void main() {
     expect(booking.protectionFee, 2500);
     expect(booking.protectionDeductible, 500000);
     expect(booking.protectionCoverageLimit, 30000000);
+  });
+
+  test('BecomeOwnerResponseDto tolerates non-string and minimal payloads', () {
+    final promoted = BecomeOwnerResponseDto.fromJson({
+      'user': {
+        'id': 123,
+        'roles': ['RENTER', 'OWNER'],
+      },
+      'accessToken': 987,
+      'message': 'ok',
+    });
+
+    expect(promoted.userId, '123');
+    expect(promoted.roles, ['RENTER', 'OWNER']);
+    expect(promoted.accessToken, '987');
+    expect(promoted.message, 'ok');
+
+    final alreadyOwner = BecomeOwnerResponseDto.fromJson({
+      'message': 'User has been OWNER',
+    });
+
+    expect(alreadyOwner.userId, isEmpty);
+    expect(alreadyOwner.roles, isEmpty);
+    expect(alreadyOwner.accessToken, isEmpty);
+    expect(alreadyOwner.message, 'User has been OWNER');
   });
 
   test('FinancialSummaryModel parses deposit and post-trip charges', () {

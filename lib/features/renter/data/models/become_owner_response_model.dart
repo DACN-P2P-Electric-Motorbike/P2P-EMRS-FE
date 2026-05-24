@@ -15,11 +15,18 @@ class BecomeOwnerResponseDto extends Equatable {
   });
 
   factory BecomeOwnerResponseDto.fromJson(Map<String, dynamic> json) {
+    final userJson = json['user'];
+    final user = userJson is Map ? Map<String, dynamic>.from(userJson) : {};
+    final rolesJson = user['roles'];
+    final roles = rolesJson is List
+        ? rolesJson.map((role) => role.toString()).toList()
+        : <String>[];
+
     return BecomeOwnerResponseDto(
-      userId: json['user']['id'],
-      roles: List<String>.from(json['user']['roles']),
-      accessToken: json['accessToken'],
-      message: json['message'],
+      userId: user['id']?.toString() ?? '',
+      roles: roles,
+      accessToken: json['accessToken']?.toString() ?? '',
+      message: json['message']?.toString() ?? 'Đăng ký chủ xe thành công',
     );
   }
 
