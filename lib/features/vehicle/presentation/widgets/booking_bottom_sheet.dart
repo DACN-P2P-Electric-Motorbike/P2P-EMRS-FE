@@ -30,6 +30,26 @@ class BookingBottomSheet extends StatelessWidget {
   }
 }
 
+class _ProtectionPlanOption {
+  final String value;
+  final String label;
+  final String description;
+  final double feeRate;
+  final double deductible;
+  final double coverageLimit;
+  final IconData icon;
+
+  const _ProtectionPlanOption({
+    required this.value,
+    required this.label,
+    required this.description,
+    required this.feeRate,
+    required this.deductible,
+    required this.coverageLimit,
+    required this.icon,
+  });
+}
+
 class _EnhancedBookingContent extends StatefulWidget {
   final VehicleEntity vehicle;
 
@@ -48,6 +68,7 @@ class _EnhancedBookingContentState extends State<_EnhancedBookingContent> {
   String _rentalType = 'hourly'; // hourly or daily
   final _notesController = TextEditingController();
   bool _isProcessing = false;
+  String _selectedProtectionPlan = 'STANDARD';
   String? _activeLockId;
   DateTime? _lockExpiresAt;
   Duration _remainingLockTime = Duration.zero;
@@ -56,6 +77,35 @@ class _EnhancedBookingContentState extends State<_EnhancedBookingContent> {
   late final BookingRepository _bookingRepository;
   static const _minRentalDuration = Duration(minutes: 30);
   static const _maxRentalDuration = Duration(days: 30);
+  static const _protectionPlans = [
+    _ProtectionPlanOption(
+      value: 'BASIC',
+      label: 'Cơ bản',
+      description: 'Không phụ phí, tự chịu khấu trừ cao hơn',
+      feeRate: 0,
+      deductible: 3000000,
+      coverageLimit: 5000000,
+      icon: Icons.shield_outlined,
+    ),
+    _ProtectionPlanOption(
+      value: 'STANDARD',
+      label: 'Tiêu chuẩn',
+      description: 'Cân bằng phí và mức khấu trừ',
+      feeRate: 0.05,
+      deductible: 1500000,
+      coverageLimit: 15000000,
+      icon: Icons.verified_user_outlined,
+    ),
+    _ProtectionPlanOption(
+      value: 'PREMIUM',
+      label: 'Cao cấp',
+      description: 'Phí cao hơn, khấu trừ thấp hơn',
+      feeRate: 0.1,
+      deductible: 500000,
+      coverageLimit: 30000000,
+      icon: Icons.workspace_premium_outlined,
+    ),
+  ];
 
   // Normalize DateTime to midnight (00:00:00)
   DateTime _normalizeToMidnight(DateTime date) {
@@ -123,6 +173,19 @@ class _EnhancedBookingContentState extends State<_EnhancedBookingContent> {
       return widget.vehicle.pricePerHour * _totalHours;
     }
   }
+
+  _ProtectionPlanOption get _selectedProtection {
+    return _protectionPlans.firstWhere(
+      (plan) => plan.value == _selectedProtectionPlan,
+      orElse: () => _protectionPlans[1],
+    );
+  }
+
+  double get _protectionFee =>
+      (_totalPrice * _selectedProtection.feeRate).round().toDouble();
+
+  double get _checkoutTotal =>
+      _totalPrice + _protectionFee + (widget.vehicle.deposit ?? 0);
 
   // Get start DateTime
   DateTime? get _startDateTime {
@@ -292,6 +355,11 @@ class _EnhancedBookingContentState extends State<_EnhancedBookingContent> {
                       _buildNotesField(),
 
                       const SizedBox(height: 24),
+
+                      if (_totalPrice > 0) ...[
+                        _buildProtectionPlanSelector(),
+                        const SizedBox(height: 24),
+                      ],
 
                       // Price breakdown
                       if (_totalPrice > 0) _buildPriceBreakdown(),
@@ -923,6 +991,117 @@ class _EnhancedBookingContentState extends State<_EnhancedBookingContent> {
     );
   }
 
+  Widget _buildProtectionPlanSelector() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Gói bảo vệ',
+          style: GoogleFonts.poppins(
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+            color: AppColors.textPrimary,
+          ),
+        ),
+        const SizedBox(height: 12),
+        ..._protectionPlans.map(_buildProtectionPlanTile),
+      ],
+    );
+  }
+
+  Widget _buildProtectionPlanTile(_ProtectionPlanOption plan) {
+    final isSelected = _selectedProtectionPlan == plan.value;
+    final fee = (_totalPrice * plan.feeRate).roundToDouble();
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: InkWell(
+        onTap: () => setState(() => _selectedProtectionPlan = plan.value),
+        borderRadius: BorderRadius.circular(12),
+        child: Container(
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: isSelected
+                ? AppColors.primary.withOpacity(0.08)
+                : Colors.white,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: isSelected ? AppColors.primary : AppColors.border,
+              width: isSelected ? 2 : 1,
+            ),
+          ),
+          child: Row(
+            children: [
+              Icon(
+                plan.icon,
+                color: isSelected ? AppColors.primary : AppColors.textMuted,
+                size: 24,
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            plan.label,
+                            style: GoogleFonts.poppins(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.textPrimary,
+                            ),
+                          ),
+                        ),
+                        Text(
+                          plan.feeRate == 0
+                              ? 'Miễn phí'
+                              : '+${_formatPrice(fee)}',
+                          style: GoogleFonts.poppins(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: isSelected
+                                ? AppColors.primary
+                                : AppColors.textSecondary,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      plan.description,
+                      style: GoogleFonts.poppins(
+                        fontSize: 12,
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Khấu trừ ${_formatPrice(plan.deductible)} • Hạn mức ${_formatPrice(plan.coverageLimit)}',
+                      style: GoogleFonts.poppins(
+                        fontSize: 11,
+                        color: AppColors.textMuted,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 10),
+              Icon(
+                isSelected
+                    ? Icons.radio_button_checked
+                    : Icons.radio_button_unchecked,
+                color: isSelected ? AppColors.primary : AppColors.textMuted,
+                size: 20,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildPriceBreakdown() {
     return Container(
       padding: const EdgeInsets.all(20),
@@ -981,6 +1160,27 @@ class _EnhancedBookingContentState extends State<_EnhancedBookingContent> {
               ),
             ],
           ),
+          const SizedBox(height: 8),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Gói bảo vệ ${_selectedProtection.label}',
+                style: GoogleFonts.poppins(
+                  fontSize: 14,
+                  color: AppColors.textSecondary,
+                ),
+              ),
+              Text(
+                _formatPrice(_protectionFee),
+                style: GoogleFonts.poppins(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.textPrimary,
+                ),
+              ),
+            ],
+          ),
           if (widget.vehicle.deposit != null) ...[
             const SizedBox(height: 8),
             Row(
@@ -1031,7 +1231,7 @@ class _EnhancedBookingContentState extends State<_EnhancedBookingContent> {
                 ),
               ),
               Text(
-                _formatPrice(_totalPrice + (widget.vehicle.deposit ?? 0)),
+                _formatPrice(_checkoutTotal),
                 style: GoogleFonts.poppins(
                   fontSize: 24,
                   fontWeight: FontWeight.bold,
@@ -1084,6 +1284,9 @@ class _EnhancedBookingContentState extends State<_EnhancedBookingContent> {
           if (!widget.vehicle.instantBook)
             _buildNote('Chủ xe có thể chấp nhận hoặc từ chối yêu cầu'),
           _buildNote('Bạn sẽ nhận thông báo khi có phản hồi'),
+          _buildNote(
+            'Gói bảo vệ là mô phỏng nội bộ, không phải bảo hiểm bên thứ ba',
+          ),
           if (widget.vehicle.deposit != null)
             _buildNote('Tiền cọc sẽ được hoàn lại sau khi trả xe'),
         ],
@@ -1261,13 +1464,14 @@ class _EnhancedBookingContentState extends State<_EnhancedBookingContent> {
         notes: _notesController.text.trim().isEmpty
             ? null
             : _notesController.text.trim(),
+        protectionPlan: _selectedProtectionPlan,
       ),
     );
   }
 
   String get _bookingButtonLabel {
     if (_totalPrice <= 0) return 'Chọn thời gian thuê';
-    final price = _formatPrice(_totalPrice);
+    final price = _formatPrice(_checkoutTotal);
     if (_activeLockId == null) return 'Giữ chỗ 15 phút - $price';
     return 'Xác nhận đặt xe - $price';
   }

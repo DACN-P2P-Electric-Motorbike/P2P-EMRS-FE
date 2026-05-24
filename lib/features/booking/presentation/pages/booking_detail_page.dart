@@ -409,6 +409,12 @@ class _BookingDetailPageState extends State<BookingDetailPage> {
           ),
           const SizedBox(height: 12),
           _buildInfoRow(
+            Icons.verified_user_outlined,
+            'Gói bảo vệ ${_protectionPlanLabel(booking.protectionPlan)}',
+            '${NumberFormat.currency(locale: 'vi_VN', symbol: 'đ').format(booking.protectionFee)} - khấu trừ ${NumberFormat.currency(locale: 'vi_VN', symbol: 'đ').format(booking.protectionDeductible)}',
+          ),
+          const SizedBox(height: 12),
+          _buildInfoRow(
             Icons.account_balance_wallet,
             'Tiền cọc',
             NumberFormat.currency(
@@ -429,10 +435,9 @@ class _BookingDetailPageState extends State<BookingDetailPage> {
                 ),
               ),
               Text(
-                NumberFormat.currency(
-                  locale: 'vi_VN',
-                  symbol: 'đ',
-                ).format(booking.totalPrice + booking.deposit),
+                NumberFormat.currency(locale: 'vi_VN', symbol: 'đ').format(
+                  booking.totalPrice + booking.protectionFee + booking.deposit,
+                ),
                 style: GoogleFonts.poppins(
                   fontSize: 20,
                   fontWeight: FontWeight.bold,
@@ -555,6 +560,18 @@ class _BookingDetailPageState extends State<BookingDetailPage> {
     );
   }
 
+  String _protectionPlanLabel(String value) {
+    switch (value.toUpperCase()) {
+      case 'BASIC':
+        return 'Cơ bản';
+      case 'PREMIUM':
+        return 'Cao cấp';
+      case 'STANDARD':
+      default:
+        return 'Tiêu chuẩn';
+    }
+  }
+
   Widget _buildActions(BuildContext context, BookingEntity booking) {
     // Owner actions
     if (widget.isOwnerView && booking.isPending) {
@@ -630,24 +647,75 @@ class _BookingDetailPageState extends State<BookingDetailPage> {
     if (widget.isOwnerView && booking.isCompleted) {
       return Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16),
-        child: SizedBox(
-          width: double.infinity,
-          child: ElevatedButton.icon(
-            onPressed: () => _showManualChargeDialog(context, booking),
-            icon: const Icon(Icons.add_card_outlined),
-            label: Text(
-              'Thêm phí sau chuyến',
-              style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
-            ),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primary,
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(vertical: 16),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
+        child: Column(
+          children: [
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: () => _showManualChargeDialog(context, booking),
+                icon: const Icon(Icons.add_card_outlined),
+                label: Text(
+                  'Thêm phí sau chuyến',
+                  style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
               ),
             ),
-          ),
+            const SizedBox(height: 12),
+            FutureBuilder<Set<String>>(
+              future: _reviewedBookingIdsFuture,
+              builder: (context, snapshot) {
+                final isChecking =
+                    snapshot.connectionState != ConnectionState.done;
+                final hasReviewed =
+                    snapshot.data?.contains(booking.id) ?? false;
+                return SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    onPressed: isChecking || hasReviewed
+                        ? null
+                        : () => _navigateToReview(context, booking),
+                    icon: Icon(
+                      hasReviewed
+                          ? Icons.check_circle_outline
+                          : Icons.person_search_outlined,
+                    ),
+                    label: Text(
+                      hasReviewed
+                          ? 'Đã đánh giá người thuê'
+                          : isChecking
+                          ? 'Đang kiểm tra đánh giá...'
+                          : 'Đánh giá người thuê',
+                      style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: hasReviewed
+                          ? AppColors.success
+                          : const Color(0xFFFFB300),
+                      foregroundColor: Colors.white,
+                      disabledBackgroundColor: hasReviewed
+                          ? AppColors.success.withOpacity(0.85)
+                          : AppColors.textMuted.withOpacity(0.18),
+                      disabledForegroundColor: hasReviewed
+                          ? Colors.white
+                          : AppColors.textMuted,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                  ),
+                );
+              },
+            ),
+          ],
         ),
       );
     }
@@ -841,7 +909,7 @@ class _BookingDetailPageState extends State<BookingDetailPage> {
     final totalAmount = NumberFormat.currency(
       locale: 'vi_VN',
       symbol: 'đ',
-    ).format(booking.totalPrice + booking.deposit);
+    ).format(booking.totalPrice + booking.protectionFee + booking.deposit);
 
     return Container(
       width: double.infinity,
@@ -932,6 +1000,7 @@ class _BookingDetailPageState extends State<BookingDetailPage> {
         builder: (_) => PaymentPage(
           bookingId: booking.id,
           totalAmount: booking.totalPrice,
+          protectionFee: booking.protectionFee,
           deposit: booking.deposit,
         ),
       ),
@@ -951,8 +1020,11 @@ class _BookingDetailPageState extends State<BookingDetailPage> {
       MaterialPageRoute(
         builder: (_) => CreateReviewPage(
           vehicleId: booking.vehicleId,
-          vehicleName: booking.vehicleName ?? 'Xe đã thuê',
+          vehicleName: widget.isOwnerView
+              ? 'Người thuê ${booking.renterId.substring(0, 8)}'
+              : booking.vehicleName ?? 'Xe đã thuê',
           bookingId: booking.id,
+          isOwnerReview: widget.isOwnerView,
         ),
       ),
     );
@@ -1530,6 +1602,10 @@ class _CancellationRefundPreviewPanel extends StatelessWidget {
           ),
           const SizedBox(height: 10),
           _row('Hoàn tiền thuê', preview.refundableRentalAmount),
+          if (preview.protectionAmount > 0) ...[
+            const SizedBox(height: 6),
+            _row('Hoàn phí bảo vệ', preview.refundableProtectionAmount),
+          ],
           const SizedBox(height: 6),
           _row('Hoàn tiền cọc', preview.refundableDepositAmount),
           const Divider(height: 18),

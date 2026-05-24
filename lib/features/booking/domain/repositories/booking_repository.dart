@@ -13,6 +13,7 @@ abstract class BookingRepository {
     required DateTime startTime,
     required DateTime endTime,
     String? notes,
+    String? protectionPlan,
   });
 
   /// Create a temporary checkout lock for the selected booking window

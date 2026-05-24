@@ -9,12 +9,15 @@ class CancellationRefundPreviewModel {
   final double rentalRefundRate;
   final double trustPenalty;
   final double rentalAmount;
+  final double protectionAmount;
   final double depositAmount;
   final double paidAmount;
   final double refundableRentalAmount;
+  final double refundableProtectionAmount;
   final double refundableDepositAmount;
   final double refundAmount;
   final double forfeitedRentalAmount;
+  final double forfeitedProtectionAmount;
   final double forfeitedDepositAmount;
   final double forfeitedAmount;
   final bool isPaid;
@@ -30,12 +33,15 @@ class CancellationRefundPreviewModel {
     required this.rentalRefundRate,
     required this.trustPenalty,
     required this.rentalAmount,
+    this.protectionAmount = 0,
     required this.depositAmount,
     required this.paidAmount,
     required this.refundableRentalAmount,
+    this.refundableProtectionAmount = 0,
     required this.refundableDepositAmount,
     required this.refundAmount,
     required this.forfeitedRentalAmount,
+    this.forfeitedProtectionAmount = 0,
     required this.forfeitedDepositAmount,
     required this.forfeitedAmount,
     required this.isPaid,
@@ -53,12 +59,15 @@ class CancellationRefundPreviewModel {
       rentalRefundRate: _asDouble(json['rentalRefundRate']),
       trustPenalty: _asDouble(json['trustPenalty']),
       rentalAmount: _asDouble(json['rentalAmount']),
+      protectionAmount: _asDouble(json['protectionAmount']),
       depositAmount: _asDouble(json['depositAmount']),
       paidAmount: _asDouble(json['paidAmount']),
       refundableRentalAmount: _asDouble(json['refundableRentalAmount']),
+      refundableProtectionAmount: _asDouble(json['refundableProtectionAmount']),
       refundableDepositAmount: _asDouble(json['refundableDepositAmount']),
       refundAmount: _asDouble(json['refundAmount']),
       forfeitedRentalAmount: _asDouble(json['forfeitedRentalAmount']),
+      forfeitedProtectionAmount: _asDouble(json['forfeitedProtectionAmount']),
       forfeitedDepositAmount: _asDouble(json['forfeitedDepositAmount']),
       forfeitedAmount: _asDouble(json['forfeitedAmount']),
       isPaid: json['isPaid'] as bool? ?? false,
@@ -77,12 +86,15 @@ class CancellationRefundPreviewModel {
       rentalRefundRate: rentalRefundRate,
       trustPenalty: trustPenalty,
       rentalAmount: rentalAmount,
+      protectionAmount: protectionAmount,
       depositAmount: depositAmount,
       paidAmount: paidAmount,
       refundableRentalAmount: refundableRentalAmount,
+      refundableProtectionAmount: refundableProtectionAmount,
       refundableDepositAmount: refundableDepositAmount,
       refundAmount: refundAmount,
       forfeitedRentalAmount: forfeitedRentalAmount,
+      forfeitedProtectionAmount: forfeitedProtectionAmount,
       forfeitedDepositAmount: forfeitedDepositAmount,
       forfeitedAmount: forfeitedAmount,
       isPaid: isPaid,

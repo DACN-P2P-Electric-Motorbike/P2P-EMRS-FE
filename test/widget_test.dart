@@ -87,6 +87,10 @@ void main() {
       'endTime': '2026-05-10T04:00:00.000Z',
       'totalPrice': 25000,
       'deposit': 200000,
+      'protectionPlan': 'PREMIUM',
+      'protectionFee': 2500,
+      'protectionDeductible': 500000,
+      'protectionCoverageLimit': 30000000,
       'createdAt': '2026-05-09T03:00:00.000Z',
       'updatedAt': '2026-05-09T03:00:00.000Z',
       'vehicle': {'batteryLevel': 87},
@@ -97,6 +101,10 @@ void main() {
     expect(booking.paymentStatus, 'COMPLETED');
     expect(booking.isPaymentCompleted, isTrue);
     expect(booking.vehicleBatteryLevel, 87);
+    expect(booking.protectionPlan, 'PREMIUM');
+    expect(booking.protectionFee, 2500);
+    expect(booking.protectionDeductible, 500000);
+    expect(booking.protectionCoverageLimit, 30000000);
   });
 
   test('FinancialSummaryModel parses deposit and post-trip charges', () {
@@ -162,14 +170,17 @@ void main() {
       'rentalRefundRate': 0.5,
       'trustPenalty': 5,
       'rentalAmount': 100000,
+      'protectionAmount': 10000,
       'depositAmount': 500000,
-      'paidAmount': 600000,
+      'paidAmount': 610000,
       'refundableRentalAmount': 50000,
+      'refundableProtectionAmount': 5000,
       'refundableDepositAmount': 500000,
-      'refundAmount': 550000,
+      'refundAmount': 555000,
       'forfeitedRentalAmount': 50000,
+      'forfeitedProtectionAmount': 5000,
       'forfeitedDepositAmount': 0,
-      'forfeitedAmount': 50000,
+      'forfeitedAmount': 55000,
       'isPaid': true,
       'paymentStatus': 'COMPLETED',
       'refundType': 'partial',
@@ -177,9 +188,11 @@ void main() {
 
     final preview = model.toEntity();
     expect(preview.policyDisplayText, 'Hoàn 50% tiền thuê');
+    expect(preview.refundableProtectionAmount, 5000);
     expect(preview.refundableDepositAmount, 500000);
-    expect(preview.refundAmount, 550000);
-    expect(preview.forfeitedRentalAmount, 50000);
+    expect(preview.refundAmount, 555000);
+    expect(preview.forfeitedProtectionAmount, 5000);
+    expect(preview.forfeitedAmount, 55000);
     expect(preview.trustPenalty, 5);
   });
 

@@ -11,16 +11,24 @@ class CreateBookingParams extends Equatable {
   final DateTime startTime;
   final DateTime endTime;
   final String? notes;
+  final String? protectionPlan;
 
   const CreateBookingParams({
     required this.vehicleId,
     required this.startTime,
     required this.endTime,
     this.notes,
+    this.protectionPlan,
   });
 
   @override
-  List<Object?> get props => [vehicleId, startTime, endTime, notes];
+  List<Object?> get props => [
+    vehicleId,
+    startTime,
+    endTime,
+    notes,
+    protectionPlan,
+  ];
 }
 
 /// Use case for creating a booking
@@ -39,6 +47,7 @@ class CreateBookingUseCase
       startTime: params.startTime,
       endTime: params.endTime,
       notes: params.notes,
+      protectionPlan: params.protectionPlan,
     );
   }
 }

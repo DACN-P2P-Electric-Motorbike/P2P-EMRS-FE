@@ -28,6 +28,10 @@ class BookingEntity extends Equatable {
   final DateTime endTime;
   final double totalPrice;
   final double deposit;
+  final String protectionPlan;
+  final double protectionFee;
+  final double protectionDeductible;
+  final double protectionCoverageLimit;
   final String? notes;
   final String? cancellationReason;
   final DateTime createdAt;
@@ -48,6 +52,10 @@ class BookingEntity extends Equatable {
     required this.endTime,
     required this.totalPrice,
     required this.deposit,
+    this.protectionPlan = 'STANDARD',
+    this.protectionFee = 0,
+    this.protectionDeductible = 1500000,
+    this.protectionCoverageLimit = 15000000,
     this.notes,
     this.cancellationReason,
     required this.createdAt,
@@ -153,6 +161,10 @@ class BookingEntity extends Equatable {
     endTime,
     totalPrice,
     deposit,
+    protectionPlan,
+    protectionFee,
+    protectionDeductible,
+    protectionCoverageLimit,
     notes,
     cancellationReason,
     createdAt,
@@ -174,6 +186,10 @@ class BookingEntity extends Equatable {
     DateTime? endTime,
     double? totalPrice,
     double? deposit,
+    String? protectionPlan,
+    double? protectionFee,
+    double? protectionDeductible,
+    double? protectionCoverageLimit,
     String? notes,
     String? cancellationReason,
     DateTime? createdAt,
@@ -194,6 +210,11 @@ class BookingEntity extends Equatable {
       endTime: endTime ?? this.endTime,
       totalPrice: totalPrice ?? this.totalPrice,
       deposit: deposit ?? this.deposit,
+      protectionPlan: protectionPlan ?? this.protectionPlan,
+      protectionFee: protectionFee ?? this.protectionFee,
+      protectionDeductible: protectionDeductible ?? this.protectionDeductible,
+      protectionCoverageLimit:
+          protectionCoverageLimit ?? this.protectionCoverageLimit,
       notes: notes ?? this.notes,
       cancellationReason: cancellationReason ?? this.cancellationReason,
       createdAt: createdAt ?? this.createdAt,

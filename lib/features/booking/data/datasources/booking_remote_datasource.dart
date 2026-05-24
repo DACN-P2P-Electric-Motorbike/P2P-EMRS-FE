@@ -18,6 +18,7 @@ abstract class BookingRemoteDataSource {
     required DateTime startTime,
     required DateTime endTime,
     String? notes,
+    String? protectionPlan,
   });
 
   /// Create a temporary booking lock while the renter confirms checkout
@@ -80,6 +81,7 @@ class BookingRemoteDataSourceImpl implements BookingRemoteDataSource {
     required DateTime startTime,
     required DateTime endTime,
     String? notes,
+    String? protectionPlan,
   }) async {
     try {
       final response = await _dioClient.post(
@@ -89,6 +91,7 @@ class BookingRemoteDataSourceImpl implements BookingRemoteDataSource {
           'startTime': VietnamTime.toApiIsoString(startTime),
           'endTime': VietnamTime.toApiIsoString(endTime),
           if (notes != null) 'notes': notes,
+          if (protectionPlan != null) 'protectionPlan': protectionPlan,
         },
       );
 

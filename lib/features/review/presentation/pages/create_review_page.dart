@@ -12,12 +12,14 @@ class CreateReviewPage extends StatelessWidget {
   final String vehicleId;
   final String vehicleName;
   final String? bookingId;
+  final bool isOwnerReview;
 
   const CreateReviewPage({
     super.key,
     required this.vehicleId,
     required this.vehicleName,
     this.bookingId,
+    this.isOwnerReview = false,
   });
 
   @override
@@ -28,6 +30,7 @@ class CreateReviewPage extends StatelessWidget {
         vehicleId: vehicleId,
         vehicleName: vehicleName,
         bookingId: bookingId,
+        isOwnerReview: isOwnerReview,
       ),
     );
   }
@@ -37,11 +40,13 @@ class _CreateReviewView extends StatefulWidget {
   final String vehicleId;
   final String vehicleName;
   final String? bookingId;
+  final bool isOwnerReview;
 
   const _CreateReviewView({
     required this.vehicleId,
     required this.vehicleName,
     this.bookingId,
+    required this.isOwnerReview,
   });
 
   @override
@@ -76,7 +81,7 @@ class _CreateReviewViewState extends State<_CreateReviewView> {
         backgroundColor: Colors.white,
         elevation: 0,
         title: Text(
-          'Đánh giá chuyến đi',
+          widget.isOwnerReview ? 'Đánh giá người thuê' : 'Đánh giá chuyến đi',
           style: GoogleFonts.poppins(
             fontSize: 18,
             fontWeight: FontWeight.w600,
@@ -90,7 +95,9 @@ class _CreateReviewViewState extends State<_CreateReviewView> {
           if (state is ReviewCreated) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: const Text('Đánh giá đã được gửi!'),
+                content: const Text(
+                  'Đánh giá đã được gửi. Nội dung sẽ hiển thị khi hai bên cùng đánh giá hoặc hết thời hạn.',
+                ),
                 backgroundColor: AppColors.success,
               ),
             );
@@ -116,7 +123,9 @@ class _CreateReviewViewState extends State<_CreateReviewView> {
 
                 // Star rating
                 Text(
-                  'Bạn cảm thấy thế nào về chuyến đi?',
+                  widget.isOwnerReview
+                      ? 'Người thuê đã bàn giao xe như thế nào?'
+                      : 'Bạn cảm thấy thế nào về chuyến đi?',
                   style: GoogleFonts.poppins(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
@@ -210,7 +219,9 @@ class _CreateReviewViewState extends State<_CreateReviewView> {
               borderRadius: BorderRadius.circular(16),
             ),
             child: Icon(
-              Icons.electric_scooter,
+              widget.isOwnerReview
+                  ? Icons.person_outline
+                  : Icons.electric_scooter,
               color: AppColors.primary,
               size: 32,
             ),
@@ -229,7 +240,9 @@ class _CreateReviewViewState extends State<_CreateReviewView> {
                   ),
                 ),
                 Text(
-                  'Đánh giá chất lượng xe',
+                  widget.isOwnerReview
+                      ? 'Đánh giá người thuê sau chuyến'
+                      : 'Đánh giá chất lượng xe',
                   style: GoogleFonts.poppins(
                     fontSize: 13,
                     color: AppColors.textMuted,
@@ -311,7 +324,9 @@ class _CreateReviewViewState extends State<_CreateReviewView> {
               (_, {required currentLength, required isFocused, maxLength}) =>
                   const SizedBox.shrink(),
           decoration: InputDecoration(
-            hintText: 'Chia sẻ trải nghiệm của bạn về xe...',
+            hintText: widget.isOwnerReview
+                ? 'Ghi nhận việc nhận xe, trả xe, giao tiếp...'
+                : 'Chia sẻ trải nghiệm của bạn về xe...',
             hintStyle: GoogleFonts.poppins(
               color: AppColors.textMuted,
               fontSize: 14,

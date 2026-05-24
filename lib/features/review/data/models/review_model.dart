@@ -4,11 +4,16 @@ class ReviewModel extends ReviewEntity {
   const ReviewModel({
     required super.id,
     required super.userId,
+    super.revieweeId,
     required super.vehicleId,
     super.tripId,
     super.bookingId,
+    super.reviewType,
     required super.rating,
     super.comment,
+    super.visibleAt,
+    super.revealedAt,
+    super.isRevealed,
     super.userName,
     super.userAvatarUrl,
     super.vehicleName,
@@ -26,11 +31,20 @@ class ReviewModel extends ReviewEntity {
     return ReviewModel(
       id: json['id'] as String,
       userId: json['userId'] as String,
+      revieweeId: json['revieweeId'] as String?,
       vehicleId: json['vehicleId'] as String,
       tripId: json['tripId'] as String?,
       bookingId: json['bookingId'] as String? ?? trip?['bookingId'] as String?,
+      reviewType: json['reviewType'] as String? ?? 'RENTER_TO_OWNER',
       rating: json['rating'] as int,
       comment: json['comment'] as String?,
+      visibleAt: json['visibleAt'] is String
+          ? DateTime.tryParse(json['visibleAt'] as String)
+          : null,
+      revealedAt: json['revealedAt'] is String
+          ? DateTime.tryParse(json['revealedAt'] as String)
+          : null,
+      isRevealed: json['isRevealed'] as bool? ?? true,
       userName: user?['fullName'] as String?,
       userAvatarUrl: user?['avatarUrl'] as String?,
       vehicleName: vehicle?['name'] as String?,
@@ -46,11 +60,16 @@ class ReviewModel extends ReviewEntity {
   ReviewEntity toEntity() => ReviewEntity(
     id: id,
     userId: userId,
+    revieweeId: revieweeId,
     vehicleId: vehicleId,
     tripId: tripId,
     bookingId: bookingId,
+    reviewType: reviewType,
     rating: rating,
     comment: comment,
+    visibleAt: visibleAt,
+    revealedAt: revealedAt,
+    isRevealed: isRevealed,
     userName: userName,
     userAvatarUrl: userAvatarUrl,
     vehicleName: vehicleName,
@@ -72,9 +91,7 @@ class TrustScoreBreakdownModel {
     final events = rawEvents is List
         ? rawEvents
               .whereType<Map>()
-              .map(
-                (raw) => _parseEvent(Map<String, dynamic>.from(raw)),
-              )
+              .map((raw) => _parseEvent(Map<String, dynamic>.from(raw)))
               .whereType<TrustScoreEvent>()
               .toList()
         : const <TrustScoreEvent>[];
@@ -83,9 +100,7 @@ class TrustScoreBreakdownModel {
     final warnings = rawWarnings is List
         ? rawWarnings
               .whereType<Map>()
-              .map(
-                (raw) => _parseWarning(Map<String, dynamic>.from(raw)),
-              )
+              .map((raw) => _parseWarning(Map<String, dynamic>.from(raw)))
               .whereType<TrustScoreWarning>()
               .toList()
         : const <TrustScoreWarning>[];

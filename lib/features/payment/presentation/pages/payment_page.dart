@@ -20,12 +20,14 @@ import 'payment_webview_page.dart';
 class PaymentPage extends StatelessWidget {
   final String bookingId;
   final double totalAmount;
+  final double protectionFee;
   final double deposit;
 
   const PaymentPage({
     super.key,
     required this.bookingId,
     required this.totalAmount,
+    this.protectionFee = 0,
     required this.deposit,
   });
 
@@ -37,6 +39,7 @@ class PaymentPage extends StatelessWidget {
       child: _PaymentView(
         bookingId: bookingId,
         totalAmount: totalAmount,
+        protectionFee: protectionFee,
         deposit: deposit,
       ),
     );
@@ -46,11 +49,13 @@ class PaymentPage extends StatelessWidget {
 class _PaymentView extends StatefulWidget {
   final String bookingId;
   final double totalAmount;
+  final double protectionFee;
   final double deposit;
 
   const _PaymentView({
     required this.bookingId,
     required this.totalAmount,
+    required this.protectionFee,
     required this.deposit,
   });
 
@@ -65,6 +70,9 @@ class _PaymentViewState extends State<_PaymentView>
   StreamSubscription<dynamic>? _webMessageSub;
 
   final _formatter = NumberFormat.currency(locale: 'vi_VN', symbol: 'đ');
+
+  double get _checkoutTotal =>
+      widget.totalAmount + widget.protectionFee + widget.deposit;
 
   @override
   void initState() {
@@ -404,8 +412,9 @@ class _PaymentViewState extends State<_PaymentView>
         state is PaymentLoaded && _canResumePayment(state.payment)
         ? state.payment
         : null;
-    final failedPayment =
-        state is PaymentLoaded && state.payment.isFailed ? state.payment : null;
+    final failedPayment = state is PaymentLoaded && state.payment.isFailed
+        ? state.payment
+        : null;
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
@@ -493,7 +502,7 @@ class _PaymentViewState extends State<_PaymentView>
                           ? _selectedMethod == existingPayment.method
                                 ? 'Tiếp tục thanh toán ${existingPayment.methodDisplayText}'
                                 : 'Đổi sang ${_methodLabel(_selectedMethod)} và thanh toán'
-                          : 'Thanh toán ${_formatter.format(widget.totalAmount + widget.deposit)}',
+                          : 'Thanh toán ${_formatter.format(_checkoutTotal)}',
                       style: GoogleFonts.poppins(
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
@@ -623,7 +632,7 @@ class _PaymentViewState extends State<_PaymentView>
           ),
           const SizedBox(height: 8),
           Text(
-            _formatter.format(widget.totalAmount + widget.deposit),
+            _formatter.format(_checkoutTotal),
             style: GoogleFonts.poppins(
               color: Colors.white,
               fontSize: 32,
@@ -631,10 +640,13 @@ class _PaymentViewState extends State<_PaymentView>
             ),
           ),
           const SizedBox(height: 16),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          Wrap(
+            spacing: 20,
+            runSpacing: 10,
             children: [
               _summaryItem('Tiền thuê', _formatter.format(widget.totalAmount)),
+              if (widget.protectionFee > 0)
+                _summaryItem('Bảo vệ', _formatter.format(widget.protectionFee)),
               _summaryItem('Tiền cọc', _formatter.format(widget.deposit)),
             ],
           ),
@@ -790,6 +802,14 @@ class _PaymentViewState extends State<_PaymentView>
             _formatter.format(platformFee),
             AppColors.textMuted,
           ),
+          if (widget.protectionFee > 0) ...[
+            const SizedBox(height: 8),
+            _revenueRow(
+              'Gói bảo vệ nội bộ',
+              _formatter.format(widget.protectionFee),
+              AppColors.primary,
+            ),
+          ],
           if (widget.deposit > 0) ...[
             const SizedBox(height: 8),
             _revenueRow(

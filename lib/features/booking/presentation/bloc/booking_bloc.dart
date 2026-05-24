@@ -74,6 +74,7 @@ class BookingBloc extends Bloc<BookingEvent, BookingState> {
       startTime: event.startTime,
       endTime: event.endTime,
       notes: event.notes,
+      protectionPlan: event.protectionPlan,
     );
 
     final result = await _createBookingUseCase(params);
