@@ -12,6 +12,10 @@ class BookingModel {
   final DateTime endTime;
   final double totalPrice;
   final double deposit;
+  final String protectionPlan;
+  final double protectionFee;
+  final double protectionDeductible;
+  final double protectionCoverageLimit;
   final String? notes;
   final String? cancellationReason;
   final DateTime createdAt;
@@ -32,6 +36,10 @@ class BookingModel {
     required this.endTime,
     required this.totalPrice,
     required this.deposit,
+    this.protectionPlan = 'STANDARD',
+    this.protectionFee = 0,
+    this.protectionDeductible = 1500000,
+    this.protectionCoverageLimit = 15000000,
     this.notes,
     this.cancellationReason,
     required this.createdAt,
@@ -64,6 +72,12 @@ class BookingModel {
       endTime: DateTime.parse(json['endTime'] as String),
       totalPrice: (json['totalPrice'] as num).toDouble(),
       deposit: (json['deposit'] as num).toDouble(),
+      protectionPlan: json['protectionPlan'] as String? ?? 'STANDARD',
+      protectionFee: (json['protectionFee'] as num?)?.toDouble() ?? 0,
+      protectionDeductible:
+          (json['protectionDeductible'] as num?)?.toDouble() ?? 1500000,
+      protectionCoverageLimit:
+          (json['protectionCoverageLimit'] as num?)?.toDouble() ?? 15000000,
       notes: json['notes'] as String?,
       cancellationReason: json['cancellationReason'] as String?,
       createdAt: DateTime.parse(json['createdAt'] as String),
@@ -94,6 +108,10 @@ class BookingModel {
       'endTime': endTime.toIso8601String(),
       'totalPrice': totalPrice,
       'deposit': deposit,
+      'protectionPlan': protectionPlan,
+      'protectionFee': protectionFee,
+      'protectionDeductible': protectionDeductible,
+      'protectionCoverageLimit': protectionCoverageLimit,
       'notes': notes,
       'cancellationReason': cancellationReason,
       'createdAt': createdAt.toIso8601String(),
@@ -121,6 +139,10 @@ class BookingModel {
       endTime: endTime,
       totalPrice: totalPrice,
       deposit: deposit,
+      protectionPlan: protectionPlan,
+      protectionFee: protectionFee,
+      protectionDeductible: protectionDeductible,
+      protectionCoverageLimit: protectionCoverageLimit,
       notes: notes,
       cancellationReason: cancellationReason,
       createdAt: createdAt,

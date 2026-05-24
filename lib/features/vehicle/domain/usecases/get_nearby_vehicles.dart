@@ -11,6 +11,7 @@ class NearbyVehicleParams extends Equatable {
   final double radiusKm;
   final DateTime? startTime;
   final DateTime? endTime;
+  final bool? instantBookOnly;
 
   const NearbyVehicleParams({
     required this.latitude,
@@ -18,6 +19,7 @@ class NearbyVehicleParams extends Equatable {
     this.radiusKm = 5.0,
     this.startTime,
     this.endTime,
+    this.instantBookOnly,
   });
 
   @override
@@ -27,6 +29,7 @@ class NearbyVehicleParams extends Equatable {
     radiusKm,
     startTime,
     endTime,
+    instantBookOnly,
   ];
 }
 
@@ -46,6 +49,7 @@ class GetNearbyVehicles
       radius: params.radiusKm,
       startTime: params.startTime,
       endTime: params.endTime,
+      instantBookOnly: params.instantBookOnly,
     );
   }
 }

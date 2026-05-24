@@ -1,5 +1,6 @@
 import 'package:fe_capstone_project/features/booking/presentation/pages/booking_detail_page.dart';
 import 'package:fe_capstone_project/features/booking/presentation/pages/booking_page.dart';
+import 'package:fe_capstone_project/features/kyc/presentation/pages/kyc_verification_page.dart';
 import 'package:fe_capstone_project/features/notification/presentation/pages/notification_pages.dart';
 import 'package:fe_capstone_project/features/owner_vehicle/presentation/pages/owner_dashboard_page.dart';
 import 'package:fe_capstone_project/features/owner_vehicle/presentation/pages/owner_entry_page.dart';
@@ -326,6 +327,12 @@ class AppRouter {
           if (user == null) return const SizedBox.shrink();
           return ProfileEditPage(user: user);
         },
+      ),
+
+      GoRoute(
+        path: '/kyc',
+        name: 'kyc-verification',
+        builder: (context, state) => const KycVerificationPage(),
       ),
 
       // Public vehicle listing (fullscreen)

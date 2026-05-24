@@ -295,6 +295,11 @@ class ProfilePage extends StatelessWidget {
   Widget _buildMenuList(BuildContext context) {
     final menuItems = [
       _MenuItem(
+        icon: Icons.verified_user_outlined,
+        label: 'Xác minh danh tính',
+        onTap: () => context.push('/kyc'),
+      ),
+      _MenuItem(
         icon: Icons.payment_outlined,
         label: 'Phương thức thanh toán',
         onTap: () {

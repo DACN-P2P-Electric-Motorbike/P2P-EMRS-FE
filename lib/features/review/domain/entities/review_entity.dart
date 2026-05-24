@@ -3,11 +3,16 @@ import 'package:equatable/equatable.dart';
 class ReviewEntity extends Equatable {
   final String id;
   final String userId;
+  final String? revieweeId;
   final String vehicleId;
   final String? tripId;
   final String? bookingId;
+  final String reviewType;
   final int rating;
   final String? comment;
+  final DateTime? visibleAt;
+  final DateTime? revealedAt;
+  final bool isRevealed;
   final String? userName;
   final String? userAvatarUrl;
   final String? vehicleName;
@@ -19,11 +24,16 @@ class ReviewEntity extends Equatable {
   const ReviewEntity({
     required this.id,
     required this.userId,
+    this.revieweeId,
     required this.vehicleId,
     this.tripId,
     this.bookingId,
+    this.reviewType = 'RENTER_TO_OWNER',
     required this.rating,
     this.comment,
+    this.visibleAt,
+    this.revealedAt,
+    this.isRevealed = true,
     this.userName,
     this.userAvatarUrl,
     this.vehicleName,
@@ -37,11 +47,16 @@ class ReviewEntity extends Equatable {
   List<Object?> get props => [
     id,
     userId,
+    revieweeId,
     vehicleId,
     tripId,
     bookingId,
+    reviewType,
     rating,
     comment,
+    visibleAt,
+    revealedAt,
+    isRevealed,
     userName,
     userAvatarUrl,
     vehicleName,

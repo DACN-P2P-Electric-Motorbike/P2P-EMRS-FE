@@ -18,14 +18,18 @@ enum OwnerVehicleStatus {
 class OwnerVehicleState extends Equatable {
   final OwnerVehicleStatus status;
   final List<VehicleEntity> vehicles;
+  final List<VehicleAvailabilityWindowEntity> availabilityWindows;
   final VehicleEntity? selectedVehicle;
+  final bool isAvailabilityLoading;
   final String? errorMessage;
   final String? successMessage;
 
   const OwnerVehicleState({
     this.status = OwnerVehicleStatus.initial,
     this.vehicles = const [],
+    this.availabilityWindows = const [],
     this.selectedVehicle,
+    this.isAvailabilityLoading = false,
     this.errorMessage,
     this.successMessage,
   });
@@ -39,7 +43,9 @@ class OwnerVehicleState extends Equatable {
   OwnerVehicleState copyWith({
     OwnerVehicleStatus? status,
     List<VehicleEntity>? vehicles,
+    List<VehicleAvailabilityWindowEntity>? availabilityWindows,
     VehicleEntity? selectedVehicle,
+    bool? isAvailabilityLoading,
     String? errorMessage,
     String? successMessage,
     bool clearSelectedVehicle = false,
@@ -49,9 +55,12 @@ class OwnerVehicleState extends Equatable {
     return OwnerVehicleState(
       status: status ?? this.status,
       vehicles: vehicles ?? this.vehicles,
+      availabilityWindows: availabilityWindows ?? this.availabilityWindows,
       selectedVehicle: clearSelectedVehicle
           ? null
           : (selectedVehicle ?? this.selectedVehicle),
+      isAvailabilityLoading:
+          isAvailabilityLoading ?? this.isAvailabilityLoading,
       errorMessage: clearError ? null : (errorMessage ?? this.errorMessage),
       successMessage: clearSuccess
           ? null
@@ -84,7 +93,9 @@ class OwnerVehicleState extends Equatable {
   List<Object?> get props => [
     status,
     vehicles,
+    availabilityWindows,
     selectedVehicle,
+    isAvailabilityLoading,
     errorMessage,
     successMessage,
   ];

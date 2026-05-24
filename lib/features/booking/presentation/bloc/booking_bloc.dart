@@ -12,6 +12,7 @@ import 'booking_state.dart';
 /// Booking BLoC - handles booking state management
 class BookingBloc extends Bloc<BookingEvent, BookingState> {
   final CreateBookingUseCase _createBookingUseCase;
+  final CreateBookingLockUseCase _createBookingLockUseCase;
   final GetRenterBookingsUseCase _getRenterBookingsUseCase;
   final GetOwnerBookingsUseCase _getOwnerBookingsUseCase;
   final GetPendingBookingsUseCase _getPendingBookingsUseCase;
@@ -29,6 +30,7 @@ class BookingBloc extends Bloc<BookingEvent, BookingState> {
 
   BookingBloc({
     required CreateBookingUseCase createBookingUseCase,
+    required CreateBookingLockUseCase createBookingLockUseCase,
     required GetRenterBookingsUseCase getRenterBookingsUseCase,
     required GetOwnerBookingsUseCase getOwnerBookingsUseCase,
     required GetPendingBookingsUseCase getPendingBookingsUseCase,
@@ -38,6 +40,7 @@ class BookingBloc extends Bloc<BookingEvent, BookingState> {
     required RejectBookingUseCase rejectBookingUseCase,
     required HiveCacheService cache,
   }) : _createBookingUseCase = createBookingUseCase,
+       _createBookingLockUseCase = createBookingLockUseCase,
        _getRenterBookingsUseCase = getRenterBookingsUseCase,
        _getOwnerBookingsUseCase = getOwnerBookingsUseCase,
        _getPendingBookingsUseCase = getPendingBookingsUseCase,
@@ -49,6 +52,7 @@ class BookingBloc extends Bloc<BookingEvent, BookingState> {
        super(const BookingInitial()) {
     _cacheSubscription = _cache.changes.listen(_onCacheChanged);
     on<CreateBookingEvent>(_onCreateBooking);
+    on<CreateBookingLockEvent>(_onCreateBookingLock);
     on<LoadRenterBookingsEvent>(_onLoadRenterBookings);
     on<LoadOwnerBookingsEvent>(_onLoadOwnerBookings);
     on<LoadPendingBookingsEvent>(_onLoadPendingBookings);
@@ -70,6 +74,7 @@ class BookingBloc extends Bloc<BookingEvent, BookingState> {
       startTime: event.startTime,
       endTime: event.endTime,
       notes: event.notes,
+      protectionPlan: event.protectionPlan,
     );
 
     final result = await _createBookingUseCase(params);
@@ -77,6 +82,26 @@ class BookingBloc extends Bloc<BookingEvent, BookingState> {
     result.fold(
       (failure) => emit(BookingFailure(failure.message)),
       (booking) => emit(BookingCreated(booking)),
+    );
+  }
+
+  Future<void> _onCreateBookingLock(
+    CreateBookingLockEvent event,
+    Emitter<BookingState> emit,
+  ) async {
+    emit(const BookingLoading());
+
+    final result = await _createBookingLockUseCase(
+      CreateBookingLockParams(
+        vehicleId: event.vehicleId,
+        startTime: event.startTime,
+        endTime: event.endTime,
+      ),
+    );
+
+    result.fold(
+      (failure) => emit(BookingFailure(failure.message)),
+      (lock) => emit(BookingLockCreated(lock)),
     );
   }
 

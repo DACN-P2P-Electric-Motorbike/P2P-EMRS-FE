@@ -6,7 +6,6 @@ import 'package:google_fonts/google_fonts.dart';
 
 import '../../../../core/theme/app_theme.dart';
 import '../../../../injection_container.dart';
-import '../../domain/entities/vehicle_entity.dart';
 import '../bloc/owner_vehicle_bloc.dart';
 import '../widgets/vehicle_card.dart';
 

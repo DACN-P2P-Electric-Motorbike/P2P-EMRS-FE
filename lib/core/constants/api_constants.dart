@@ -31,9 +31,14 @@ class ApiConstants {
   static String vehicleById(String id) => '/vehicles/$id';
   static String toggleVehicleAvailability(String id) =>
       '/vehicles/$id/toggle-availability';
+  static String vehicleAvailability(String id) => '/vehicles/$id/availability';
+  static String vehicleAvailabilityWindow(String id, String windowId) =>
+      '/vehicles/$id/availability/$windowId';
 
   /// Booking endpoints
   static const String bookings = '/bookings';
+  static String bookingCancellationPreview(String id) =>
+      '/bookings/$id/cancellation-preview';
   static String vehicleSchedule(String vehicleId) =>
       '/bookings/vehicle/$vehicleId/schedule';
 
@@ -45,6 +50,12 @@ class ApiConstants {
   static String endTrip(String id) => '/trips/$id/end';
   static String tripById(String id) => '/trips/$id';
 
+  /// Handover endpoints
+  static const String handoverCheckIn = '/handover/check-in';
+  static const String handoverCheckOut = '/handover/check-out';
+  static String handoverByBooking(String bookingId) => '/handover/$bookingId';
+  static String confirmHandover(String id) => '/handover/$id/confirm';
+
   /// Payment endpoints
   static const String payments = '/payments';
   static const String paymentByBooking = '/payments/by-booking';
@@ -54,6 +65,14 @@ class ApiConstants {
   static String initiatePayOS(String id) => '/payments/$id/initiate-payos';
   static String initiateMoMo(String id) => '/payments/$id/initiate-momo';
   static String refundPayment(String id) => '/payments/$id/refund';
+
+  /// Financial endpoints
+  static String financialByBooking(String bookingId) =>
+      '/financial/bookings/$bookingId';
+  static String financialChargesByBooking(String bookingId) =>
+      '/financial/bookings/$bookingId/charges';
+  static String disputeFinancialCharge(String chargeId) =>
+      '/financial/charges/$chargeId/dispute';
 
   /// Privacy endpoints
   static const String privacyExport = '/privacy/export';
@@ -72,6 +91,12 @@ class ApiConstants {
   static const String uploadVehicleImage = '/upload/vehicle-image';
   static const String uploadVehicleImages = '/upload/vehicle-images';
   static const String uploadLicense = '/upload/license';
+  static const String uploadKyc = '/upload/kyc';
+  static const String uploadHandover = '/upload/handover';
+
+  /// KYC endpoints
+  static const String kycSubmit = '/kyc/submit';
+  static const String kycStatus = '/kyc/status';
 
   static const String authBecomeOwner = '/auth/become-owner';
 }

@@ -1,6 +1,7 @@
 import '../../domain/entities/vehicle_entity.dart';
 
 /// Vehicle data model for API serialization
+// ignore: must_be_immutable
 class VehicleModel extends VehicleEntity {
   VehicleModel({
     required super.id,
@@ -19,6 +20,21 @@ class VehicleModel extends VehicleEntity {
     required super.pricePerHour,
     super.pricePerDay,
     super.deposit,
+    super.instantBook = false,
+    super.dailyKmLimit,
+    super.excessKmPrice,
+    super.weeklyDiscount,
+    super.monthlyDiscount,
+    super.allowSmoke = false,
+    super.allowPets = false,
+    super.geoRestriction,
+    super.batteryReturnMin,
+    super.firstRegistrationYear,
+    super.condition,
+    super.batteryType,
+    super.batteryHealth,
+    super.batteryCycleCount,
+    super.batteryLastServicedAt,
     super.isAvailable = true,
     required super.address,
     super.latitude,
@@ -67,6 +83,29 @@ class VehicleModel extends VehicleEntity {
       deposit: json['deposit'] != null
           ? (json['deposit'] as num).toDouble()
           : null,
+      instantBook: json['instantBook'] as bool? ?? false,
+      dailyKmLimit: _parseInt(json['dailyKmLimit']),
+      excessKmPrice: json['excessKmPrice'] != null
+          ? _parsePrice(json['excessKmPrice'])
+          : null,
+      weeklyDiscount: json['weeklyDiscount'] != null
+          ? _parsePrice(json['weeklyDiscount'])
+          : null,
+      monthlyDiscount: json['monthlyDiscount'] != null
+          ? _parsePrice(json['monthlyDiscount'])
+          : null,
+      allowSmoke: json['allowSmoke'] as bool? ?? false,
+      allowPets: json['allowPets'] as bool? ?? false,
+      geoRestriction: json['geoRestriction'] as String?,
+      batteryReturnMin: _parseInt(json['batteryReturnMin']),
+      firstRegistrationYear: _parseInt(json['firstRegistrationYear']),
+      condition: VehicleCondition.fromString(json['condition'] as String?),
+      batteryType: BatteryType.fromString(json['batteryType'] as String?),
+      batteryHealth: _parseInt(json['batteryHealth']),
+      batteryCycleCount: _parseInt(json['batteryCycleCount']),
+      batteryLastServicedAt: json['batteryLastServicedAt'] != null
+          ? DateTime.parse(json['batteryLastServicedAt'] as String).toLocal()
+          : null,
       isAvailable: json['isAvailable'] as bool? ?? true,
       address: json['address'] as String,
       latitude: json['latitude'] != null
@@ -100,6 +139,13 @@ class VehicleModel extends VehicleEntity {
     return 0.0;
   }
 
+  static int? _parseInt(dynamic value) {
+    if (value is int) return value;
+    if (value is num) return value.toInt();
+    if (value is String) return int.tryParse(value);
+    return null;
+  }
+
   /// Convert to JSON (for debugging/logging)
   Map<String, dynamic> toJson() {
     return {
@@ -119,6 +165,21 @@ class VehicleModel extends VehicleEntity {
       'pricePerHour': pricePerHour,
       'pricePerDay': pricePerDay,
       'deposit': deposit,
+      'instantBook': instantBook,
+      'dailyKmLimit': dailyKmLimit,
+      'excessKmPrice': excessKmPrice,
+      'weeklyDiscount': weeklyDiscount,
+      'monthlyDiscount': monthlyDiscount,
+      'allowSmoke': allowSmoke,
+      'allowPets': allowPets,
+      'geoRestriction': geoRestriction,
+      'batteryReturnMin': batteryReturnMin,
+      'firstRegistrationYear': firstRegistrationYear,
+      'condition': condition?.toApiString(),
+      'batteryType': batteryType?.toApiString(),
+      'batteryHealth': batteryHealth,
+      'batteryCycleCount': batteryCycleCount,
+      'batteryLastServicedAt': batteryLastServicedAt?.toUtc().toIso8601String(),
       'isAvailable': isAvailable,
       'address': address,
       'latitude': latitude,
@@ -156,6 +217,21 @@ class VehicleModel extends VehicleEntity {
       pricePerHour: pricePerHour,
       pricePerDay: pricePerDay,
       deposit: deposit,
+      instantBook: instantBook,
+      dailyKmLimit: dailyKmLimit,
+      excessKmPrice: excessKmPrice,
+      weeklyDiscount: weeklyDiscount,
+      monthlyDiscount: monthlyDiscount,
+      allowSmoke: allowSmoke,
+      allowPets: allowPets,
+      geoRestriction: geoRestriction,
+      batteryReturnMin: batteryReturnMin,
+      firstRegistrationYear: firstRegistrationYear,
+      condition: condition,
+      batteryType: batteryType,
+      batteryHealth: batteryHealth,
+      batteryCycleCount: batteryCycleCount,
+      batteryLastServicedAt: batteryLastServicedAt,
       isAvailable: isAvailable,
       address: address,
       latitude: latitude,

@@ -12,6 +12,12 @@ import '../../../../core/theme/app_theme.dart';
 import '../../../../core/usecases/usecase.dart';
 import '../../../../core/utils/vietnam_time.dart';
 import '../../../../injection_container.dart';
+import '../../../financial/domain/entities/financial_summary.dart';
+import '../../../financial/domain/usecases/financial_usecases.dart';
+import '../../../financial/presentation/cubit/financial_cubit.dart';
+import '../../../financial/presentation/widgets/financial_summary_card.dart';
+import '../../../handover/presentation/pages/check_in_page.dart';
+import '../../../handover/presentation/pages/handover_summary_page.dart';
 import '../../../payment/presentation/pages/payment_page.dart';
 import '../../../review/domain/usecases/review_usecases.dart';
 import '../../../review/presentation/pages/create_review_page.dart';
@@ -20,6 +26,8 @@ import '../../../trip/presentation/bloc/trip_event.dart';
 import '../../../trip/presentation/bloc/trip_state.dart';
 import '../../../trip/presentation/pages/active_trip_page.dart';
 import '../../domain/entities/booking.dart';
+import '../../domain/entities/cancellation_refund_preview.dart';
+import '../../domain/usecases/booking_usecases.dart';
 import '../bloc/booking_bloc.dart';
 import '../bloc/booking_event.dart';
 import '../bloc/booking_state.dart';
@@ -169,6 +177,18 @@ class _BookingDetailPageState extends State<BookingDetailPage> {
           // Price Information
           _buildPriceCard(booking),
 
+          if (_shouldShowFinancialSummary(booking)) ...[
+            const SizedBox(height: 16),
+            BlocProvider(
+              create: (_) => sl<FinancialCubit>()..load(booking.id),
+              child: FinancialSummaryCard(
+                allowDisputes: !widget.isOwnerView,
+                onDisputeCharge: (charge) =>
+                    _showDisputeChargeDialog(context, booking, charge),
+              ),
+            ),
+          ],
+
           const SizedBox(height: 16),
 
           // Notes
@@ -187,6 +207,13 @@ class _BookingDetailPageState extends State<BookingDetailPage> {
         ],
       ),
     );
+  }
+
+  bool _shouldShowFinancialSummary(BookingEntity booking) {
+    return booking.deposit > 0 &&
+        (booking.isPaymentCompleted ||
+            booking.isOngoing ||
+            booking.isCompleted);
   }
 
   Widget _buildStatusBanner(BookingEntity booking) {
@@ -382,6 +409,12 @@ class _BookingDetailPageState extends State<BookingDetailPage> {
           ),
           const SizedBox(height: 12),
           _buildInfoRow(
+            Icons.verified_user_outlined,
+            'Gói bảo vệ ${_protectionPlanLabel(booking.protectionPlan)}',
+            '${NumberFormat.currency(locale: 'vi_VN', symbol: 'đ').format(booking.protectionFee)} - khấu trừ ${NumberFormat.currency(locale: 'vi_VN', symbol: 'đ').format(booking.protectionDeductible)}',
+          ),
+          const SizedBox(height: 12),
+          _buildInfoRow(
             Icons.account_balance_wallet,
             'Tiền cọc',
             NumberFormat.currency(
@@ -402,10 +435,9 @@ class _BookingDetailPageState extends State<BookingDetailPage> {
                 ),
               ),
               Text(
-                NumberFormat.currency(
-                  locale: 'vi_VN',
-                  symbol: 'đ',
-                ).format(booking.totalPrice + booking.deposit),
+                NumberFormat.currency(locale: 'vi_VN', symbol: 'đ').format(
+                  booking.totalPrice + booking.protectionFee + booking.deposit,
+                ),
                 style: GoogleFonts.poppins(
                   fontSize: 20,
                   fontWeight: FontWeight.bold,
@@ -528,6 +560,18 @@ class _BookingDetailPageState extends State<BookingDetailPage> {
     );
   }
 
+  String _protectionPlanLabel(String value) {
+    switch (value.toUpperCase()) {
+      case 'BASIC':
+        return 'Cơ bản';
+      case 'PREMIUM':
+        return 'Cao cấp';
+      case 'STANDARD':
+      default:
+        return 'Tiêu chuẩn';
+    }
+  }
+
   Widget _buildActions(BuildContext context, BookingEntity booking) {
     // Owner actions
     if (widget.isOwnerView && booking.isPending) {
@@ -561,6 +605,115 @@ class _BookingDetailPageState extends State<BookingDetailPage> {
                 ),
                 child: const Text('Chấp nhận'),
               ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    if (widget.isOwnerView && (booking.isConfirmed || booking.isOngoing)) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        child: SizedBox(
+          width: double.infinity,
+          child: ElevatedButton.icon(
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => HandoverSummaryPage(
+                  bookingId: booking.id,
+                  allowCheckOut: booking.isOngoing,
+                ),
+              ),
+            ),
+            icon: const Icon(Icons.assignment_turned_in_outlined),
+            label: Text(
+              'Biên bản bàn giao',
+              style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
+            ),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primary,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(vertical: 16),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
+    if (widget.isOwnerView && booking.isCompleted) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        child: Column(
+          children: [
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: () => _showManualChargeDialog(context, booking),
+                icon: const Icon(Icons.add_card_outlined),
+                label: Text(
+                  'Thêm phí sau chuyến',
+                  style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+            FutureBuilder<Set<String>>(
+              future: _reviewedBookingIdsFuture,
+              builder: (context, snapshot) {
+                final isChecking =
+                    snapshot.connectionState != ConnectionState.done;
+                final hasReviewed =
+                    snapshot.data?.contains(booking.id) ?? false;
+                return SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    onPressed: isChecking || hasReviewed
+                        ? null
+                        : () => _navigateToReview(context, booking),
+                    icon: Icon(
+                      hasReviewed
+                          ? Icons.check_circle_outline
+                          : Icons.person_search_outlined,
+                    ),
+                    label: Text(
+                      hasReviewed
+                          ? 'Đã đánh giá người thuê'
+                          : isChecking
+                          ? 'Đang kiểm tra đánh giá...'
+                          : 'Đánh giá người thuê',
+                      style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: hasReviewed
+                          ? AppColors.success
+                          : const Color(0xFFFFB300),
+                      foregroundColor: Colors.white,
+                      disabledBackgroundColor: hasReviewed
+                          ? AppColors.success.withOpacity(0.85)
+                          : AppColors.textMuted.withOpacity(0.18),
+                      disabledForegroundColor: hasReviewed
+                          ? Colors.white
+                          : AppColors.textMuted,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                  ),
+                );
+              },
             ),
           ],
         ),
@@ -756,7 +909,7 @@ class _BookingDetailPageState extends State<BookingDetailPage> {
     final totalAmount = NumberFormat.currency(
       locale: 'vi_VN',
       symbol: 'đ',
-    ).format(booking.totalPrice + booking.deposit);
+    ).format(booking.totalPrice + booking.protectionFee + booking.deposit);
 
     return Container(
       width: double.infinity,
@@ -847,6 +1000,7 @@ class _BookingDetailPageState extends State<BookingDetailPage> {
         builder: (_) => PaymentPage(
           bookingId: booking.id,
           totalAmount: booking.totalPrice,
+          protectionFee: booking.protectionFee,
           deposit: booking.deposit,
         ),
       ),
@@ -866,8 +1020,11 @@ class _BookingDetailPageState extends State<BookingDetailPage> {
       MaterialPageRoute(
         builder: (_) => CreateReviewPage(
           vehicleId: booking.vehicleId,
-          vehicleName: booking.vehicleName ?? 'Xe đã thuê',
+          vehicleName: widget.isOwnerView
+              ? 'Người thuê ${booking.renterId.substring(0, 8)}'
+              : booking.vehicleName ?? 'Xe đã thuê',
           bookingId: booking.id,
+          isOwnerReview: widget.isOwnerView,
         ),
       ),
     );
@@ -989,6 +1146,9 @@ class _BookingDetailPageState extends State<BookingDetailPage> {
   ) {
     final reasonController = TextEditingController();
     final formKey = GlobalKey<FormState>();
+    final previewFuture = sl<GetCancellationRefundPreviewUseCase>()(
+      GetCancellationRefundPreviewParams(booking.id),
+    );
 
     showDialog(
       context: context,
@@ -999,32 +1159,60 @@ class _BookingDetailPageState extends State<BookingDetailPage> {
         ),
         content: Form(
           key: formKey,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                'Bạn có chắc chắn muốn hủy booking này?',
-                style: GoogleFonts.poppins(fontSize: 14),
-              ),
-              const SizedBox(height: 16),
-              TextFormField(
-                controller: reasonController,
-                decoration: InputDecoration(
-                  labelText: 'Lý do hủy *',
-                  hintText: 'Ví dụ: Thay đổi kế hoạch...',
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  'Bạn có chắc chắn muốn hủy booking này?',
+                  style: GoogleFonts.poppins(fontSize: 14),
                 ),
-                maxLines: 3,
-                validator: (value) {
-                  if (value == null || value.trim().isEmpty) {
-                    return 'Vui lòng nhập lý do hủy';
-                  }
-                  return null;
-                },
-              ),
-            ],
+                const SizedBox(height: 14),
+                FutureBuilder(
+                  future: previewFuture,
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState != ConnectionState.done) {
+                      return const Padding(
+                        padding: EdgeInsets.only(bottom: 16),
+                        child: LinearProgressIndicator(minHeight: 3),
+                      );
+                    }
+
+                    final result = snapshot.data;
+                    if (result == null) {
+                      return const SizedBox.shrink();
+                    }
+
+                    return result.fold(
+                      (_) => const SizedBox.shrink(),
+                      (preview) => Padding(
+                        padding: const EdgeInsets.only(bottom: 16),
+                        child: _CancellationRefundPreviewPanel(
+                          preview: preview,
+                        ),
+                      ),
+                    );
+                  },
+                ),
+                TextFormField(
+                  controller: reasonController,
+                  decoration: InputDecoration(
+                    labelText: 'Lý do hủy *',
+                    hintText: 'Ví dụ: Thay đổi kế hoạch...',
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  maxLines: 3,
+                  validator: (value) {
+                    if (value == null || value.trim().isEmpty) {
+                      return 'Vui lòng nhập lý do hủy';
+                    }
+                    return null;
+                  },
+                ),
+              ],
+            ),
           ),
         ),
         actions: [
@@ -1051,6 +1239,449 @@ class _BookingDetailPageState extends State<BookingDetailPage> {
       ),
     );
   }
+
+  void _showManualChargeDialog(BuildContext context, BookingEntity booking) {
+    final amountController = TextEditingController();
+    final descriptionController = TextEditingController();
+    final formKey = GlobalKey<FormState>();
+    var selectedType = PostTripChargeType.damage;
+    var isSubmitting = false;
+    final bookingBloc = context.read<BookingBloc>();
+
+    showDialog(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, setDialogState) {
+          Future<void> submit() async {
+            if (!(formKey.currentState?.validate() ?? false)) return;
+            setDialogState(() => isSubmitting = true);
+
+            final amount = double.parse(amountController.text.trim());
+            final messenger = ScaffoldMessenger.of(context);
+            final navigator = Navigator.of(dialogContext);
+            final result = await sl<CreateManualPostTripChargeUseCase>()(
+              CreateManualPostTripChargeParams(
+                bookingId: booking.id,
+                type: selectedType,
+                amount: amount,
+                description: descriptionController.text.trim(),
+              ),
+            );
+
+            if (!mounted || !dialogContext.mounted) return;
+            result.fold(
+              (failure) {
+                setDialogState(() => isSubmitting = false);
+                messenger.showSnackBar(
+                  SnackBar(
+                    content: Text(failure.message),
+                    backgroundColor: AppColors.error,
+                  ),
+                );
+              },
+              (_) {
+                navigator.pop();
+                messenger.showSnackBar(
+                  const SnackBar(
+                    content: Text('Đã gửi phí sau chuyến để xét duyệt'),
+                    backgroundColor: AppColors.success,
+                  ),
+                );
+                bookingBloc.add(LoadBookingByIdEvent(booking.id));
+              },
+            );
+          }
+
+          return AlertDialog(
+            title: Text(
+              'Thêm phí sau chuyến',
+              style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
+            ),
+            content: Form(
+              key: formKey,
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    DropdownButtonFormField<PostTripChargeType>(
+                      initialValue: selectedType,
+                      decoration: InputDecoration(
+                        labelText: 'Loại phí',
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      items:
+                          const [
+                            PostTripChargeType.damage,
+                            PostTripChargeType.cleaning,
+                            PostTripChargeType.roadsideAssistance,
+                            PostTripChargeType.other,
+                          ].map((type) {
+                            return DropdownMenuItem(
+                              value: type,
+                              child: Text(_manualChargeTypeLabel(type)),
+                            );
+                          }).toList(),
+                      onChanged: isSubmitting
+                          ? null
+                          : (type) {
+                              if (type != null) {
+                                setDialogState(() => selectedType = type);
+                              }
+                            },
+                    ),
+                    const SizedBox(height: 14),
+                    TextFormField(
+                      controller: amountController,
+                      keyboardType: TextInputType.number,
+                      enabled: !isSubmitting,
+                      decoration: InputDecoration(
+                        labelText: 'Số tiền *',
+                        hintText: 'Ví dụ: 50000',
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      validator: (value) {
+                        final amount = double.tryParse(value?.trim() ?? '');
+                        if (amount == null || amount <= 0) {
+                          return 'Nhập số tiền hợp lệ';
+                        }
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 14),
+                    TextFormField(
+                      controller: descriptionController,
+                      enabled: !isSubmitting,
+                      maxLines: 3,
+                      decoration: InputDecoration(
+                        labelText: 'Mô tả *',
+                        hintText: 'Mô tả lý do phát sinh phí...',
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      validator: (value) {
+                        if (value == null || value.trim().isEmpty) {
+                          return 'Nhập mô tả phí';
+                        }
+                        return null;
+                      },
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: isSubmitting
+                    ? null
+                    : () => Navigator.pop(dialogContext),
+                child: const Text('Hủy'),
+              ),
+              ElevatedButton(
+                onPressed: isSubmitting ? null : submit,
+                child: isSubmitting
+                    ? const SizedBox(
+                        height: 18,
+                        width: 18,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      )
+                    : const Text('Gửi phí'),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  void _showDisputeChargeDialog(
+    BuildContext context,
+    BookingEntity booking,
+    PostTripChargeEntity charge,
+  ) {
+    final reasonController = TextEditingController();
+    final formKey = GlobalKey<FormState>();
+    var isSubmitting = false;
+    final bookingBloc = context.read<BookingBloc>();
+    final currency = NumberFormat.currency(locale: 'vi_VN', symbol: 'đ');
+
+    showDialog(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, setDialogState) {
+          Future<void> submit() async {
+            if (!(formKey.currentState?.validate() ?? false)) return;
+            setDialogState(() => isSubmitting = true);
+
+            final messenger = ScaffoldMessenger.of(context);
+            final navigator = Navigator.of(dialogContext);
+            final result = await sl<DisputePostTripChargeUseCase>()(
+              DisputePostTripChargeParams(
+                chargeId: charge.id,
+                reason: reasonController.text.trim(),
+              ),
+            );
+
+            if (!mounted || !dialogContext.mounted) return;
+            result.fold(
+              (failure) {
+                setDialogState(() => isSubmitting = false);
+                messenger.showSnackBar(
+                  SnackBar(
+                    content: Text(failure.message),
+                    backgroundColor: AppColors.error,
+                  ),
+                );
+              },
+              (_) {
+                navigator.pop();
+                messenger.showSnackBar(
+                  const SnackBar(
+                    content: Text('Đã gửi khiếu nại phí sau chuyến'),
+                    backgroundColor: AppColors.success,
+                  ),
+                );
+                bookingBloc.add(LoadBookingByIdEvent(booking.id));
+              },
+            );
+          }
+
+          return AlertDialog(
+            title: Text(
+              'Khiếu nại phí',
+              style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
+            ),
+            content: Form(
+              key: formKey,
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '${charge.type.displayText} - ${currency.format(charge.amount)}',
+                      style: GoogleFonts.poppins(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.textPrimary,
+                      ),
+                    ),
+                    if (charge.description.trim().isNotEmpty) ...[
+                      const SizedBox(height: 8),
+                      Text(
+                        charge.description,
+                        style: GoogleFonts.poppins(
+                          fontSize: 12,
+                          color: AppColors.textSecondary,
+                          height: 1.4,
+                        ),
+                      ),
+                    ],
+                    const SizedBox(height: 14),
+                    TextFormField(
+                      controller: reasonController,
+                      enabled: !isSubmitting,
+                      maxLines: 4,
+                      decoration: InputDecoration(
+                        labelText: 'Lý do khiếu nại *',
+                        hintText: 'Mô tả vì sao bạn không đồng ý với phí này',
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      validator: (value) {
+                        if (value == null || value.trim().isEmpty) {
+                          return 'Nhập lý do khiếu nại';
+                        }
+                        return null;
+                      },
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: isSubmitting
+                    ? null
+                    : () => Navigator.pop(dialogContext),
+                child: const Text('Hủy'),
+              ),
+              ElevatedButton(
+                onPressed: isSubmitting ? null : submit,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.warning,
+                ),
+                child: isSubmitting
+                    ? const SizedBox(
+                        height: 18,
+                        width: 18,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      )
+                    : const Text('Gửi khiếu nại'),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  static String _manualChargeTypeLabel(PostTripChargeType type) {
+    switch (type) {
+      case PostTripChargeType.damage:
+        return 'Hư hỏng';
+      case PostTripChargeType.cleaning:
+        return 'Vệ sinh';
+      case PostTripChargeType.roadsideAssistance:
+        return 'Hỗ trợ sự cố';
+      case PostTripChargeType.other:
+        return 'Phí khác';
+      case PostTripChargeType.lateReturn:
+        return 'Trả xe trễ';
+      case PostTripChargeType.excessDistance:
+        return 'Vượt giới hạn km';
+      case PostTripChargeType.lowBattery:
+        return 'Pin thấp khi trả xe';
+    }
+  }
+}
+
+class _CancellationRefundPreviewPanel extends StatelessWidget {
+  final CancellationRefundPreview preview;
+
+  const _CancellationRefundPreviewPanel({required this.preview});
+
+  static final NumberFormat _currency = NumberFormat.currency(
+    locale: 'vi_VN',
+    symbol: 'đ',
+  );
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: AppColors.warning.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.warning.withValues(alpha: 0.25)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(
+                Icons.receipt_long_outlined,
+                color: AppColors.warning,
+                size: 18,
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  preview.policyDisplayText,
+                  style: GoogleFonts.poppins(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          _row('Hoàn tiền thuê', preview.refundableRentalAmount),
+          if (preview.protectionAmount > 0) ...[
+            const SizedBox(height: 6),
+            _row('Hoàn phí bảo vệ', preview.refundableProtectionAmount),
+          ],
+          const SizedBox(height: 6),
+          _row('Hoàn tiền cọc', preview.refundableDepositAmount),
+          const Divider(height: 18),
+          _row(
+            'Dự kiến hoàn',
+            preview.refundAmount,
+            valueColor: AppColors.success,
+            emphasize: true,
+          ),
+          if (preview.forfeitedAmount > 0) ...[
+            const SizedBox(height: 6),
+            _row(
+              'Không hoàn',
+              preview.forfeitedAmount,
+              valueColor: AppColors.error,
+            ),
+          ],
+          if (preview.trustPenalty > 0) ...[
+            const SizedBox(height: 8),
+            Text(
+              'Trừ ${preview.trustPenalty.toStringAsFixed(0)} điểm tin cậy',
+              style: GoogleFonts.poppins(
+                fontSize: 12,
+                fontWeight: FontWeight.w500,
+                color: AppColors.error,
+              ),
+            ),
+          ],
+          if (!preview.isPaid) ...[
+            const SizedBox(height: 8),
+            Text(
+              'Chưa ghi nhận thanh toán',
+              style: GoogleFonts.poppins(
+                fontSize: 12,
+                color: AppColors.textSecondary,
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _row(
+    String label,
+    double value, {
+    Color valueColor = AppColors.textPrimary,
+    bool emphasize = false,
+  }) {
+    return Row(
+      children: [
+        Expanded(
+          child: Text(
+            label,
+            style: GoogleFonts.poppins(
+              fontSize: 12,
+              color: AppColors.textSecondary,
+            ),
+          ),
+        ),
+        const SizedBox(width: 10),
+        Flexible(
+          child: Text(
+            _currency.format(value),
+            textAlign: TextAlign.end,
+            overflow: TextOverflow.ellipsis,
+            style: GoogleFonts.poppins(
+              fontSize: emphasize ? 14 : 12,
+              fontWeight: emphasize ? FontWeight.w700 : FontWeight.w600,
+              color: valueColor,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
 }
 
 /// Start Trip button — collects GPS before dispatching [StartTripEvent].
@@ -1075,10 +1706,24 @@ class _StartTripButtonState extends State<_StartTripButton> {
     if (rawMessage.contains('startBattery')) {
       return 'Không có thông tin pin lúc bắt đầu chuyến đi. Vui lòng tải lại booking và thử lại.';
     }
+    if (rawMessage.contains('check-in handover')) {
+      return 'Vui lòng hoàn tất biên bản nhận xe và xác nhận từ hai bên trước khi bắt đầu.';
+    }
     return rawMessage;
   }
 
   Future<void> _handleStartTrip() async {
+    final handoverReady = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => CheckInPage(
+          bookingId: widget.booking.id,
+          initialBatteryLevel: widget.booking.vehicleBatteryLevel,
+        ),
+      ),
+    );
+
+    if (!mounted || handoverReady != true) return;
     setState(() => _isGettingLocation = true);
 
     double? lat;

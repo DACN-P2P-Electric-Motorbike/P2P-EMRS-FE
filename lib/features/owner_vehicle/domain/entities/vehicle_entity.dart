@@ -241,6 +241,175 @@ enum VehicleFeature {
   }
 }
 
+/// Vehicle condition enum matching backend
+enum VehicleCondition {
+  newVehicle,
+  likeNew,
+  good,
+  fair,
+  needsMaintenance;
+
+  static VehicleCondition? fromString(String? value) {
+    switch (value?.toUpperCase()) {
+      case 'NEW':
+        return VehicleCondition.newVehicle;
+      case 'LIKE_NEW':
+        return VehicleCondition.likeNew;
+      case 'GOOD':
+        return VehicleCondition.good;
+      case 'FAIR':
+        return VehicleCondition.fair;
+      case 'NEEDS_MAINTENANCE':
+        return VehicleCondition.needsMaintenance;
+      default:
+        return null;
+    }
+  }
+
+  String toApiString() {
+    switch (this) {
+      case VehicleCondition.newVehicle:
+        return 'NEW';
+      case VehicleCondition.likeNew:
+        return 'LIKE_NEW';
+      case VehicleCondition.good:
+        return 'GOOD';
+      case VehicleCondition.fair:
+        return 'FAIR';
+      case VehicleCondition.needsMaintenance:
+        return 'NEEDS_MAINTENANCE';
+    }
+  }
+
+  String get displayName {
+    switch (this) {
+      case VehicleCondition.newVehicle:
+        return 'Xe mới';
+      case VehicleCondition.likeNew:
+        return 'Như mới';
+      case VehicleCondition.good:
+        return 'Tốt';
+      case VehicleCondition.fair:
+        return 'Khá';
+      case VehicleCondition.needsMaintenance:
+        return 'Cần bảo trì';
+    }
+  }
+}
+
+/// EV battery pack type
+enum BatteryType {
+  fixedNonRemovable,
+  removable,
+  swappable;
+
+  static BatteryType? fromString(String? value) {
+    switch (value?.toUpperCase()) {
+      case 'FIXED_NON_REMOVABLE':
+        return BatteryType.fixedNonRemovable;
+      case 'REMOVABLE':
+        return BatteryType.removable;
+      case 'SWAPPABLE':
+        return BatteryType.swappable;
+      default:
+        return null;
+    }
+  }
+
+  String toApiString() {
+    switch (this) {
+      case BatteryType.fixedNonRemovable:
+        return 'FIXED_NON_REMOVABLE';
+      case BatteryType.removable:
+        return 'REMOVABLE';
+      case BatteryType.swappable:
+        return 'SWAPPABLE';
+    }
+  }
+
+  String get displayName {
+    switch (this) {
+      case BatteryType.fixedNonRemovable:
+        return 'Pin liền xe';
+      case BatteryType.removable:
+        return 'Pin tháo rời';
+      case BatteryType.swappable:
+        return 'Pin có thể đổi';
+    }
+  }
+}
+
+/// Availability calendar window type
+enum AvailabilityWindowType {
+  available,
+  blocked;
+
+  static AvailabilityWindowType fromString(String value) {
+    switch (value.toUpperCase()) {
+      case 'BLOCKED':
+        return AvailabilityWindowType.blocked;
+      case 'AVAILABLE':
+      default:
+        return AvailabilityWindowType.available;
+    }
+  }
+
+  String toApiString() {
+    switch (this) {
+      case AvailabilityWindowType.available:
+        return 'AVAILABLE';
+      case AvailabilityWindowType.blocked:
+        return 'BLOCKED';
+    }
+  }
+
+  String get displayName {
+    switch (this) {
+      case AvailabilityWindowType.available:
+        return 'Có thể cho thuê';
+      case AvailabilityWindowType.blocked:
+        return 'Chặn lịch';
+    }
+  }
+}
+
+/// Owner-managed vehicle availability window
+class VehicleAvailabilityWindowEntity extends Equatable {
+  final String id;
+  final String vehicleId;
+  final AvailabilityWindowType type;
+  final DateTime startTime;
+  final DateTime endTime;
+  final String? note;
+  final DateTime createdAt;
+  final DateTime updatedAt;
+
+  const VehicleAvailabilityWindowEntity({
+    required this.id,
+    required this.vehicleId,
+    required this.type,
+    required this.startTime,
+    required this.endTime,
+    this.note,
+    required this.createdAt,
+    required this.updatedAt,
+  });
+
+  bool get isAvailableWindow => type == AvailabilityWindowType.available;
+
+  @override
+  List<Object?> get props => [
+    id,
+    vehicleId,
+    type,
+    startTime,
+    endTime,
+    note,
+    createdAt,
+    updatedAt,
+  ];
+}
+
 /// Vehicle entity representing the domain model
 class VehicleEntity extends Equatable {
   final String id;
@@ -259,6 +428,21 @@ class VehicleEntity extends Equatable {
   final double pricePerHour;
   final double? pricePerDay;
   final double? deposit;
+  final bool instantBook;
+  final int? dailyKmLimit;
+  final double? excessKmPrice;
+  final double? weeklyDiscount;
+  final double? monthlyDiscount;
+  final bool allowSmoke;
+  final bool allowPets;
+  final String? geoRestriction;
+  final int? batteryReturnMin;
+  final int? firstRegistrationYear;
+  final VehicleCondition? condition;
+  final BatteryType? batteryType;
+  final int? batteryHealth;
+  final int? batteryCycleCount;
+  final DateTime? batteryLastServicedAt;
   final bool isAvailable;
   final String address;
   final double? latitude;
@@ -292,6 +476,21 @@ class VehicleEntity extends Equatable {
     required this.pricePerHour,
     this.pricePerDay,
     this.deposit,
+    this.instantBook = false,
+    this.dailyKmLimit,
+    this.excessKmPrice,
+    this.weeklyDiscount,
+    this.monthlyDiscount,
+    this.allowSmoke = false,
+    this.allowPets = false,
+    this.geoRestriction,
+    this.batteryReturnMin,
+    this.firstRegistrationYear,
+    this.condition,
+    this.batteryType,
+    this.batteryHealth,
+    this.batteryCycleCount,
+    this.batteryLastServicedAt,
     this.isAvailable = true,
     required this.address,
     this.latitude,
@@ -360,6 +559,21 @@ class VehicleEntity extends Equatable {
     pricePerHour,
     pricePerDay,
     deposit,
+    instantBook,
+    dailyKmLimit,
+    excessKmPrice,
+    weeklyDiscount,
+    monthlyDiscount,
+    allowSmoke,
+    allowPets,
+    geoRestriction,
+    batteryReturnMin,
+    firstRegistrationYear,
+    condition,
+    batteryType,
+    batteryHealth,
+    batteryCycleCount,
+    batteryLastServicedAt,
     isAvailable,
     address,
     latitude,

@@ -8,6 +8,7 @@ import '../../../../core/services/location_service.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/vietnam_time.dart';
 import '../../../../injection_container.dart';
+import '../../../handover/presentation/pages/check_out_page.dart';
 import '../../../review/presentation/pages/create_review_page.dart';
 import '../../domain/entities/trip_entity.dart';
 import '../bloc/trip_bloc.dart';
@@ -667,6 +668,20 @@ class _ActiveTripViewState extends State<_ActiveTripView> {
                   );
                   return;
                 }
+
+                final checkoutReady = await Navigator.push<bool>(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => CheckOutPage(
+                      bookingId: trip.bookingId,
+                      initialBatteryLevel: endBattery.round(),
+                      latitude: endLat,
+                      longitude: endLng,
+                    ),
+                  ),
+                );
+
+                if (!context.mounted || checkoutReady != true) return;
 
                 context.read<TripBloc>().add(
                   EndTripEvent(

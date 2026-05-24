@@ -3,7 +3,65 @@ import 'package:equatable/equatable.dart';
 import '../../../../core/error/failures.dart';
 import '../../../../core/usecases/usecase.dart';
 import '../entities/booking.dart';
+import '../entities/booking_lock.dart';
+import '../entities/cancellation_refund_preview.dart';
 import '../repositories/booking_repository.dart';
+
+/// Create booking lock use case
+class CreateBookingLockParams extends Equatable {
+  final String vehicleId;
+  final DateTime startTime;
+  final DateTime endTime;
+
+  const CreateBookingLockParams({
+    required this.vehicleId,
+    required this.startTime,
+    required this.endTime,
+  });
+
+  @override
+  List<Object?> get props => [vehicleId, startTime, endTime];
+}
+
+class CreateBookingLockUseCase
+    implements UseCase<BookingLock, CreateBookingLockParams> {
+  final BookingRepository _repository;
+
+  CreateBookingLockUseCase(this._repository);
+
+  @override
+  Future<Either<Failure, BookingLock>> call(
+    CreateBookingLockParams params,
+  ) async {
+    return await _repository.createBookingLock(
+      vehicleId: params.vehicleId,
+      startTime: params.startTime,
+      endTime: params.endTime,
+    );
+  }
+}
+
+/// Release booking lock use case
+class ReleaseBookingLockParams extends Equatable {
+  final String lockId;
+
+  const ReleaseBookingLockParams(this.lockId);
+
+  @override
+  List<Object?> get props => [lockId];
+}
+
+class ReleaseBookingLockUseCase
+    implements UseCase<void, ReleaseBookingLockParams> {
+  final BookingRepository _repository;
+
+  ReleaseBookingLockUseCase(this._repository);
+
+  @override
+  Future<Either<Failure, void>> call(ReleaseBookingLockParams params) async {
+    return await _repository.releaseBookingLock(params.lockId);
+  }
+}
 
 /// Get renter bookings use case
 class GetRenterBookingsParams extends Equatable {
@@ -75,6 +133,31 @@ class CancelBookingUseCase
     CancelBookingParams params,
   ) async {
     return await _repository.cancelBooking(params.bookingId, params.reason);
+  }
+}
+
+/// Preview cancellation refund policy use case
+class GetCancellationRefundPreviewParams extends Equatable {
+  final String bookingId;
+
+  const GetCancellationRefundPreviewParams(this.bookingId);
+
+  @override
+  List<Object> get props => [bookingId];
+}
+
+class GetCancellationRefundPreviewUseCase
+    implements
+        UseCase<CancellationRefundPreview, GetCancellationRefundPreviewParams> {
+  final BookingRepository _repository;
+
+  GetCancellationRefundPreviewUseCase(this._repository);
+
+  @override
+  Future<Either<Failure, CancellationRefundPreview>> call(
+    GetCancellationRefundPreviewParams params,
+  ) async {
+    return _repository.getCancellationRefundPreview(params.bookingId);
   }
 }
 

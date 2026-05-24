@@ -57,6 +57,7 @@ import 'features/owner_vehicle/domain/usecases/get_vehicle_by_id_usecase.dart';
 import 'features/owner_vehicle/domain/usecases/register_vehicle_usecase.dart';
 import 'features/owner_vehicle/domain/usecases/toggle_availability_usecase.dart';
 import 'features/owner_vehicle/domain/usecases/update_vehicle_usecase.dart';
+import 'features/owner_vehicle/domain/usecases/vehicle_availability_usecases.dart';
 
 // Owner Vehicle Feature - Presentation Layer
 import 'features/owner_vehicle/presentation/bloc/owner_vehicle_bloc.dart';
@@ -108,6 +109,27 @@ import 'features/notification/presentation/bloc/notification_bloc.dart';
 // Settings Feature
 import 'features/settings/data/privacy_remote_data_source.dart';
 
+// KYC Feature
+import 'features/kyc/data/datasources/kyc_remote_datasource.dart';
+import 'features/kyc/data/repositories/kyc_repository_impl.dart';
+import 'features/kyc/domain/repositories/kyc_repository.dart';
+import 'features/kyc/domain/usecases/kyc_usecases.dart';
+import 'features/kyc/presentation/cubit/kyc_cubit.dart';
+
+// Handover Feature
+import 'features/handover/data/datasources/handover_remote_datasource.dart';
+import 'features/handover/data/repositories/handover_repository_impl.dart';
+import 'features/handover/domain/repositories/handover_repository.dart';
+import 'features/handover/domain/usecases/handover_usecases.dart';
+import 'features/handover/presentation/cubit/handover_cubit.dart';
+
+// Financial Feature
+import 'features/financial/data/datasources/financial_remote_datasource.dart';
+import 'features/financial/data/repositories/financial_repository_impl.dart';
+import 'features/financial/domain/repositories/financial_repository.dart';
+import 'features/financial/domain/usecases/financial_usecases.dart';
+import 'features/financial/presentation/cubit/financial_cubit.dart';
+
 /// Global service locator instance
 final sl = GetIt.instance;
 
@@ -145,6 +167,51 @@ Future<void> init() async {
   sl.registerLazySingleton<PrivacyRemoteDataSource>(
     () => PrivacyRemoteDataSourceImpl(dioClient: sl()),
   );
+
+  // KYC API - Singleton (depends on DioClient)
+  sl.registerLazySingleton<KycRemoteDataSource>(
+    () => KycRemoteDataSourceImpl(dioClient: sl()),
+  );
+  sl.registerLazySingleton<KycRepository>(
+    () => KycRepositoryImpl(remoteDataSource: sl()),
+  );
+  sl.registerLazySingleton(() => GetKycStatusUseCase(sl()));
+  sl.registerLazySingleton(() => SubmitKycUseCase(sl()));
+  sl.registerFactory(
+    () => KycCubit(getKycStatusUseCase: sl(), submitKycUseCase: sl()),
+  );
+
+  // Handover API - Singleton (depends on DioClient)
+  sl.registerLazySingleton<HandoverRemoteDataSource>(
+    () => HandoverRemoteDataSourceImpl(dioClient: sl()),
+  );
+  sl.registerLazySingleton<HandoverRepository>(
+    () => HandoverRepositoryImpl(remoteDataSource: sl()),
+  );
+  sl.registerLazySingleton(() => GetHandoverByBookingUseCase(sl()));
+  sl.registerLazySingleton(() => CreateCheckInUseCase(sl()));
+  sl.registerLazySingleton(() => CreateCheckOutUseCase(sl()));
+  sl.registerLazySingleton(() => ConfirmHandoverUseCase(sl()));
+  sl.registerFactory(
+    () => HandoverCubit(
+      getByBooking: sl(),
+      createCheckIn: sl(),
+      createCheckOut: sl(),
+      confirm: sl(),
+    ),
+  );
+
+  // Financial API - Singleton (depends on DioClient)
+  sl.registerLazySingleton<FinancialRemoteDataSource>(
+    () => FinancialRemoteDataSourceImpl(dioClient: sl()),
+  );
+  sl.registerLazySingleton<FinancialRepository>(
+    () => FinancialRepositoryImpl(remoteDataSource: sl()),
+  );
+  sl.registerLazySingleton(() => GetFinancialSummaryUseCase(sl()));
+  sl.registerLazySingleton(() => CreateManualPostTripChargeUseCase(sl()));
+  sl.registerLazySingleton(() => DisputePostTripChargeUseCase(sl()));
+  sl.registerFactory(() => FinancialCubit(getFinancialSummary: sl()));
 
   //============================================================================
   // FEATURES - AUTH
@@ -197,6 +264,9 @@ Future<void> init() async {
   sl.registerLazySingleton(() => UpdateVehicleUseCase(sl()));
   sl.registerLazySingleton(() => GetVehicleByIdUseCase(sl()));
   sl.registerLazySingleton(() => ToggleAvailabilityUseCase(sl()));
+  sl.registerLazySingleton(() => GetVehicleAvailabilityUseCase(sl()));
+  sl.registerLazySingleton(() => CreateVehicleAvailabilityUseCase(sl()));
+  sl.registerLazySingleton(() => DeleteVehicleAvailabilityUseCase(sl()));
   sl.registerLazySingleton(() => DeleteVehicleUseCase(sl()));
 
   // BLoC - Factory
@@ -207,6 +277,9 @@ Future<void> init() async {
       updateVehicleUseCase: sl(),
       getVehicleByIdUseCase: sl(),
       toggleAvailabilityUseCase: sl(),
+      getVehicleAvailabilityUseCase: sl(),
+      createVehicleAvailabilityUseCase: sl(),
+      deleteVehicleAvailabilityUseCase: sl(),
       deleteVehicleUseCase: sl(),
       cache: sl(),
     ),
@@ -277,8 +350,11 @@ Future<void> init() async {
 
   // Use Cases
   sl.registerLazySingleton(() => CreateBookingUseCase(sl()));
+  sl.registerLazySingleton(() => CreateBookingLockUseCase(sl()));
+  sl.registerLazySingleton(() => ReleaseBookingLockUseCase(sl()));
   sl.registerLazySingleton(() => GetRenterBookingsUseCase(sl()));
   sl.registerLazySingleton(() => GetBookingByIdUseCase(sl()));
+  sl.registerLazySingleton(() => GetCancellationRefundPreviewUseCase(sl()));
   sl.registerLazySingleton(() => CancelBookingUseCase(sl()));
   sl.registerLazySingleton(() => GetOwnerBookingsUseCase(sl()));
   sl.registerLazySingleton(() => GetPendingBookingsUseCase(sl()));
@@ -289,6 +365,7 @@ Future<void> init() async {
   sl.registerFactory(
     () => BookingBloc(
       createBookingUseCase: sl(),
+      createBookingLockUseCase: sl(),
       getRenterBookingsUseCase: sl(),
       getBookingByIdUseCase: sl(),
       cancelBookingUseCase: sl(),

@@ -15,11 +15,13 @@ class VehicleRepositoryImpl implements VehicleRepository {
   Future<Either<Failure, List<VehicleEntity>>> getAvailableVehicles({
     DateTime? startTime,
     DateTime? endTime,
+    bool? instantBookOnly,
   }) async {
     try {
       final vehicles = await _remoteDataSource.getAvailableVehicles(
         startTime: startTime,
         endTime: endTime,
+        instantBookOnly: instantBookOnly,
       );
       return Right(vehicles.map((model) => model.toEntity()).toList());
     } on ServerException catch (e) {
@@ -80,6 +82,7 @@ class VehicleRepositoryImpl implements VehicleRepository {
     double radius = 5.0,
     DateTime? startTime,
     DateTime? endTime,
+    bool? instantBookOnly,
   }) async {
     try {
       final vehicles = await _remoteDataSource.getNearbyVehicles(
@@ -88,6 +91,7 @@ class VehicleRepositoryImpl implements VehicleRepository {
         radius: radius,
         startTime: startTime,
         endTime: endTime,
+        instantBookOnly: instantBookOnly,
       );
       return Right(vehicles.map((model) => model.toEntity()).toList());
     } on ServerException catch (e) {

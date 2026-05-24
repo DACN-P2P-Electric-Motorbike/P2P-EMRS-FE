@@ -4,6 +4,7 @@ import '../../../../core/error/failures.dart';
 import '../../domain/entities/vehicle_entity.dart';
 import '../../domain/repositories/owner_vehicle_repository.dart';
 import '../datasources/owner_vehicle_remote_data_source.dart';
+import '../models/availability_window_model.dart';
 import '../models/create_vehicle_params.dart';
 import '../models/update_vehicle_params.dart';
 
@@ -81,6 +82,59 @@ class OwnerVehicleRepositoryImpl implements OwnerVehicleRepository {
     try {
       final vehicle = await _remoteDataSource.toggleAvailability(id);
       return Right(vehicle.toEntity());
+    } on ServerException catch (e) {
+      return Left(ServerFailure(message: e.message));
+    } on ConnectionException {
+      return const Left(ConnectionFailure());
+    } catch (e) {
+      return Left(ServerFailure(message: e.toString()));
+    }
+  }
+
+  @override
+  Future<Either<Failure, List<VehicleAvailabilityWindowEntity>>>
+  getAvailabilityWindows(String vehicleId) async {
+    try {
+      final windows = await _remoteDataSource.getAvailabilityWindows(vehicleId);
+      return Right(windows.map((w) => w.toEntity()).toList());
+    } on ServerException catch (e) {
+      return Left(ServerFailure(message: e.message));
+    } on ConnectionException {
+      return const Left(ConnectionFailure());
+    } catch (e) {
+      return Left(ServerFailure(message: e.toString()));
+    }
+  }
+
+  @override
+  Future<Either<Failure, VehicleAvailabilityWindowEntity>>
+  createAvailabilityWindow(
+    String vehicleId,
+    CreateAvailabilityWindowParams params,
+  ) async {
+    try {
+      final window = await _remoteDataSource.createAvailabilityWindow(
+        vehicleId,
+        params,
+      );
+      return Right(window.toEntity());
+    } on ServerException catch (e) {
+      return Left(ServerFailure(message: e.message));
+    } on ConnectionException {
+      return const Left(ConnectionFailure());
+    } catch (e) {
+      return Left(ServerFailure(message: e.toString()));
+    }
+  }
+
+  @override
+  Future<Either<Failure, void>> deleteAvailabilityWindow(
+    String vehicleId,
+    String windowId,
+  ) async {
+    try {
+      await _remoteDataSource.deleteAvailabilityWindow(vehicleId, windowId);
+      return const Right(null);
     } on ServerException catch (e) {
       return Left(ServerFailure(message: e.message));
     } on ConnectionException {
