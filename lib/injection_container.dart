@@ -130,6 +130,12 @@ import 'features/financial/domain/repositories/financial_repository.dart';
 import 'features/financial/domain/usecases/financial_usecases.dart';
 import 'features/financial/presentation/cubit/financial_cubit.dart';
 
+// Incident Feature
+import 'features/incident/data/datasources/incident_remote_datasource.dart';
+import 'features/incident/data/repositories/incident_repository_impl.dart';
+import 'features/incident/domain/repositories/incident_repository.dart';
+import 'features/incident/domain/usecases/incident_usecases.dart';
+
 /// Global service locator instance
 final sl = GetIt.instance;
 
@@ -212,6 +218,16 @@ Future<void> init() async {
   sl.registerLazySingleton(() => CreateManualPostTripChargeUseCase(sl()));
   sl.registerLazySingleton(() => DisputePostTripChargeUseCase(sl()));
   sl.registerFactory(() => FinancialCubit(getFinancialSummary: sl()));
+
+  // Incident API - Singleton (depends on DioClient)
+  sl.registerLazySingleton<IncidentRemoteDataSource>(
+    () => IncidentRemoteDataSourceImpl(dioClient: sl()),
+  );
+  sl.registerLazySingleton<IncidentRepository>(
+    () => IncidentRepositoryImpl(remoteDataSource: sl()),
+  );
+  sl.registerLazySingleton(() => GetBookingIncidentsUseCase(sl()));
+  sl.registerLazySingleton(() => CreateIncidentReportUseCase(sl()));
 
   //============================================================================
   // FEATURES - AUTH

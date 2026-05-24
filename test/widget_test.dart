@@ -14,6 +14,10 @@ import 'package:fe_capstone_project/features/financial/data/datasources/financia
 import 'package:fe_capstone_project/features/financial/data/models/financial_summary_model.dart';
 import 'package:fe_capstone_project/features/financial/data/repositories/financial_repository_impl.dart';
 import 'package:fe_capstone_project/features/financial/domain/entities/financial_summary.dart';
+import 'package:fe_capstone_project/features/incident/data/datasources/incident_remote_datasource.dart';
+import 'package:fe_capstone_project/features/incident/data/models/incident_report_model.dart';
+import 'package:fe_capstone_project/features/incident/data/repositories/incident_repository_impl.dart';
+import 'package:fe_capstone_project/features/incident/domain/entities/incident_report.dart';
 import 'package:fe_capstone_project/features/review/data/models/review_model.dart';
 import 'package:fe_capstone_project/features/review/domain/entities/review_entity.dart';
 import 'package:fe_capstone_project/features/settings/data/privacy_remote_data_source.dart';
@@ -242,6 +246,73 @@ void main() {
       'https://example.com/check-in.jpg',
     ]);
   });
+
+  test('IncidentReportModel parses backend evidence policy payload', () {
+    final model = IncidentReportModel.fromJson({
+      'id': 'incident-id',
+      'bookingId': 'booking-id',
+      'tripId': 'trip-id',
+      'postTripChargeId': null,
+      'reporterId': 'renter-id',
+      'category': 'DAMAGE',
+      'severity': 'HIGH',
+      'status': 'UNDER_REVIEW',
+      'description': 'Scratch found during checkout',
+      'evidence': {
+        'evidenceUrls': ['https://example.com/damage.jpg'],
+        'handoverPhotos': [
+          {'id': 'photo-1'},
+          {'id': 'photo-2'},
+        ],
+      },
+      'requiredEvidence': {'photoRequired': true, 'satisfied': true},
+      'adminNotes': 'Checking handover photos',
+      'reviewedAt': '2026-05-24T03:00:00.000Z',
+      'resolvedAt': null,
+      'createdAt': '2026-05-24T02:00:00.000Z',
+      'updatedAt': '2026-05-24T03:00:00.000Z',
+    });
+
+    final incident = model.toEntity();
+    expect(incident.category, IncidentCategory.damage);
+    expect(incident.severity, IncidentSeverity.high);
+    expect(incident.status, IncidentStatus.underReview);
+    expect(incident.evidenceUrls, ['https://example.com/damage.jpg']);
+    expect(incident.handoverPhotoCount, 2);
+    expect(incident.photoRequired, isTrue);
+    expect(incident.evidenceSatisfied, isTrue);
+    expect(incident.isOpen, isTrue);
+  });
+
+  test(
+    'IncidentRepositoryImpl maps incident enums to backend values',
+    () async {
+      final remoteDataSource = _FakeIncidentRemoteDataSource();
+      final repository = IncidentRepositoryImpl(
+        remoteDataSource: remoteDataSource,
+      );
+
+      final result = await repository.createIncidentReport(
+        bookingId: 'booking-id',
+        category: IncidentCategory.vehicleMismatch,
+        severity: IncidentSeverity.critical,
+        description: 'Vehicle does not match listing photos',
+        evidenceUrls: const ['https://example.com/mismatch.jpg'],
+      );
+
+      expect(result.isRight(), isTrue);
+      expect(remoteDataSource.lastBookingId, 'booking-id');
+      expect(remoteDataSource.lastCategory, 'VEHICLE_MISMATCH');
+      expect(remoteDataSource.lastSeverity, 'CRITICAL');
+      expect(
+        remoteDataSource.lastDescription,
+        'Vehicle does not match listing photos',
+      );
+      expect(remoteDataSource.lastEvidenceUrls, [
+        'https://example.com/mismatch.jpg',
+      ]);
+    },
+  );
 
   test('VietnamTime formats UTC API timestamps as GMT+7', () {
     final utcTime = DateTime.parse('2026-05-10T03:00:00.000Z');
@@ -680,6 +751,56 @@ class _FakeFinancialRemoteDataSource implements FinancialRemoteDataSource {
       totalApprovedCharges: 0,
       totalCapturedCharges: 0,
       releasableDeposit: 0,
+    );
+  }
+}
+
+class _FakeIncidentRemoteDataSource implements IncidentRemoteDataSource {
+  String? lastBookingId;
+  String? lastCategory;
+  String? lastSeverity;
+  String? lastDescription;
+  List<String>? lastEvidenceUrls;
+
+  @override
+  Future<List<IncidentReportModel>> getBookingIncidents(String bookingId) {
+    return Future.value([_emptyIncident(bookingId)]);
+  }
+
+  @override
+  Future<IncidentReportModel> createIncidentReport({
+    required String bookingId,
+    String? tripId,
+    String? postTripChargeId,
+    required String category,
+    required String severity,
+    required String description,
+    List<String>? evidenceUrls,
+    List<String>? handoverPhotoIds,
+  }) {
+    lastBookingId = bookingId;
+    lastCategory = category;
+    lastSeverity = severity;
+    lastDescription = description;
+    lastEvidenceUrls = evidenceUrls;
+    return Future.value(_emptyIncident(bookingId));
+  }
+
+  IncidentReportModel _emptyIncident(String bookingId) {
+    return IncidentReportModel(
+      id: 'incident-id',
+      bookingId: bookingId,
+      reporterId: 'renter-id',
+      category: 'MECHANICAL_ISSUE',
+      severity: 'MEDIUM',
+      status: 'OPEN',
+      description: 'Issue reported',
+      evidenceUrls: const [],
+      handoverPhotoCount: 0,
+      photoRequired: false,
+      evidenceSatisfied: true,
+      createdAt: DateTime(2026, 5, 24),
+      updatedAt: DateTime(2026, 5, 24),
     );
   }
 }
