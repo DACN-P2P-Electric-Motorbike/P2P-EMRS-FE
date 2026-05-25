@@ -12,6 +12,7 @@ import '../bloc/notification_event.dart';
 import '../bloc/notification_state.dart';
 import '../widgets/notification_card.dart';
 import '../../../booking/presentation/pages/booking_detail_page.dart';
+import '../../../incident/presentation/pages/claim_status_page.dart';
 
 /// Notifications Page
 class NotificationsPage extends StatelessWidget {
@@ -219,14 +220,20 @@ class _NotificationsContentState extends State<_NotificationsContent> {
     if (notification.bookingId != null) {
       // Determine if this is owner view based on notification type
       final isOwnerView = _isOwnerNotification(notification.type);
+      final isClaimUpdate = notification.type == NotificationType.CLAIM_UPDATED;
 
       Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (_) => BookingDetailPage(
-            bookingId: notification.bookingId!,
-            isOwnerView: isOwnerView,
-          ),
+          builder: (_) => isClaimUpdate
+              ? ClaimStatusPage(
+                  bookingId: notification.bookingId!,
+                  isOwnerView: isOwnerView,
+                )
+              : BookingDetailPage(
+                  bookingId: notification.bookingId!,
+                  isOwnerView: isOwnerView,
+                ),
         ),
       );
     }

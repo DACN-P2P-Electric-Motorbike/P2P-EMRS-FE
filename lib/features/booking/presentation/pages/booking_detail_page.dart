@@ -656,7 +656,8 @@ class _BookingDetailPageState extends State<BookingDetailPage> {
                   ),
                 )
               else ...[
-                if (summary != null) _buildClaimSummaryOverview(summary),
+                if (summary != null)
+                  _buildClaimSummaryOverview(context, summary),
                 if (reports.isEmpty)
                   Padding(
                     padding: const EdgeInsets.only(top: 8),
@@ -684,7 +685,10 @@ class _BookingDetailPageState extends State<BookingDetailPage> {
     );
   }
 
-  Widget _buildClaimSummaryOverview(BookingClaimSummaryEntity summary) {
+  Widget _buildClaimSummaryOverview(
+    BuildContext context,
+    BookingClaimSummaryEntity summary,
+  ) {
     final color = _claimStatusColor(summary.status);
     final formatter = NumberFormat.currency(
       locale: 'vi_VN',
@@ -806,6 +810,18 @@ class _BookingDetailPageState extends State<BookingDetailPage> {
                     'Payout: ${formatter.format(summary.totals.ownerPayoutAmount)}',
               ),
             ],
+          ),
+          const SizedBox(height: 8),
+          Align(
+            alignment: Alignment.centerRight,
+            child: TextButton.icon(
+              onPressed: () {
+                final ownerQuery = widget.isOwnerView ? '?owner=1' : '';
+                context.push('/bookings/${summary.bookingId}/claim$ownerQuery');
+              },
+              icon: const Icon(Icons.open_in_new_outlined, size: 16),
+              label: const Text('Xem trạng thái'),
+            ),
           ),
         ],
       ),

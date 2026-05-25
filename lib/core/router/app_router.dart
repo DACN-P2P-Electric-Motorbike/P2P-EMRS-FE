@@ -1,5 +1,6 @@
 import 'package:fe_capstone_project/features/booking/presentation/pages/booking_detail_page.dart';
 import 'package:fe_capstone_project/features/booking/presentation/pages/booking_page.dart';
+import 'package:fe_capstone_project/features/incident/presentation/pages/claim_status_page.dart';
 import 'package:fe_capstone_project/features/kyc/presentation/pages/kyc_verification_page.dart';
 import 'package:fe_capstone_project/features/notification/presentation/pages/notification_pages.dart';
 import 'package:fe_capstone_project/features/owner_vehicle/presentation/pages/owner_dashboard_page.dart';
@@ -274,6 +275,21 @@ class AppRouter {
                   final bookingId = state.pathParameters['id']!;
                   return BookingDetailPage(bookingId: bookingId);
                 },
+                routes: [
+                  GoRoute(
+                    path: 'claim',
+                    name: 'booking-claim-status',
+                    builder: (context, state) {
+                      final bookingId = state.pathParameters['id']!;
+                      final isOwnerView =
+                          state.uri.queryParameters['owner'] == '1';
+                      return ClaimStatusPage(
+                        bookingId: bookingId,
+                        isOwnerView: isOwnerView,
+                      );
+                    },
+                  ),
+                ],
               ),
             ],
           ),

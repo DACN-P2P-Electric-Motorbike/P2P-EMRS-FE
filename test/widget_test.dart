@@ -317,6 +317,28 @@ void main() {
       'bookingId': 'booking-id',
       'status': 'AWAITING_DEPOSIT_DECISION',
       'statusLabel': 'Awaiting deposit decision',
+      'claimCase': {
+        'id': 'claim-case-id',
+        'caseNumber': 'CLM-20260525-0001',
+        'bookingId': 'booking-id',
+        'status': 'PENDING_SECOND_REVIEW',
+        'outcome': 'OWNER_CLAIM_APPROVED',
+        'summary': 'Owner damage evidence accepted.',
+        'firstDecision': 'OWNER_CLAIM_APPROVED',
+        'firstReviewedAt': '2026-05-24T03:00:00.000Z',
+        'secondDecision': null,
+        'secondReviewedAt': null,
+        'resolvedAt': null,
+        'sla': {
+          'status': 'AT_RISK',
+          'stage': 'SECOND_REVIEW',
+          'dueAt': '2026-05-24T15:00:00.000Z',
+          'label': 'Second review due soon',
+          'remainingMinutes': 75,
+          'overdueMinutes': 0,
+          'escalationLevel': 0,
+        },
+      },
       'totals': {
         'incidentCount': 1,
         'openIncidentCount': 0,
@@ -376,6 +398,9 @@ void main() {
 
     final summary = model.toEntity();
     expect(summary.status, ClaimWorkflowStatus.awaitingDepositDecision);
+    expect(summary.claimCase?.caseNumber, 'CLM-20260525-0001');
+    expect(summary.claimCase?.sla?.status, 'AT_RISK');
+    expect(summary.claimCase?.sla?.remainingMinutes, 75);
     expect(summary.totals.releasableDepositAmount, 350000);
     expect(summary.blockers.single.code, 'DEPOSIT_DECISION_PENDING');
     expect(summary.nextActions.single.actor, 'ADMIN');
