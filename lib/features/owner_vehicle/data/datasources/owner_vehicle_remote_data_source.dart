@@ -38,6 +38,13 @@ abstract class OwnerVehicleRemoteDataSource {
     CreateAvailabilityWindowParams params,
   );
 
+  /// Update an owner-managed availability window
+  Future<VehicleAvailabilityWindowModel> updateAvailabilityWindow(
+    String vehicleId,
+    String windowId,
+    CreateAvailabilityWindowParams params,
+  );
+
   /// Delete an owner-managed availability window
   Future<void> deleteAvailabilityWindow(String vehicleId, String windowId);
 
@@ -179,6 +186,25 @@ class OwnerVehicleRemoteDataSourceImpl implements OwnerVehicleRemoteDataSource {
     try {
       final response = await _dioClient.post(
         ApiConstants.vehicleAvailability(vehicleId),
+        data: params.toJson(),
+      );
+      return VehicleAvailabilityWindowModel.fromJson(
+        response.data as Map<String, dynamic>,
+      );
+    } on DioException catch (e) {
+      throw ServerException.fromDioException(e);
+    }
+  }
+
+  @override
+  Future<VehicleAvailabilityWindowModel> updateAvailabilityWindow(
+    String vehicleId,
+    String windowId,
+    CreateAvailabilityWindowParams params,
+  ) async {
+    try {
+      final response = await _dioClient.patch(
+        ApiConstants.vehicleAvailabilityWindow(vehicleId, windowId),
         data: params.toJson(),
       );
       return VehicleAvailabilityWindowModel.fromJson(

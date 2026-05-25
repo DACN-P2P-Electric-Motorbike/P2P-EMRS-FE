@@ -715,6 +715,16 @@ class _VehicleDetailContentState extends State<_VehicleDetailContent> {
             ),
           ),
           IconButton(
+            onPressed: () => _showAvailabilityWindowSheet(
+              context,
+              vehicle,
+              existingWindow: window,
+            ),
+            icon: const Icon(Icons.edit_outlined),
+            color: AppColors.primary,
+            tooltip: 'Sửa lịch',
+          ),
+          IconButton(
             onPressed: () {
               context.read<OwnerVehicleBloc>().add(
                 DeleteVehicleAvailability(
@@ -1236,15 +1246,21 @@ class _VehicleDetailContentState extends State<_VehicleDetailContent> {
 
   void _showAvailabilityWindowSheet(
     BuildContext context,
-    VehicleEntity vehicle,
-  ) {
-    final noteController = TextEditingController();
-    var type = AvailabilityWindowType.available;
-    var recurrence = AvailabilityWindowRecurrence.once;
-    var startTime = DateTime.now().add(const Duration(hours: 2));
-    var endTime = startTime.add(const Duration(hours: 8));
-    final recurringWeekdays = <int>{startTime.weekday};
-    DateTime? recurrenceEndsAt;
+    VehicleEntity vehicle, {
+    VehicleAvailabilityWindowEntity? existingWindow,
+  }) {
+    final noteController = TextEditingController(text: existingWindow?.note);
+    var type = existingWindow?.type ?? AvailabilityWindowType.available;
+    var recurrence =
+        existingWindow?.recurrence ?? AvailabilityWindowRecurrence.once;
+    var startTime =
+        existingWindow?.startTime ??
+        DateTime.now().add(const Duration(hours: 2));
+    var endTime =
+        existingWindow?.endTime ?? startTime.add(const Duration(hours: 8));
+    final recurringWeekdays =
+        existingWindow?.recurringWeekdays.toSet() ?? <int>{startTime.weekday};
+    DateTime? recurrenceEndsAt = existingWindow?.recurrenceEndsAt;
 
     showModalBottomSheet(
       context: context,
@@ -1337,21 +1353,34 @@ class _VehicleDetailContentState extends State<_VehicleDetailContent> {
               return;
             }
 
-            context.read<OwnerVehicleBloc>().add(
-              CreateVehicleAvailability(
-                vehicleId: vehicle.id,
-                params: CreateAvailabilityWindowParams(
-                  type: type,
-                  recurrence: recurrence,
-                  recurringWeekdays: recurringWeekdays.toList()..sort(),
-                  timezoneOffsetMinutes: startTime.timeZoneOffset.inMinutes,
-                  recurrenceEndsAt: recurrenceEndsAt,
-                  startTime: startTime,
-                  endTime: endTime,
-                  note: noteController.text,
-                ),
-              ),
+            final params = CreateAvailabilityWindowParams(
+              type: type,
+              recurrence: recurrence,
+              recurringWeekdays: recurringWeekdays.toList()..sort(),
+              timezoneOffsetMinutes:
+                  existingWindow?.timezoneOffsetMinutes ??
+                  startTime.timeZoneOffset.inMinutes,
+              recurrenceEndsAt: recurrenceEndsAt,
+              startTime: startTime,
+              endTime: endTime,
+              note: noteController.text,
             );
+            if (existingWindow == null) {
+              context.read<OwnerVehicleBloc>().add(
+                CreateVehicleAvailability(
+                  vehicleId: vehicle.id,
+                  params: params,
+                ),
+              );
+            } else {
+              context.read<OwnerVehicleBloc>().add(
+                UpdateVehicleAvailability(
+                  vehicleId: vehicle.id,
+                  windowId: existingWindow.id,
+                  params: params,
+                ),
+              );
+            }
             Navigator.of(sheetContext).pop();
           }
 
@@ -1378,7 +1407,9 @@ class _VehicleDetailContentState extends State<_VehicleDetailContent> {
                 ),
                 const SizedBox(height: 20),
                 Text(
-                  'Thêm lịch cho thuê',
+                  existingWindow == null
+                      ? 'Thêm lịch cho thuê'
+                      : 'Sửa lịch cho thuê',
                   style: GoogleFonts.poppins(
                     fontSize: 20,
                     fontWeight: FontWeight.bold,

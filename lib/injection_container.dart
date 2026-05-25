@@ -284,6 +284,7 @@ Future<void> init() async {
   sl.registerLazySingleton(() => ToggleAvailabilityUseCase(sl()));
   sl.registerLazySingleton(() => GetVehicleAvailabilityUseCase(sl()));
   sl.registerLazySingleton(() => CreateVehicleAvailabilityUseCase(sl()));
+  sl.registerLazySingleton(() => UpdateVehicleAvailabilityUseCase(sl()));
   sl.registerLazySingleton(() => DeleteVehicleAvailabilityUseCase(sl()));
   sl.registerLazySingleton(() => DeleteVehicleUseCase(sl()));
 
@@ -297,6 +298,7 @@ Future<void> init() async {
       toggleAvailabilityUseCase: sl(),
       getVehicleAvailabilityUseCase: sl(),
       createVehicleAvailabilityUseCase: sl(),
+      updateVehicleAvailabilityUseCase: sl(),
       deleteVehicleAvailabilityUseCase: sl(),
       deleteVehicleUseCase: sl(),
       cache: sl(),
