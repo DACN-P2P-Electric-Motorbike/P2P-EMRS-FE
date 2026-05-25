@@ -10,6 +10,9 @@ abstract class VehicleRepository {
     DateTime? startTime,
     DateTime? endTime,
     bool? instantBookOnly,
+    VehicleCondition? condition,
+    BatteryType? batteryType,
+    int? minBatteryHealth,
   });
 
   /// Get vehicle by ID
@@ -38,6 +41,9 @@ abstract class VehicleRepository {
     DateTime? startTime,
     DateTime? endTime,
     bool? instantBookOnly,
+    VehicleCondition? condition,
+    BatteryType? batteryType,
+    int? minBatteryHealth,
   });
 
   /// Save/bookmark a vehicle

@@ -17,12 +17,18 @@ class VehicleRepositoryImpl implements VehicleRepository {
     DateTime? startTime,
     DateTime? endTime,
     bool? instantBookOnly,
+    VehicleCondition? condition,
+    BatteryType? batteryType,
+    int? minBatteryHealth,
   }) async {
     try {
       final vehicles = await _remoteDataSource.getAvailableVehicles(
         startTime: startTime,
         endTime: endTime,
         instantBookOnly: instantBookOnly,
+        condition: condition,
+        batteryType: batteryType,
+        minBatteryHealth: minBatteryHealth,
       );
       return Right(vehicles.map((model) => model.toEntity()).toList());
     } on ServerException catch (e) {
@@ -100,6 +106,9 @@ class VehicleRepositoryImpl implements VehicleRepository {
     DateTime? startTime,
     DateTime? endTime,
     bool? instantBookOnly,
+    VehicleCondition? condition,
+    BatteryType? batteryType,
+    int? minBatteryHealth,
   }) async {
     try {
       final vehicles = await _remoteDataSource.getNearbyVehicles(
@@ -109,6 +118,9 @@ class VehicleRepositoryImpl implements VehicleRepository {
         startTime: startTime,
         endTime: endTime,
         instantBookOnly: instantBookOnly,
+        condition: condition,
+        batteryType: batteryType,
+        minBatteryHealth: minBatteryHealth,
       );
       return Right(vehicles.map((model) => model.toEntity()).toList());
     } on ServerException catch (e) {

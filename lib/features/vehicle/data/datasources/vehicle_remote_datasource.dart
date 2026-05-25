@@ -8,6 +8,7 @@ import '../../../../../core/network/dio_client.dart';
 import '../../../../../core/utils/vietnam_time.dart';
 import '../models/vehicle_model.dart';
 import '../models/availability_summary_model.dart';
+import '../../domain/entities/vehicle_entity.dart';
 
 /// Remote data source for vehicle operations
 abstract class VehicleRemoteDataSource {
@@ -15,6 +16,9 @@ abstract class VehicleRemoteDataSource {
     DateTime? startTime,
     DateTime? endTime,
     bool? instantBookOnly,
+    VehicleCondition? condition,
+    BatteryType? batteryType,
+    int? minBatteryHealth,
   });
   Future<VehicleModel> getVehicleById(String id);
   Future<VehicleAvailabilitySummaryModel> getAvailabilitySummary(String id);
@@ -33,6 +37,9 @@ abstract class VehicleRemoteDataSource {
     DateTime? startTime,
     DateTime? endTime,
     bool? instantBookOnly,
+    VehicleCondition? condition,
+    BatteryType? batteryType,
+    int? minBatteryHealth,
   });
 }
 
@@ -51,11 +58,17 @@ class VehicleRemoteDataSourceImpl implements VehicleRemoteDataSource {
     DateTime? startTime,
     DateTime? endTime,
     bool? instantBookOnly,
+    VehicleCondition? condition,
+    BatteryType? batteryType,
+    int? minBatteryHealth,
   }) async {
     final queryParameters = _availabilityQuery(
       startTime,
       endTime,
       instantBookOnly,
+      condition: condition,
+      batteryType: batteryType,
+      minBatteryHealth: minBatteryHealth,
     );
     final cacheKey = 'vehicles.available:${_cacheSuffix(queryParameters)}';
     final cached = await _cachedVehicleList(cacheKey);
@@ -138,6 +151,9 @@ class VehicleRemoteDataSourceImpl implements VehicleRemoteDataSource {
     DateTime? startTime,
     DateTime? endTime,
     bool? instantBookOnly,
+    VehicleCondition? condition,
+    BatteryType? batteryType,
+    int? minBatteryHealth,
   }) async {
     final queryParameters = <String, dynamic>{
       'latitude': latitude,
@@ -151,6 +167,12 @@ class VehicleRemoteDataSourceImpl implements VehicleRemoteDataSource {
       queryParameters['endTime'] = VietnamTime.toApiIsoString(endTime);
     }
     if (instantBookOnly == true) queryParameters['instantBook'] = true;
+    _appendEvMetadataQuery(
+      queryParameters,
+      condition: condition,
+      batteryType: batteryType,
+      minBatteryHealth: minBatteryHealth,
+    );
 
     final cacheKey = 'vehicles.nearby:${_cacheSuffix(queryParameters)}';
     final cached = await _cachedVehicleList(cacheKey);
@@ -165,8 +187,11 @@ class VehicleRemoteDataSourceImpl implements VehicleRemoteDataSource {
   Map<String, dynamic> _availabilityQuery(
     DateTime? startTime,
     DateTime? endTime,
-    bool? instantBookOnly,
-  ) {
+    bool? instantBookOnly, {
+    VehicleCondition? condition,
+    BatteryType? batteryType,
+    int? minBatteryHealth,
+  }) {
     final queryParameters = <String, dynamic>{};
     if (startTime != null) {
       queryParameters['startTime'] = VietnamTime.toApiIsoString(startTime);
@@ -175,7 +200,30 @@ class VehicleRemoteDataSourceImpl implements VehicleRemoteDataSource {
       queryParameters['endTime'] = VietnamTime.toApiIsoString(endTime);
     }
     if (instantBookOnly == true) queryParameters['instantBook'] = true;
+    _appendEvMetadataQuery(
+      queryParameters,
+      condition: condition,
+      batteryType: batteryType,
+      minBatteryHealth: minBatteryHealth,
+    );
     return queryParameters;
+  }
+
+  void _appendEvMetadataQuery(
+    Map<String, dynamic> queryParameters, {
+    VehicleCondition? condition,
+    BatteryType? batteryType,
+    int? minBatteryHealth,
+  }) {
+    if (condition != null) {
+      queryParameters['condition'] = condition.toApiString();
+    }
+    if (batteryType != null) {
+      queryParameters['batteryType'] = batteryType.toApiString();
+    }
+    if (minBatteryHealth != null) {
+      queryParameters['minBatteryHealth'] = minBatteryHealth;
+    }
   }
 
   Future<List<VehicleModel>?> _cachedVehicleList(String cacheKey) async {

@@ -23,6 +23,7 @@ import 'package:fe_capstone_project/features/incident/domain/entities/incident_r
 import 'package:fe_capstone_project/features/owner_vehicle/data/models/availability_window_model.dart';
 import 'package:fe_capstone_project/features/owner_vehicle/domain/entities/vehicle_entity.dart';
 import 'package:fe_capstone_project/features/vehicle/data/models/availability_summary_model.dart';
+import 'package:fe_capstone_project/features/vehicle/data/models/vehicle_model.dart';
 import 'package:fe_capstone_project/features/vehicle/domain/entities/availability_summary.dart';
 import 'package:fe_capstone_project/features/renter/data/models/become_owner_response_model.dart';
 import 'package:fe_capstone_project/features/review/data/models/review_model.dart';
@@ -749,6 +750,35 @@ void main() {
     expect(covered.canBook, isTrue);
     expect(uncovered.status, AvailabilityRangeStatus.unavailable);
     expect(uncovered.canBook, isFalse);
+  });
+
+  test('Renter vehicle model parses EV metadata used by filters', () {
+    final vehicle = VehicleModel.fromJson({
+      'id': 'vehicle-id',
+      'licensePlate': '59-E1 12345',
+      'model': 'Vento S',
+      'brand': 'VINFAST',
+      'type': 'ELECTRIC_MOTORBIKE',
+      'status': 'AVAILABLE',
+      'features': [],
+      'batteryLevel': 88,
+      'pricePerHour': 25000,
+      'condition': 'LIKE_NEW',
+      'batteryType': 'SWAPPABLE',
+      'batteryHealth': 96,
+      'isAvailable': true,
+      'address': 'Quan 1, TP.HCM',
+      'images': [],
+      'totalTrips': 0,
+      'totalRating': 5,
+      'ownerId': 'owner-id',
+      'createdAt': '2026-05-25T00:00:00.000Z',
+      'updatedAt': '2026-05-25T00:00:00.000Z',
+    });
+
+    expect(vehicle.condition?.toApiString(), 'LIKE_NEW');
+    expect(vehicle.batteryType?.toApiString(), 'SWAPPABLE');
+    expect(vehicle.batteryHealth, 96);
   });
 
   test('NotificationTextLocalizer follows the selected app language', () {
