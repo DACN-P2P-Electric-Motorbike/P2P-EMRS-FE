@@ -46,7 +46,6 @@ class VehicleHandoverModel extends VehicleHandover {
     required super.performedBy,
     super.odometerReading,
     super.batteryLevel,
-    super.fuelLevel,
     super.latitude,
     super.longitude,
     super.notes,
@@ -72,7 +71,6 @@ class VehicleHandoverModel extends VehicleHandover {
       performedBy: json['performedBy'] as String,
       odometerReading: (json['odometerReading'] as num?)?.toDouble(),
       batteryLevel: (json['batteryLevel'] as num?)?.toInt(),
-      fuelLevel: (json['fuelLevel'] as num?)?.toInt(),
       latitude: (json['latitude'] as num?)?.toDouble(),
       longitude: (json['longitude'] as num?)?.toDouble(),
       notes: json['notes'] as String?,
@@ -92,7 +90,6 @@ class VehicleHandoverModel extends VehicleHandover {
     performedBy: performedBy,
     odometerReading: odometerReading,
     batteryLevel: batteryLevel,
-    fuelLevel: fuelLevel,
     latitude: latitude,
     longitude: longitude,
     notes: notes,
@@ -115,26 +112,18 @@ class VehicleHandoverModel extends VehicleHandover {
 }
 
 class HandoverDifferencesModel extends HandoverDifferences {
-  const HandoverDifferencesModel({
-    super.kmDriven,
-    super.batteryDelta,
-    super.fuelDelta,
-  });
+  const HandoverDifferencesModel({super.kmDriven, super.batteryDelta});
 
   factory HandoverDifferencesModel.fromJson(Map<String, dynamic>? json) {
     if (json == null) return const HandoverDifferencesModel();
     return HandoverDifferencesModel(
       kmDriven: (json['kmDriven'] as num?)?.toDouble(),
       batteryDelta: (json['batteryDelta'] as num?)?.toInt(),
-      fuelDelta: (json['fuelDelta'] as num?)?.toInt(),
     );
   }
 
-  HandoverDifferences toEntity() => HandoverDifferences(
-    kmDriven: kmDriven,
-    batteryDelta: batteryDelta,
-    fuelDelta: fuelDelta,
-  );
+  HandoverDifferences toEntity() =>
+      HandoverDifferences(kmDriven: kmDriven, batteryDelta: batteryDelta);
 }
 
 class HandoverSummaryModel extends HandoverSummary {

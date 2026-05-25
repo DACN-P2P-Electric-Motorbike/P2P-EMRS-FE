@@ -44,7 +44,6 @@ class VehicleHandover extends Equatable {
   final String performedBy;
   final double? odometerReading;
   final int? batteryLevel;
-  final int? fuelLevel;
   final double? latitude;
   final double? longitude;
   final String? notes;
@@ -62,7 +61,6 @@ class VehicleHandover extends Equatable {
     required this.performedBy,
     this.odometerReading,
     this.batteryLevel,
-    this.fuelLevel,
     this.latitude,
     this.longitude,
     this.notes,
@@ -84,7 +82,6 @@ class VehicleHandover extends Equatable {
     performedBy,
     odometerReading,
     batteryLevel,
-    fuelLevel,
     latitude,
     longitude,
     notes,
@@ -99,12 +96,11 @@ class VehicleHandover extends Equatable {
 class HandoverDifferences extends Equatable {
   final double? kmDriven;
   final int? batteryDelta;
-  final int? fuelDelta;
 
-  const HandoverDifferences({this.kmDriven, this.batteryDelta, this.fuelDelta});
+  const HandoverDifferences({this.kmDriven, this.batteryDelta});
 
   @override
-  List<Object?> get props => [kmDriven, batteryDelta, fuelDelta];
+  List<Object?> get props => [kmDriven, batteryDelta];
 }
 
 class HandoverSummary extends Equatable {
