@@ -681,12 +681,26 @@ class _VehicleDetailContentState extends State<_VehicleDetailContent> {
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  '${_formatDateTime(window.startTime)} - ${_formatDateTime(window.endTime)}',
+                  window.isWeekly
+                      ? '${_formatWeekdays(window.recurringWeekdays)} · ${_formatTime(window.startTime)} - ${_formatTime(window.endTime)}'
+                      : '${_formatDateTime(window.startTime)} - ${_formatDateTime(window.endTime)}',
                   style: GoogleFonts.poppins(
                     fontSize: 12,
                     color: AppColors.textSecondary,
                   ),
                 ),
+                if (window.isWeekly) ...[
+                  const SizedBox(height: 2),
+                  Text(
+                    window.recurrenceEndsAt == null
+                        ? 'Lặp lại hàng tuần'
+                        : 'Lặp lại đến ${_formatDate(window.recurrenceEndsAt!)}',
+                    style: GoogleFonts.poppins(
+                      fontSize: 12,
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+                ],
                 if (window.note != null && window.note!.isNotEmpty) ...[
                   const SizedBox(height: 2),
                   Text(
@@ -1226,8 +1240,11 @@ class _VehicleDetailContentState extends State<_VehicleDetailContent> {
   ) {
     final noteController = TextEditingController();
     var type = AvailabilityWindowType.available;
+    var recurrence = AvailabilityWindowRecurrence.once;
     var startTime = DateTime.now().add(const Duration(hours: 2));
     var endTime = startTime.add(const Duration(hours: 8));
+    final recurringWeekdays = <int>{startTime.weekday};
+    DateTime? recurrenceEndsAt;
 
     showModalBottomSheet(
       context: context,
@@ -1273,6 +1290,27 @@ class _VehicleDetailContentState extends State<_VehicleDetailContent> {
             });
           }
 
+          Future<void> pickRecurrenceEndDate() async {
+            final date = await showDatePicker(
+              context: sheetContext,
+              initialDate:
+                  recurrenceEndsAt ?? startTime.add(const Duration(days: 90)),
+              firstDate: startTime,
+              lastDate: startTime.add(const Duration(days: 730)),
+            );
+            if (date == null) return;
+            setSheetState(() {
+              recurrenceEndsAt = DateTime(
+                date.year,
+                date.month,
+                date.day,
+                23,
+                59,
+                59,
+              );
+            });
+          }
+
           void submit() {
             if (!endTime.isAfter(startTime)) {
               ScaffoldMessenger.of(sheetContext).showSnackBar(
@@ -1285,12 +1323,29 @@ class _VehicleDetailContentState extends State<_VehicleDetailContent> {
               );
               return;
             }
+            if (recurrence == AvailabilityWindowRecurrence.weekly &&
+                (recurringWeekdays.isEmpty ||
+                    endTime.difference(startTime) > const Duration(days: 1))) {
+              ScaffoldMessenger.of(sheetContext).showSnackBar(
+                const SnackBar(
+                  content: Text(
+                    'Lịch hàng tuần cần ít nhất một ngày và khung giờ tối đa 24 giờ',
+                  ),
+                  backgroundColor: AppColors.error,
+                ),
+              );
+              return;
+            }
 
             context.read<OwnerVehicleBloc>().add(
               CreateVehicleAvailability(
                 vehicleId: vehicle.id,
                 params: CreateAvailabilityWindowParams(
                   type: type,
+                  recurrence: recurrence,
+                  recurringWeekdays: recurringWeekdays.toList()..sort(),
+                  timezoneOffsetMinutes: startTime.timeZoneOffset.inMinutes,
+                  recurrenceEndsAt: recurrenceEndsAt,
                   startTime: startTime,
                   endTime: endTime,
                   note: noteController.text,
@@ -1300,7 +1355,7 @@ class _VehicleDetailContentState extends State<_VehicleDetailContent> {
             Navigator.of(sheetContext).pop();
           }
 
-          return Padding(
+          return SingleChildScrollView(
             padding: EdgeInsets.only(
               bottom: MediaQuery.of(sheetContext).viewInsets.bottom + 20,
               left: 20,
@@ -1354,14 +1409,88 @@ class _VehicleDetailContentState extends State<_VehicleDetailContent> {
                   },
                 ),
                 const SizedBox(height: 16),
+                SegmentedButton<AvailabilityWindowRecurrence>(
+                  segments: AvailabilityWindowRecurrence.values
+                      .map(
+                        (value) => ButtonSegment(
+                          value: value,
+                          label: Text(value.displayName),
+                          icon: Icon(
+                            value == AvailabilityWindowRecurrence.once
+                                ? Icons.event_outlined
+                                : Icons.repeat,
+                          ),
+                        ),
+                      )
+                      .toList(),
+                  selected: {recurrence},
+                  onSelectionChanged: (selected) {
+                    setSheetState(() => recurrence = selected.first);
+                  },
+                ),
+                if (recurrence == AvailabilityWindowRecurrence.weekly) ...[
+                  const SizedBox(height: 16),
+                  Text(
+                    'Ngày lặp lại',
+                    style: GoogleFonts.poppins(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: List.generate(7, (index) {
+                      final weekday = index + 1;
+                      return FilterChip(
+                        label: Text(_weekdayLabel(weekday)),
+                        selected: recurringWeekdays.contains(weekday),
+                        onSelected: (selected) {
+                          setSheetState(() {
+                            if (selected) {
+                              recurringWeekdays.add(weekday);
+                            } else {
+                              recurringWeekdays.remove(weekday);
+                            }
+                          });
+                        },
+                      );
+                    }),
+                  ),
+                  const SizedBox(height: 12),
+                  SwitchListTile.adaptive(
+                    contentPadding: EdgeInsets.zero,
+                    title: const Text('Đặt ngày kết thúc'),
+                    value: recurrenceEndsAt != null,
+                    onChanged: (enabled) async {
+                      if (enabled) {
+                        await pickRecurrenceEndDate();
+                      } else {
+                        setSheetState(() => recurrenceEndsAt = null);
+                      }
+                    },
+                  ),
+                  if (recurrenceEndsAt != null)
+                    _buildDateTimeTile(
+                      label: 'Lặp lại đến',
+                      value: _formatDate(recurrenceEndsAt!),
+                      onTap: pickRecurrenceEndDate,
+                    ),
+                  const SizedBox(height: 16),
+                ],
                 _buildDateTimeTile(
-                  label: 'Bắt đầu',
+                  label: recurrence == AvailabilityWindowRecurrence.weekly
+                      ? 'Giờ bắt đầu (mốc đầu tiên)'
+                      : 'Bắt đầu',
                   value: _formatDateTime(startTime),
                   onTap: () => pickDateTime(true),
                 ),
                 const SizedBox(height: 12),
                 _buildDateTimeTile(
-                  label: 'Kết thúc',
+                  label: recurrence == AvailabilityWindowRecurrence.weekly
+                      ? 'Giờ kết thúc (mốc đầu tiên)'
+                      : 'Kết thúc',
                   value: _formatDateTime(endTime),
                   onTap: () => pickDateTime(false),
                 ),
@@ -2321,6 +2450,20 @@ class _VehicleDetailContentState extends State<_VehicleDetailContent> {
   String _formatDateTime(DateTime value) {
     final twoDigits = (int number) => number.toString().padLeft(2, '0');
     return '${twoDigits(value.day)}/${twoDigits(value.month)}/${value.year} ${twoDigits(value.hour)}:${twoDigits(value.minute)}';
+  }
+
+  String _formatTime(DateTime value) {
+    final twoDigits = (int number) => number.toString().padLeft(2, '0');
+    return '${twoDigits(value.hour)}:${twoDigits(value.minute)}';
+  }
+
+  String _weekdayLabel(int weekday) {
+    return weekday == 7 ? 'CN' : 'T${weekday + 1}';
+  }
+
+  String _formatWeekdays(List<int> weekdays) {
+    if (weekdays.length == 7) return 'Mỗi ngày';
+    return weekdays.map(_weekdayLabel).join(', ');
   }
 
   String _formatDate(DateTime value) {

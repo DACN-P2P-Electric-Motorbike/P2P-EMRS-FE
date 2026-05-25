@@ -20,6 +20,8 @@ import 'package:fe_capstone_project/features/incident/data/models/incident_repor
 import 'package:fe_capstone_project/features/incident/data/repositories/incident_repository_impl.dart';
 import 'package:fe_capstone_project/features/incident/domain/entities/claim_summary.dart';
 import 'package:fe_capstone_project/features/incident/domain/entities/incident_report.dart';
+import 'package:fe_capstone_project/features/owner_vehicle/data/models/availability_window_model.dart';
+import 'package:fe_capstone_project/features/owner_vehicle/domain/entities/vehicle_entity.dart';
 import 'package:fe_capstone_project/features/renter/data/models/become_owner_response_model.dart';
 import 'package:fe_capstone_project/features/review/data/models/review_model.dart';
 import 'package:fe_capstone_project/features/review/domain/entities/review_entity.dart';
@@ -615,6 +617,45 @@ void main() {
     expect(model.roles, ['RENTER', 'OWNER']);
     expect(model.toEntity().isOwner, isTrue);
   });
+
+  test(
+    'Weekly availability models serialize and parse recurrence settings',
+    () {
+      final params = CreateAvailabilityWindowParams(
+        type: AvailabilityWindowType.available,
+        recurrence: AvailabilityWindowRecurrence.weekly,
+        recurringWeekdays: const [1, 3, 5],
+        timezoneOffsetMinutes: 420,
+        recurrenceEndsAt: DateTime.utc(2026, 12, 31, 16, 59, 59),
+        startTime: DateTime.utc(2026, 5, 25, 1),
+        endTime: DateTime.utc(2026, 5, 25, 11),
+      );
+
+      expect(params.toJson()['recurrence'], 'WEEKLY');
+      expect(params.toJson()['recurringWeekdays'], [1, 3, 5]);
+      expect(params.toJson()['timezoneOffsetMinutes'], 420);
+
+      final model = VehicleAvailabilityWindowModel.fromJson({
+        'id': 'rule-id',
+        'vehicleId': 'vehicle-id',
+        'type': 'BLOCKED',
+        'recurrence': 'WEEKLY',
+        'recurringWeekdays': [2, 4],
+        'timezoneOffsetMinutes': 420,
+        'recurrenceEndsAt': '2026-12-31T16:59:59.000Z',
+        'startTime': '2026-05-26T01:00:00.000Z',
+        'endTime': '2026-05-26T11:00:00.000Z',
+        'note': null,
+        'createdAt': '2026-05-25T00:00:00.000Z',
+        'updatedAt': '2026-05-25T00:00:00.000Z',
+      });
+
+      expect(model.recurrence, AvailabilityWindowRecurrence.weekly);
+      expect(model.recurringWeekdays, [2, 4]);
+      expect(model.isWeekly, isTrue);
+      expect(model.type, AvailabilityWindowType.blocked);
+    },
+  );
 
   test('NotificationTextLocalizer follows the selected app language', () {
     final vi = NotificationTextLocalizer.localize(
