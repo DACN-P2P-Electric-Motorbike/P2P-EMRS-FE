@@ -670,8 +670,10 @@ class _VehicleDetailContent extends StatelessWidget {
                       context: context,
                       isScrollControlled: true,
                       backgroundColor: Colors.transparent,
-                      builder: (context) =>
-                          BookingBottomSheet(vehicle: vehicle),
+                      builder: (context) => BookingBottomSheet(
+                        vehicle: vehicle,
+                        availabilitySummary: availabilitySummary,
+                      ),
                     );
                   }
                 : null,

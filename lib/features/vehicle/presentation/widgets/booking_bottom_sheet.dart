@@ -13,19 +13,28 @@ import '../../../booking/domain/repositories/booking_repository.dart';
 import '../../../booking/presentation/bloc/booking_bloc.dart';
 import '../../../booking/presentation/bloc/booking_event.dart';
 import '../../../booking/presentation/bloc/booking_state.dart';
+import '../../domain/entities/availability_summary.dart';
 import '../../domain/entities/vehicle_entity.dart';
 
 /// Enhanced Booking Bottom Sheet with full BLoC integration
 class BookingBottomSheet extends StatelessWidget {
   final VehicleEntity vehicle;
+  final VehicleAvailabilitySummary? availabilitySummary;
 
-  const BookingBottomSheet({super.key, required this.vehicle});
+  const BookingBottomSheet({
+    super.key,
+    required this.vehicle,
+    this.availabilitySummary,
+  });
 
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
       create: (_) => sl<BookingBloc>(),
-      child: _EnhancedBookingContent(vehicle: vehicle),
+      child: _EnhancedBookingContent(
+        vehicle: vehicle,
+        availabilitySummary: availabilitySummary,
+      ),
     );
   }
 }
@@ -52,8 +61,12 @@ class _ProtectionPlanOption {
 
 class _EnhancedBookingContent extends StatefulWidget {
   final VehicleEntity vehicle;
+  final VehicleAvailabilitySummary? availabilitySummary;
 
-  const _EnhancedBookingContent({required this.vehicle});
+  const _EnhancedBookingContent({
+    required this.vehicle,
+    required this.availabilitySummary,
+  });
 
   @override
   State<_EnhancedBookingContent> createState() =>
@@ -186,6 +199,20 @@ class _EnhancedBookingContentState extends State<_EnhancedBookingContent> {
 
   double get _checkoutTotal =>
       _totalPrice + _protectionFee + (widget.vehicle.deposit ?? 0);
+
+  AvailabilityRangeEvaluation? get _availabilityEvaluation {
+    final summary = widget.availabilitySummary;
+    final start = _startDateTime;
+    final end = _endDateTime;
+    if (summary == null ||
+        summary.rules.isEmpty ||
+        start == null ||
+        end == null ||
+        !end.isAfter(start)) {
+      return null;
+    }
+    return summary.evaluateRange(start, end);
+  }
 
   // Get start DateTime
   DateTime? get _startDateTime {
@@ -350,6 +377,11 @@ class _EnhancedBookingContentState extends State<_EnhancedBookingContent> {
                       _buildDateTimeSelection(),
 
                       const SizedBox(height: 24),
+
+                      if (_availabilityEvaluation != null) ...[
+                        _buildAvailabilityPreview(_availabilityEvaluation!),
+                        const SizedBox(height: 24),
+                      ],
 
                       // Notes (optional)
                       _buildNotesField(),
@@ -936,6 +968,54 @@ class _EnhancedBookingContentState extends State<_EnhancedBookingContent> {
     );
   }
 
+  Widget _buildAvailabilityPreview(AvailabilityRangeEvaluation evaluation) {
+    final canBook = evaluation.canBook;
+    final color = canBook ? AppColors.success : AppColors.error;
+    final icon = canBook
+        ? Icons.event_available_outlined
+        : Icons.event_busy_outlined;
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: color.withValues(alpha: 0.35)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, color: color, size: 22),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Lịch khả dụng',
+                  style: GoogleFonts.poppins(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: color,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  evaluation.message,
+                  style: GoogleFonts.poppins(
+                    fontSize: 12,
+                    color: AppColors.textSecondary,
+                    height: 1.45,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildNotesField() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1436,6 +1516,10 @@ class _EnhancedBookingContentState extends State<_EnhancedBookingContent> {
     }
     if (duration > _maxRentalDuration) {
       return 'Thời gian thuê tối đa là 30 ngày';
+    }
+    final availabilityEvaluation = _availabilityEvaluation;
+    if (availabilityEvaluation != null && !availabilityEvaluation.canBook) {
+      return availabilityEvaluation.message;
     }
     return null;
   }

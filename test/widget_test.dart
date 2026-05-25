@@ -693,6 +693,64 @@ void main() {
     );
   });
 
+  test('Renter availability summary evaluates one-off blocked ranges', () {
+    final summary = VehicleAvailabilitySummary(
+      hasAvailableCalendar: false,
+      rules: [
+        VehicleAvailabilityRule(
+          type: PublicAvailabilityRuleType.blocked,
+          recurrence: PublicAvailabilityRecurrence.once,
+          startTime: DateTime.utc(2026, 5, 30, 1),
+          endTime: DateTime.utc(2026, 5, 30, 11),
+        ),
+      ],
+    );
+
+    final blocked = summary.evaluateRange(
+      DateTime.utc(2026, 5, 30, 2),
+      DateTime.utc(2026, 5, 30, 4),
+    );
+    final available = summary.evaluateRange(
+      DateTime.utc(2026, 5, 31, 2),
+      DateTime.utc(2026, 5, 31, 4),
+    );
+
+    expect(blocked.status, AvailabilityRangeStatus.blocked);
+    expect(blocked.canBook, isFalse);
+    expect(available.status, AvailabilityRangeStatus.available);
+    expect(available.canBook, isTrue);
+  });
+
+  test('Renter availability summary evaluates weekly available calendar', () {
+    final summary = VehicleAvailabilitySummary(
+      hasAvailableCalendar: true,
+      rules: [
+        VehicleAvailabilityRule(
+          type: PublicAvailabilityRuleType.available,
+          recurrence: PublicAvailabilityRecurrence.weekly,
+          recurringWeekdays: const [DateTime.monday],
+          timezoneOffsetMinutes: 420,
+          startTime: DateTime.utc(2026, 5, 25, 1),
+          endTime: DateTime.utc(2026, 5, 25, 11),
+        ),
+      ],
+    );
+
+    final covered = summary.evaluateRange(
+      DateTime.utc(2026, 6, 1, 2),
+      DateTime.utc(2026, 6, 1, 4),
+    );
+    final uncovered = summary.evaluateRange(
+      DateTime.utc(2026, 6, 2, 2),
+      DateTime.utc(2026, 6, 2, 4),
+    );
+
+    expect(covered.status, AvailabilityRangeStatus.available);
+    expect(covered.canBook, isTrue);
+    expect(uncovered.status, AvailabilityRangeStatus.unavailable);
+    expect(uncovered.canBook, isFalse);
+  });
+
   test('NotificationTextLocalizer follows the selected app language', () {
     final vi = NotificationTextLocalizer.localize(
       type: 'BOOKING_REJECTED',
