@@ -489,6 +489,7 @@ Future<void> init() async {
   sl.registerLazySingleton(() => CreateReviewUseCase(sl()));
   sl.registerLazySingleton(() => GetVehicleReviewsUseCase(sl()));
   sl.registerLazySingleton(() => GetMyReviewsUseCase(sl()));
+  sl.registerLazySingleton(() => GetBookingReviewStatusUseCase(sl()));
   sl.registerLazySingleton(() => GetTrustScoreBreakdownUseCase(sl()));
 
   // BLoC - Factory

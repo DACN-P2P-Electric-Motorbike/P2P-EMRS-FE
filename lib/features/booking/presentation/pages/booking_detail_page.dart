@@ -11,7 +11,6 @@ import '../../../../core/services/location_service.dart';
 import '../../../../core/services/socket_service.dart';
 import '../../../../core/services/upload_service.dart';
 import '../../../../core/theme/app_theme.dart';
-import '../../../../core/usecases/usecase.dart';
 import '../../../../core/utils/vietnam_time.dart';
 import '../../../../core/widgets/app_network_image.dart';
 import '../../../../injection_container.dart';
@@ -27,8 +26,10 @@ import '../../../incident/domain/entities/claim_summary.dart';
 import '../../../incident/domain/entities/incident_report.dart';
 import '../../../incident/domain/usecases/incident_usecases.dart';
 import '../../../payment/presentation/pages/payment_page.dart';
+import '../../../review/domain/entities/review_entity.dart';
 import '../../../review/domain/usecases/review_usecases.dart';
 import '../../../review/presentation/pages/create_review_page.dart';
+import '../../../review/presentation/widgets/blind_review_status_card.dart';
 import '../../../trip/presentation/bloc/trip_bloc.dart';
 import '../../../trip/presentation/bloc/trip_event.dart';
 import '../../../trip/presentation/bloc/trip_state.dart';
@@ -58,7 +59,7 @@ class BookingDetailPage extends StatefulWidget {
 class _BookingDetailPageState extends State<BookingDetailPage> {
   final SocketService _socketService = sl<SocketService>();
   StreamSubscription? _bookingUpdateSubscription;
-  Future<Set<String>>? _reviewedBookingIdsFuture;
+  Future<BookingReviewStatus?>? _reviewStatusFuture;
 
   @override
   void initState() {
@@ -68,7 +69,7 @@ class _BookingDetailPageState extends State<BookingDetailPage> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<BookingBloc>().add(LoadBookingByIdEvent(widget.bookingId));
     });
-    _reviewedBookingIdsFuture = _loadReviewedBookingIds();
+    _reviewStatusFuture = _loadReviewStatus();
   }
 
   void _setupRealtimeUpdates() {
@@ -94,18 +95,16 @@ class _BookingDetailPageState extends State<BookingDetailPage> {
     super.dispose();
   }
 
-  Future<Set<String>> _loadReviewedBookingIds() async {
-    final result = await sl<GetMyReviewsUseCase>()(const NoParams());
-    return result.fold(
-      (_) => <String>{},
-      (reviews) =>
-          reviews.map((review) => review.bookingId).whereType<String>().toSet(),
+  Future<BookingReviewStatus?> _loadReviewStatus() async {
+    final result = await sl<GetBookingReviewStatusUseCase>()(
+      GetBookingReviewStatusParams(widget.bookingId),
     );
+    return result.fold((_) => null, (status) => status);
   }
 
-  void _refreshReviewedBookingIds() {
+  void _refreshReviewStatus() {
     setState(() {
-      _reviewedBookingIdsFuture = _loadReviewedBookingIds();
+      _reviewStatusFuture = _loadReviewStatus();
     });
   }
 
@@ -1184,52 +1183,7 @@ class _BookingDetailPageState extends State<BookingDetailPage> {
               ),
             ),
             const SizedBox(height: 12),
-            FutureBuilder<Set<String>>(
-              future: _reviewedBookingIdsFuture,
-              builder: (context, snapshot) {
-                final isChecking =
-                    snapshot.connectionState != ConnectionState.done;
-                final hasReviewed =
-                    snapshot.data?.contains(booking.id) ?? false;
-                return SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton.icon(
-                    onPressed: isChecking || hasReviewed
-                        ? null
-                        : () => _navigateToReview(context, booking),
-                    icon: Icon(
-                      hasReviewed
-                          ? Icons.check_circle_outline
-                          : Icons.person_search_outlined,
-                    ),
-                    label: Text(
-                      hasReviewed
-                          ? 'Đã đánh giá người thuê'
-                          : isChecking
-                          ? 'Đang kiểm tra đánh giá...'
-                          : 'Đánh giá người thuê',
-                      style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
-                    ),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: hasReviewed
-                          ? AppColors.success
-                          : const Color(0xFFFFB300),
-                      foregroundColor: Colors.white,
-                      disabledBackgroundColor: hasReviewed
-                          ? AppColors.success.withOpacity(0.85)
-                          : AppColors.textMuted.withOpacity(0.18),
-                      disabledForegroundColor: hasReviewed
-                          ? Colors.white
-                          : AppColors.textMuted,
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                  ),
-                );
-              },
-            ),
+            _buildReviewExperience(context, booking),
           ],
         ),
       );
@@ -1370,54 +1324,69 @@ class _BookingDetailPageState extends State<BookingDetailPage> {
 
     // Completed booking - show review button
     if (!widget.isOwnerView && booking.isCompleted) {
-      return FutureBuilder<Set<String>>(
-        future: _reviewedBookingIdsFuture,
-        builder: (context, snapshot) {
-          final isChecking = snapshot.connectionState != ConnectionState.done;
-          final hasReviewed = snapshot.data?.contains(booking.id) ?? false;
-          return Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: SizedBox(
-              width: double.infinity,
-              child: ElevatedButton.icon(
-                onPressed: isChecking || hasReviewed
-                    ? null
-                    : () => _navigateToReview(context, booking),
-                icon: Icon(
-                  hasReviewed ? Icons.check_circle_outline : Icons.star_outline,
-                ),
-                label: Text(
-                  hasReviewed
-                      ? 'Đã đánh giá chuyến đi'
-                      : isChecking
-                      ? 'Đang kiểm tra đánh giá...'
-                      : 'Đánh giá chuyến đi',
-                  style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
-                ),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: hasReviewed
-                      ? AppColors.success
-                      : const Color(0xFFFFB300),
-                  foregroundColor: Colors.white,
-                  disabledBackgroundColor: hasReviewed
-                      ? AppColors.success.withOpacity(0.85)
-                      : AppColors.textMuted.withOpacity(0.18),
-                  disabledForegroundColor: hasReviewed
-                      ? Colors.white
-                      : AppColors.textMuted,
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-              ),
-            ),
-          );
-        },
+      return Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        child: _buildReviewExperience(context, booking),
       );
     }
 
     return const SizedBox.shrink();
+  }
+
+  Widget _buildReviewExperience(BuildContext context, BookingEntity booking) {
+    return FutureBuilder<BookingReviewStatus?>(
+      future: _reviewStatusFuture,
+      builder: (context, snapshot) {
+        final isChecking = snapshot.connectionState != ConnectionState.done;
+        final status = snapshot.data;
+        final hasSubmitted = status?.submitted ?? false;
+        final hasActivity = status?.hasActivity ?? false;
+        return Column(
+          children: [
+            if (hasActivity)
+              BlindReviewStatusCard(
+                status: status!,
+                isOwnerView: widget.isOwnerView,
+              ),
+            if (hasActivity && !hasSubmitted) const SizedBox(height: 12),
+            if (!hasSubmitted)
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  onPressed: isChecking
+                      ? null
+                      : () => _navigateToReview(context, booking),
+                  icon: Icon(
+                    widget.isOwnerView
+                        ? Icons.person_search_outlined
+                        : Icons.star_outline,
+                  ),
+                  label: Text(
+                    isChecking
+                        ? 'Đang kiểm tra đánh giá...'
+                        : widget.isOwnerView
+                        ? 'Đánh giá người thuê'
+                        : 'Đánh giá chuyến đi',
+                    style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFFFB300),
+                    foregroundColor: Colors.white,
+                    disabledBackgroundColor: AppColors.textMuted.withValues(
+                      alpha: 0.18,
+                    ),
+                    disabledForegroundColor: AppColors.textMuted,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        );
+      },
+    );
   }
 
   Widget _buildPaymentRequiredCard(BookingEntity booking) {
@@ -1544,7 +1513,7 @@ class _BookingDetailPageState extends State<BookingDetailPage> {
       ),
     );
     if (created == true && mounted) {
-      _refreshReviewedBookingIds();
+      _refreshReviewStatus();
     }
   }
 

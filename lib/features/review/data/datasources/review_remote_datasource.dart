@@ -14,6 +14,7 @@ abstract class ReviewRemoteDataSource {
 
   Future<List<ReviewModel>> getVehicleReviews(String vehicleId);
   Future<List<ReviewModel>> getMyReviews();
+  Future<BookingReviewStatusModel> getBookingReviewStatus(String bookingId);
   Future<TrustScoreBreakdownModel> getTrustScoreBreakdown();
 }
 
@@ -85,6 +86,28 @@ class ReviewRemoteDataSourceImpl implements ReviewRemoteDataSource {
       }
       throw ServerException(
         message: 'Failed to get my reviews',
+        statusCode: response.statusCode,
+      );
+    } on DioException catch (e) {
+      throw ServerException.fromDioException(e);
+    }
+  }
+
+  @override
+  Future<BookingReviewStatusModel> getBookingReviewStatus(
+    String bookingId,
+  ) async {
+    try {
+      final response = await _dioClient.get(
+        ApiConstants.bookingReviewStatus(bookingId),
+      );
+      if (response.statusCode == 200) {
+        return BookingReviewStatusModel.fromJson(
+          response.data as Map<String, dynamic>,
+        );
+      }
+      throw ServerException(
+        message: 'Failed to get booking review status',
         statusCode: response.statusCode,
       );
     } on DioException catch (e) {

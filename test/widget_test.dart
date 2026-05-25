@@ -28,6 +28,7 @@ import 'package:fe_capstone_project/features/vehicle/domain/entities/availabilit
 import 'package:fe_capstone_project/features/renter/data/models/become_owner_response_model.dart';
 import 'package:fe_capstone_project/features/review/data/models/review_model.dart';
 import 'package:fe_capstone_project/features/review/domain/entities/review_entity.dart';
+import 'package:fe_capstone_project/features/review/presentation/widgets/blind_review_status_card.dart';
 import 'package:fe_capstone_project/features/settings/data/privacy_remote_data_source.dart';
 import 'package:fe_capstone_project/features/settings/presentation/pages/app_settings_page.dart';
 import 'package:flutter/material.dart';
@@ -489,6 +490,89 @@ void main() {
     expect(model.tripId, 'trip-id');
     expect(model.bookingId, 'booking-id');
     expect(model.toEntity().bookingId, 'booking-id');
+  });
+
+  test('BookingReviewStatusModel parses revealed counterpart review', () {
+    final model = BookingReviewStatusModel.fromJson({
+      'bookingId': 'booking-id',
+      'submitted': true,
+      'counterpartSubmitted': true,
+      'isRevealed': true,
+      'revealAt': '2026-05-30T03:00:00.000Z',
+      'ownReview': null,
+      'receivedReview': {
+        'id': 'received-review',
+        'userId': 'owner-id',
+        'vehicleId': 'vehicle-id',
+        'rating': 5,
+        'comment': 'Rất cẩn thận',
+        'createdAt': '2026-05-09T03:00:00.000Z',
+        'updatedAt': '2026-05-09T03:00:00.000Z',
+      },
+    });
+
+    expect(model.entity.isRevealed, isTrue);
+    expect(model.entity.receivedReview?.comment, 'Rất cẩn thận');
+    expect(model.entity.revealAt, DateTime.parse('2026-05-30T03:00:00.000Z'));
+  });
+
+  testWidgets('BlindReviewStatusCard shows a waiting blind-review state', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: Scaffold(
+          body: BlindReviewStatusCard(
+            isOwnerView: false,
+            status: BookingReviewStatus(
+              bookingId: 'booking-id',
+              submitted: true,
+              counterpartSubmitted: false,
+              isRevealed: false,
+              revealAt: null,
+            ),
+          ),
+        ),
+      ),
+    );
+
+    expect(find.text('Đánh giá đang ẩn'), findsOneWidget);
+    expect(find.textContaining('Đang chờ chủ xe'), findsOneWidget);
+    expect(find.text('Chủ xe đánh giá bạn'), findsNothing);
+  });
+
+  testWidgets('BlindReviewStatusCard renders a received review after reveal', (
+    tester,
+  ) async {
+    final now = DateTime.utc(2026, 5, 25);
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: BlindReviewStatusCard(
+            isOwnerView: false,
+            status: BookingReviewStatus(
+              bookingId: 'booking-id',
+              submitted: false,
+              counterpartSubmitted: true,
+              isRevealed: true,
+              receivedReview: ReviewEntity(
+                id: 'received-review',
+                userId: 'owner-id',
+                vehicleId: 'vehicle-id',
+                rating: 5,
+                comment: 'Rất cẩn thận',
+                createdAt: now,
+                updatedAt: now,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    expect(find.text('Đánh giá đã hiển thị'), findsOneWidget);
+    expect(find.text('Chủ xe đánh giá bạn'), findsOneWidget);
+    expect(find.text('Rất cẩn thận'), findsOneWidget);
   });
 
   test('TrustScoreBreakdownModel parses recent events and active warnings', () {

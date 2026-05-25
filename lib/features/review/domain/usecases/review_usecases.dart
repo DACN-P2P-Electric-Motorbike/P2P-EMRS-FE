@@ -61,6 +61,26 @@ class GetMyReviewsUseCase implements UseCase<List<ReviewEntity>, NoParams> {
   }
 }
 
+class GetBookingReviewStatusParams {
+  final String bookingId;
+
+  const GetBookingReviewStatusParams(this.bookingId);
+}
+
+class GetBookingReviewStatusUseCase
+    implements UseCase<BookingReviewStatus, GetBookingReviewStatusParams> {
+  final ReviewRepository repository;
+
+  GetBookingReviewStatusUseCase(this.repository);
+
+  @override
+  Future<Either<Failure, BookingReviewStatus>> call(
+    GetBookingReviewStatusParams params,
+  ) {
+    return repository.getBookingReviewStatus(params.bookingId);
+  }
+}
+
 class GetTrustScoreBreakdownUseCase
     implements UseCase<TrustScoreBreakdown, NoParams> {
   final ReviewRepository repository;

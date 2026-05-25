@@ -93,6 +93,8 @@ class ApiConstants {
   static const String myReviews = '/reviews/my-reviews';
   static const String trustScore = '/reviews/trust-score';
   static String userTrustScore(String userId) => '/reviews/trust-score/$userId';
+  static String bookingReviewStatus(String bookingId) =>
+      '/reviews/bookings/$bookingId/status';
   static String vehicleReviews(String vehicleId) =>
       '/reviews/vehicle/$vehicleId';
 

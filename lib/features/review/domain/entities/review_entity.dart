@@ -67,6 +67,40 @@ class ReviewEntity extends Equatable {
   ];
 }
 
+class BookingReviewStatus extends Equatable {
+  final String bookingId;
+  final bool submitted;
+  final bool counterpartSubmitted;
+  final bool isRevealed;
+  final ReviewEntity? ownReview;
+  final ReviewEntity? receivedReview;
+  final DateTime? revealAt;
+
+  const BookingReviewStatus({
+    required this.bookingId,
+    required this.submitted,
+    required this.counterpartSubmitted,
+    required this.isRevealed,
+    this.ownReview,
+    this.receivedReview,
+    this.revealAt,
+  });
+
+  bool get hasActivity =>
+      submitted || counterpartSubmitted || receivedReview != null;
+
+  @override
+  List<Object?> get props => [
+    bookingId,
+    submitted,
+    counterpartSubmitted,
+    isRevealed,
+    ownReview,
+    receivedReview,
+    revealAt,
+  ];
+}
+
 class TrustScoreBreakdown extends Equatable {
   final int trustScore;
   final int reviewsGiven;

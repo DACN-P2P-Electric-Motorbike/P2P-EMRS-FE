@@ -66,6 +66,22 @@ class ReviewRepositoryImpl implements ReviewRepository {
   }
 
   @override
+  Future<Either<Failure, BookingReviewStatus>> getBookingReviewStatus(
+    String bookingId,
+  ) async {
+    try {
+      final model = await _remoteDataSource.getBookingReviewStatus(bookingId);
+      return Right(model.entity);
+    } on ServerException catch (e) {
+      return Left(ServerFailure(message: e.message));
+    } on ConnectionException {
+      return const Left(ConnectionFailure());
+    } catch (e) {
+      return Left(ServerFailure(message: e.toString()));
+    }
+  }
+
+  @override
   Future<Either<Failure, TrustScoreBreakdown>> getTrustScoreBreakdown() async {
     try {
       final model = await _remoteDataSource.getTrustScoreBreakdown();
