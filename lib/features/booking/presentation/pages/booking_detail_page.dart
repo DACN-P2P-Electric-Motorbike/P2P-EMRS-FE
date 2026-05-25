@@ -13,11 +13,14 @@ import '../../../../core/services/upload_service.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/usecases/usecase.dart';
 import '../../../../core/utils/vietnam_time.dart';
+import '../../../../core/widgets/app_network_image.dart';
 import '../../../../injection_container.dart';
 import '../../../financial/domain/entities/financial_summary.dart';
 import '../../../financial/domain/usecases/financial_usecases.dart';
 import '../../../financial/presentation/cubit/financial_cubit.dart';
 import '../../../financial/presentation/widgets/financial_summary_card.dart';
+import '../../../handover/domain/entities/handover.dart';
+import '../../../handover/domain/usecases/handover_usecases.dart';
 import '../../../handover/presentation/pages/check_in_page.dart';
 import '../../../handover/presentation/pages/handover_summary_page.dart';
 import '../../../incident/domain/entities/claim_summary.dart';
@@ -1755,9 +1758,13 @@ class _BookingDetailPageState extends State<BookingDetailPage> {
   void _showIncidentReportDialog(BuildContext context, BookingEntity booking) {
     final descriptionController = TextEditingController();
     final formKey = GlobalKey<FormState>();
+    final handoverFuture = sl<GetHandoverByBookingUseCase>()(
+      GetHandoverByBookingParams(booking.id),
+    );
     var selectedCategory = IncidentCategory.mechanicalIssue;
     var selectedSeverity = IncidentSeverity.medium;
     var uploadedEvidenceUrls = <String>[];
+    var selectedHandoverPhotoIds = <String>{};
     var isUploading = false;
     var isSubmitting = false;
     final bookingBloc = context.read<BookingBloc>();
@@ -1817,11 +1824,13 @@ class _BookingDetailPageState extends State<BookingDetailPage> {
 
           Future<void> submit() async {
             if (!(formKey.currentState?.validate() ?? false)) return;
-            if (requiresEvidence && uploadedEvidenceUrls.isEmpty) {
+            if (requiresEvidence &&
+                uploadedEvidenceUrls.isEmpty &&
+                selectedHandoverPhotoIds.isEmpty) {
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(
                   content: Text(
-                    'Loại sự cố này cần ít nhất một ảnh bằng chứng.',
+                    'Loại sự cố này cần ảnh tải lên hoặc ảnh bàn giao.',
                   ),
                   backgroundColor: AppColors.error,
                 ),
@@ -1838,7 +1847,12 @@ class _BookingDetailPageState extends State<BookingDetailPage> {
                 category: selectedCategory,
                 severity: selectedSeverity,
                 description: descriptionController.text.trim(),
-                evidenceUrls: uploadedEvidenceUrls,
+                evidenceUrls: uploadedEvidenceUrls.isEmpty
+                    ? null
+                    : uploadedEvidenceUrls,
+                handoverPhotoIds: selectedHandoverPhotoIds.isEmpty
+                    ? null
+                    : selectedHandoverPhotoIds.toList(),
               ),
             );
 
@@ -1967,8 +1981,8 @@ class _BookingDetailPageState extends State<BookingDetailPage> {
                         children: [
                           Text(
                             requiresEvidence
-                                ? 'Loại sự cố này bắt buộc có ảnh bằng chứng.'
-                                : 'Bạn có thể thêm ảnh để Admin xử lý nhanh hơn.',
+                                ? 'Cần ảnh tải lên hoặc ảnh bàn giao đã lưu.'
+                                : 'Thêm ảnh mới hoặc dùng ảnh bàn giao đã lưu.',
                             style: GoogleFonts.poppins(
                               fontSize: 12,
                               color: AppColors.textSecondary,
@@ -2012,6 +2026,128 @@ class _BookingDetailPageState extends State<BookingDetailPage> {
                                     : pickAndUploadEvidence,
                               ),
                             ],
+                          ),
+                          const SizedBox(height: 14),
+                          Text(
+                            'Ảnh bàn giao đã lưu',
+                            style: GoogleFonts.poppins(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.textPrimary,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          FutureBuilder(
+                            future: handoverFuture,
+                            builder: (context, snapshot) {
+                              if (snapshot.connectionState !=
+                                  ConnectionState.done) {
+                                return const LinearProgressIndicator(
+                                  minHeight: 2,
+                                );
+                              }
+
+                              final handover = snapshot.data
+                                  ?.fold<HandoverSummary?>(
+                                    (_) => null,
+                                    (summary) => summary,
+                                  );
+                              final photos = <HandoverPhoto>[
+                                ...?handover?.checkOut?.photos,
+                                ...?handover?.checkIn?.photos,
+                              ];
+
+                              if (photos.isEmpty) {
+                                return Text(
+                                  'Chưa có ảnh bàn giao để chọn.',
+                                  style: GoogleFonts.poppins(
+                                    fontSize: 12,
+                                    color: AppColors.textSecondary,
+                                  ),
+                                );
+                              }
+
+                              return Column(
+                                children: photos.map((photo) {
+                                  final isSelected = selectedHandoverPhotoIds
+                                      .contains(photo.id);
+                                  final type =
+                                      photos.indexOf(photo) <
+                                          (handover?.checkOut?.photos.length ??
+                                              0)
+                                      ? 'Check-out'
+                                      : 'Check-in';
+                                  return CheckboxListTile(
+                                    value: isSelected,
+                                    contentPadding: EdgeInsets.zero,
+                                    dense: true,
+                                    controlAffinity:
+                                        ListTileControlAffinity.leading,
+                                    title: Row(
+                                      children: [
+                                        AppNetworkImage(
+                                          imageUrl: photo.photoUrl,
+                                          width: 44,
+                                          height: 44,
+                                          borderRadius: BorderRadius.circular(
+                                            6,
+                                          ),
+                                          cacheWidth: 88,
+                                          cacheHeight: 88,
+                                          semanticLabel:
+                                              'Ảnh bàn giao ${photo.photoType}',
+                                        ),
+                                        const SizedBox(width: 10),
+                                        Expanded(
+                                          child: Text(
+                                            '$type · ${photo.photoType}',
+                                            style: GoogleFonts.poppins(
+                                              fontSize: 12,
+                                              color: AppColors.textPrimary,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    onChanged: isSubmitting || isUploading
+                                        ? null
+                                        : (selected) {
+                                            if (selected == true &&
+                                                selectedHandoverPhotoIds
+                                                        .length >=
+                                                    10) {
+                                              ScaffoldMessenger.of(
+                                                context,
+                                              ).showSnackBar(
+                                                const SnackBar(
+                                                  content: Text(
+                                                    'Tối đa 10 ảnh bàn giao.',
+                                                  ),
+                                                  backgroundColor:
+                                                      AppColors.warning,
+                                                ),
+                                              );
+                                              return;
+                                            }
+                                            setDialogState(() {
+                                              selectedHandoverPhotoIds = {
+                                                ...selectedHandoverPhotoIds,
+                                              };
+                                              if (selected == true) {
+                                                selectedHandoverPhotoIds.add(
+                                                  photo.id,
+                                                );
+                                              } else {
+                                                selectedHandoverPhotoIds.remove(
+                                                  photo.id,
+                                                );
+                                              }
+                                            });
+                                          },
+                                  );
+                                }).toList(),
+                              );
+                            },
                           ),
                         ],
                       ),

@@ -423,6 +423,7 @@ void main() {
         severity: IncidentSeverity.critical,
         description: 'Vehicle does not match listing photos',
         evidenceUrls: const ['https://example.com/mismatch.jpg'],
+        handoverPhotoIds: const ['handover-photo-id'],
       );
 
       expect(result.isRight(), isTrue);
@@ -436,6 +437,7 @@ void main() {
       expect(remoteDataSource.lastEvidenceUrls, [
         'https://example.com/mismatch.jpg',
       ]);
+      expect(remoteDataSource.lastHandoverPhotoIds, ['handover-photo-id']);
     },
   );
 
@@ -911,6 +913,7 @@ class _FakeIncidentRemoteDataSource implements IncidentRemoteDataSource {
   String? lastSeverity;
   String? lastDescription;
   List<String>? lastEvidenceUrls;
+  List<String>? lastHandoverPhotoIds;
 
   @override
   Future<List<IncidentReportModel>> getBookingIncidents(String bookingId) {
@@ -963,6 +966,7 @@ class _FakeIncidentRemoteDataSource implements IncidentRemoteDataSource {
     lastSeverity = severity;
     lastDescription = description;
     lastEvidenceUrls = evidenceUrls;
+    lastHandoverPhotoIds = handoverPhotoIds;
     return Future.value(_emptyIncident(bookingId));
   }
 
