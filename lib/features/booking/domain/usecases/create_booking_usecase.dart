@@ -13,6 +13,7 @@ class CreateBookingParams extends Equatable {
   final String? notes;
   final String? protectionPlan;
   final bool prepaidCharging;
+  final bool roadsideSupport;
 
   const CreateBookingParams({
     required this.vehicleId,
@@ -21,6 +22,7 @@ class CreateBookingParams extends Equatable {
     this.notes,
     this.protectionPlan,
     this.prepaidCharging = false,
+    this.roadsideSupport = false,
   });
 
   @override
@@ -31,6 +33,7 @@ class CreateBookingParams extends Equatable {
     notes,
     protectionPlan,
     prepaidCharging,
+    roadsideSupport,
   ];
 }
 
@@ -52,6 +55,7 @@ class CreateBookingUseCase
       notes: params.notes,
       protectionPlan: params.protectionPlan,
       prepaidCharging: params.prepaidCharging,
+      roadsideSupport: params.roadsideSupport,
     );
   }
 }

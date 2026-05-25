@@ -437,6 +437,14 @@ class _BookingDetailPageState extends State<BookingDetailPage> {
               '${NumberFormat.currency(locale: 'vi_VN', symbol: 'đ').format(booking.prepaidChargingFee)} - bao gồm ${booking.prepaidChargingCreditPercent}% pin',
             ),
           ],
+          if (booking.roadsideSupport) ...[
+            const SizedBox(height: 12),
+            _buildInfoRow(
+              Icons.support_agent_outlined,
+              'Hỗ trợ cứu hộ',
+              '${NumberFormat.currency(locale: 'vi_VN', symbol: 'đ').format(booking.roadsideSupportFee)} - bao gồm ${NumberFormat.currency(locale: 'vi_VN', symbol: 'đ').format(booking.roadsideSupportCreditAmount)} phí cứu hộ',
+            ),
+          ],
           const SizedBox(height: 12),
           _buildInfoRow(
             Icons.account_balance_wallet,
@@ -463,6 +471,7 @@ class _BookingDetailPageState extends State<BookingDetailPage> {
                   booking.totalPrice +
                       booking.protectionFee +
                       booking.prepaidChargingFee +
+                      booking.roadsideSupportFee +
                       booking.deposit,
                 ),
                 style: GoogleFonts.poppins(
@@ -1406,6 +1415,7 @@ class _BookingDetailPageState extends State<BookingDetailPage> {
           booking.totalPrice +
               booking.protectionFee +
               booking.prepaidChargingFee +
+              booking.roadsideSupportFee +
               booking.deposit,
         );
 
@@ -1500,6 +1510,7 @@ class _BookingDetailPageState extends State<BookingDetailPage> {
           totalAmount: booking.totalPrice,
           protectionFee: booking.protectionFee,
           prepaidChargingFee: booking.prepaidChargingFee,
+          roadsideSupportFee: booking.roadsideSupportFee,
           deposit: booking.deposit,
         ),
       ),
@@ -2573,6 +2584,13 @@ class _CancellationRefundPreviewPanel extends StatelessWidget {
             _row(
               'Hoàn phí sạc trả trước',
               preview.refundablePrepaidChargingAmount,
+            ),
+          ],
+          if (preview.roadsideSupportAmount > 0) ...[
+            const SizedBox(height: 6),
+            _row(
+              'Hoàn phí hỗ trợ cứu hộ',
+              preview.refundableRoadsideSupportAmount,
             ),
           ],
           const SizedBox(height: 6),

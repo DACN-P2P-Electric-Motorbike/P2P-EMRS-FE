@@ -22,6 +22,7 @@ class PaymentPage extends StatelessWidget {
   final double totalAmount;
   final double protectionFee;
   final double prepaidChargingFee;
+  final double roadsideSupportFee;
   final double deposit;
 
   const PaymentPage({
@@ -30,6 +31,7 @@ class PaymentPage extends StatelessWidget {
     required this.totalAmount,
     this.protectionFee = 0,
     this.prepaidChargingFee = 0,
+    this.roadsideSupportFee = 0,
     required this.deposit,
   });
 
@@ -43,6 +45,7 @@ class PaymentPage extends StatelessWidget {
         totalAmount: totalAmount,
         protectionFee: protectionFee,
         prepaidChargingFee: prepaidChargingFee,
+        roadsideSupportFee: roadsideSupportFee,
         deposit: deposit,
       ),
     );
@@ -54,6 +57,7 @@ class _PaymentView extends StatefulWidget {
   final double totalAmount;
   final double protectionFee;
   final double prepaidChargingFee;
+  final double roadsideSupportFee;
   final double deposit;
 
   const _PaymentView({
@@ -61,6 +65,7 @@ class _PaymentView extends StatefulWidget {
     required this.totalAmount,
     required this.protectionFee,
     required this.prepaidChargingFee,
+    required this.roadsideSupportFee,
     required this.deposit,
   });
 
@@ -80,6 +85,7 @@ class _PaymentViewState extends State<_PaymentView>
       widget.totalAmount +
       widget.protectionFee +
       widget.prepaidChargingFee +
+      widget.roadsideSupportFee +
       widget.deposit;
 
   @override
@@ -660,6 +666,11 @@ class _PaymentViewState extends State<_PaymentView>
                   'Sạc trả trước',
                   _formatter.format(widget.prepaidChargingFee),
                 ),
+              if (widget.roadsideSupportFee > 0)
+                _summaryItem(
+                  'Hỗ trợ cứu hộ',
+                  _formatter.format(widget.roadsideSupportFee),
+                ),
               _summaryItem('Tiền cọc', _formatter.format(widget.deposit)),
             ],
           ),
@@ -828,6 +839,14 @@ class _PaymentViewState extends State<_PaymentView>
             _revenueRow(
               'Sạc trả trước',
               _formatter.format(widget.prepaidChargingFee),
+              AppColors.primary,
+            ),
+          ],
+          if (widget.roadsideSupportFee > 0) ...[
+            const SizedBox(height: 8),
+            _revenueRow(
+              'Hỗ trợ cứu hộ',
+              _formatter.format(widget.roadsideSupportFee),
               AppColors.primary,
             ),
           ],

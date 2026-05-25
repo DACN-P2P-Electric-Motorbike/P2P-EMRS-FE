@@ -15,6 +15,7 @@ abstract class BookingRepository {
     String? notes,
     String? protectionPlan,
     bool prepaidCharging = false,
+    bool roadsideSupport = false,
   });
 
   /// Create a temporary checkout lock for the selected booking window

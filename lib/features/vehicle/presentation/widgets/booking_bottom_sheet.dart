@@ -83,6 +83,7 @@ class _EnhancedBookingContentState extends State<_EnhancedBookingContent> {
   bool _isProcessing = false;
   String _selectedProtectionPlan = 'STANDARD';
   bool _prepaidCharging = false;
+  bool _roadsideSupport = false;
   String? _activeLockId;
   DateTime? _lockExpiresAt;
   Duration _remainingLockTime = Duration.zero;
@@ -93,6 +94,8 @@ class _EnhancedBookingContentState extends State<_EnhancedBookingContent> {
   static const _maxRentalDuration = Duration(days: 30);
   static const _prepaidChargingFee = 50000.0;
   static const _prepaidChargingCreditPercent = 10;
+  static const _roadsideSupportFee = 30000.0;
+  static const _roadsideSupportCreditAmount = 200000.0;
   static const _protectionPlans = [
     _ProtectionPlanOption(
       value: 'BASIC',
@@ -203,10 +206,14 @@ class _EnhancedBookingContentState extends State<_EnhancedBookingContent> {
   double get _selectedPrepaidChargingFee =>
       _prepaidCharging ? _prepaidChargingFee : 0;
 
+  double get _selectedRoadsideSupportFee =>
+      _roadsideSupport ? _roadsideSupportFee : 0;
+
   double get _checkoutTotal =>
       _totalPrice +
       _protectionFee +
       _selectedPrepaidChargingFee +
+      _selectedRoadsideSupportFee +
       (widget.vehicle.deposit ?? 0);
 
   AvailabilityRangeEvaluation? get _availabilityEvaluation {
@@ -404,6 +411,8 @@ class _EnhancedBookingContentState extends State<_EnhancedBookingContent> {
                           _buildPrepaidChargingAddon(),
                           const SizedBox(height: 24),
                         ],
+                        _buildRoadsideSupportAddon(),
+                        const SizedBox(height: 24),
                       ],
 
                       // Price breakdown
@@ -1234,6 +1243,45 @@ class _EnhancedBookingContentState extends State<_EnhancedBookingContent> {
     );
   }
 
+  Widget _buildRoadsideSupportAddon() {
+    return Container(
+      decoration: BoxDecoration(
+        color: _roadsideSupport
+            ? AppColors.primary.withValues(alpha: 0.08)
+            : Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: _roadsideSupport ? AppColors.primary : AppColors.border,
+          width: _roadsideSupport ? 2 : 1,
+        ),
+      ),
+      child: SwitchListTile(
+        value: _roadsideSupport,
+        onChanged: (value) => setState(() => _roadsideSupport = value),
+        activeThumbColor: AppColors.primary,
+        secondary: Icon(
+          Icons.support_agent_outlined,
+          color: _roadsideSupport ? AppColors.primary : AppColors.textMuted,
+        ),
+        title: Text(
+          'Hỗ trợ cứu hộ',
+          style: GoogleFonts.poppins(
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+            color: AppColors.textPrimary,
+          ),
+        ),
+        subtitle: Text(
+          '+${_formatPrice(_roadsideSupportFee)} - bao gồm ${_formatPrice(_roadsideSupportCreditAmount)} phí cứu hộ sau chuyến',
+          style: GoogleFonts.poppins(
+            fontSize: 12,
+            color: AppColors.textSecondary,
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildPriceBreakdown() {
     return Container(
       padding: const EdgeInsets.all(20),
@@ -1327,6 +1375,29 @@ class _EnhancedBookingContentState extends State<_EnhancedBookingContent> {
                 ),
                 Text(
                   _formatPrice(_selectedPrepaidChargingFee),
+                  style: GoogleFonts.poppins(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+              ],
+            ),
+          ],
+          if (_roadsideSupport) ...[
+            const SizedBox(height: 8),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Hỗ trợ cứu hộ',
+                  style: GoogleFonts.poppins(
+                    fontSize: 14,
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+                Text(
+                  _formatPrice(_selectedRoadsideSupportFee),
                   style: GoogleFonts.poppins(
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
@@ -1445,6 +1516,10 @@ class _EnhancedBookingContentState extends State<_EnhancedBookingContent> {
           if (_prepaidCharging)
             _buildNote(
               'Sạc trả trước bao gồm $_prepaidChargingCreditPercent% thiếu hụt pin; phần vượt mức vẫn được tính sau chuyến',
+            ),
+          if (_roadsideSupport)
+            _buildNote(
+              'Hỗ trợ cứu hộ bao gồm ${_formatPrice(_roadsideSupportCreditAmount)} phí cứu hộ; phần vượt mức vẫn được tính sau chuyến',
             ),
           if (widget.vehicle.deposit != null)
             _buildNote('Tiền cọc sẽ được hoàn lại sau khi trả xe'),
@@ -1629,6 +1704,7 @@ class _EnhancedBookingContentState extends State<_EnhancedBookingContent> {
             : _notesController.text.trim(),
         protectionPlan: _selectedProtectionPlan,
         prepaidCharging: _prepaidCharging,
+        roadsideSupport: _roadsideSupport,
       ),
     );
   }

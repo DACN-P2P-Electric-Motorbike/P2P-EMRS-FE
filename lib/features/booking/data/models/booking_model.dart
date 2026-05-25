@@ -19,6 +19,9 @@ class BookingModel {
   final bool prepaidCharging;
   final double prepaidChargingFee;
   final int prepaidChargingCreditPercent;
+  final bool roadsideSupport;
+  final double roadsideSupportFee;
+  final double roadsideSupportCreditAmount;
   final String? notes;
   final String? cancellationReason;
   final DateTime createdAt;
@@ -46,6 +49,9 @@ class BookingModel {
     this.prepaidCharging = false,
     this.prepaidChargingFee = 0,
     this.prepaidChargingCreditPercent = 0,
+    this.roadsideSupport = false,
+    this.roadsideSupportFee = 0,
+    this.roadsideSupportCreditAmount = 0,
     this.notes,
     this.cancellationReason,
     required this.createdAt,
@@ -88,6 +94,10 @@ class BookingModel {
       prepaidChargingFee: (json['prepaidChargingFee'] as num?)?.toDouble() ?? 0,
       prepaidChargingCreditPercent:
           (json['prepaidChargingCreditPercent'] as num?)?.toInt() ?? 0,
+      roadsideSupport: json['roadsideSupport'] as bool? ?? false,
+      roadsideSupportFee: (json['roadsideSupportFee'] as num?)?.toDouble() ?? 0,
+      roadsideSupportCreditAmount:
+          (json['roadsideSupportCreditAmount'] as num?)?.toDouble() ?? 0,
       notes: json['notes'] as String?,
       cancellationReason: json['cancellationReason'] as String?,
       createdAt: DateTime.parse(json['createdAt'] as String),
@@ -125,6 +135,9 @@ class BookingModel {
       'prepaidCharging': prepaidCharging,
       'prepaidChargingFee': prepaidChargingFee,
       'prepaidChargingCreditPercent': prepaidChargingCreditPercent,
+      'roadsideSupport': roadsideSupport,
+      'roadsideSupportFee': roadsideSupportFee,
+      'roadsideSupportCreditAmount': roadsideSupportCreditAmount,
       'notes': notes,
       'cancellationReason': cancellationReason,
       'createdAt': createdAt.toIso8601String(),
@@ -159,6 +172,9 @@ class BookingModel {
       prepaidCharging: prepaidCharging,
       prepaidChargingFee: prepaidChargingFee,
       prepaidChargingCreditPercent: prepaidChargingCreditPercent,
+      roadsideSupport: roadsideSupport,
+      roadsideSupportFee: roadsideSupportFee,
+      roadsideSupportCreditAmount: roadsideSupportCreditAmount,
       notes: notes,
       cancellationReason: cancellationReason,
       createdAt: createdAt,

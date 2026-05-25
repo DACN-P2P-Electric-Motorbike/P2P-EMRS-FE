@@ -107,6 +107,9 @@ void main() {
       'prepaidCharging': true,
       'prepaidChargingFee': 50000,
       'prepaidChargingCreditPercent': 10,
+      'roadsideSupport': true,
+      'roadsideSupportFee': 30000,
+      'roadsideSupportCreditAmount': 200000,
       'createdAt': '2026-05-09T03:00:00.000Z',
       'updatedAt': '2026-05-09T03:00:00.000Z',
       'vehicle': {'batteryLevel': 87},
@@ -124,6 +127,9 @@ void main() {
     expect(booking.prepaidCharging, isTrue);
     expect(booking.prepaidChargingFee, 50000);
     expect(booking.prepaidChargingCreditPercent, 10);
+    expect(booking.roadsideSupport, isTrue);
+    expect(booking.roadsideSupportFee, 30000);
+    expect(booking.roadsideSupportCreditAmount, 200000);
   });
 
   test('BecomeOwnerResponseDto tolerates non-string and minimal payloads', () {
@@ -216,18 +222,21 @@ void main() {
       'rentalAmount': 100000,
       'protectionAmount': 10000,
       'prepaidChargingAmount': 50000,
+      'roadsideSupportAmount': 30000,
       'depositAmount': 500000,
-      'paidAmount': 660000,
+      'paidAmount': 690000,
       'refundableRentalAmount': 50000,
       'refundableProtectionAmount': 5000,
       'refundablePrepaidChargingAmount': 25000,
+      'refundableRoadsideSupportAmount': 15000,
       'refundableDepositAmount': 500000,
-      'refundAmount': 580000,
+      'refundAmount': 595000,
       'forfeitedRentalAmount': 50000,
       'forfeitedProtectionAmount': 5000,
       'forfeitedPrepaidChargingAmount': 25000,
+      'forfeitedRoadsideSupportAmount': 15000,
       'forfeitedDepositAmount': 0,
-      'forfeitedAmount': 80000,
+      'forfeitedAmount': 95000,
       'isPaid': true,
       'paymentStatus': 'COMPLETED',
       'refundType': 'partial',
@@ -238,11 +247,14 @@ void main() {
     expect(preview.refundableProtectionAmount, 5000);
     expect(preview.prepaidChargingAmount, 50000);
     expect(preview.refundablePrepaidChargingAmount, 25000);
+    expect(preview.roadsideSupportAmount, 30000);
+    expect(preview.refundableRoadsideSupportAmount, 15000);
     expect(preview.refundableDepositAmount, 500000);
-    expect(preview.refundAmount, 580000);
+    expect(preview.refundAmount, 595000);
     expect(preview.forfeitedProtectionAmount, 5000);
     expect(preview.forfeitedPrepaidChargingAmount, 25000);
-    expect(preview.forfeitedAmount, 80000);
+    expect(preview.forfeitedRoadsideSupportAmount, 15000);
+    expect(preview.forfeitedAmount, 95000);
     expect(preview.trustPenalty, 5);
   });
 
