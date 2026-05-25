@@ -356,6 +356,18 @@ void main() {
           'overdueMinutes': 0,
           'escalationLevel': 0,
         },
+        'protectionSettlement': {
+          'status': 'CALCULATED',
+          'protectionPlan': 'PREMIUM',
+          'eligibleDamageAmount': 4000000,
+          'nonCoveredChargeAmount': 100000,
+          'deductibleAmount': 500000,
+          'deductibleAppliedAmount': 500000,
+          'coverageLimit': 3000000,
+          'platformCoverageAmount': 3000000,
+          'renterLiabilityAmount': 1000000,
+          'excessAboveCoverageAmount': 500000,
+        },
       },
       'totals': {
         'incidentCount': 1,
@@ -419,6 +431,15 @@ void main() {
     expect(summary.claimCase?.caseNumber, 'CLM-20260525-0001');
     expect(summary.claimCase?.sla?.status, 'AT_RISK');
     expect(summary.claimCase?.sla?.remainingMinutes, 75);
+    expect(summary.claimCase?.protectionSettlement?.protectionPlan, 'PREMIUM');
+    expect(
+      summary.claimCase?.protectionSettlement?.platformCoverageAmount,
+      3000000,
+    );
+    expect(
+      summary.claimCase?.protectionSettlement?.renterLiabilityAmount,
+      1000000,
+    );
     expect(summary.totals.releasableDepositAmount, 350000);
     expect(summary.blockers.single.code, 'DEPOSIT_DECISION_PENDING');
     expect(summary.nextActions.single.actor, 'ADMIN');

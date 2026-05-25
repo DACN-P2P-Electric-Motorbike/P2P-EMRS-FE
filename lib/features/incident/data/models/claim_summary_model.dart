@@ -213,6 +213,62 @@ class ClaimCaseSlaSnapshotModel {
   }
 }
 
+class ClaimProtectionSettlementModel {
+  final String status;
+  final String protectionPlan;
+  final double eligibleDamageAmount;
+  final double nonCoveredChargeAmount;
+  final double deductibleAmount;
+  final double deductibleAppliedAmount;
+  final double coverageLimit;
+  final double platformCoverageAmount;
+  final double renterLiabilityAmount;
+  final double excessAboveCoverageAmount;
+
+  const ClaimProtectionSettlementModel({
+    required this.status,
+    required this.protectionPlan,
+    required this.eligibleDamageAmount,
+    required this.nonCoveredChargeAmount,
+    required this.deductibleAmount,
+    required this.deductibleAppliedAmount,
+    required this.coverageLimit,
+    required this.platformCoverageAmount,
+    required this.renterLiabilityAmount,
+    required this.excessAboveCoverageAmount,
+  });
+
+  factory ClaimProtectionSettlementModel.fromJson(Map<String, dynamic> json) {
+    return ClaimProtectionSettlementModel(
+      status: json['status'] as String? ?? '',
+      protectionPlan: json['protectionPlan'] as String? ?? '',
+      eligibleDamageAmount: _asDouble(json['eligibleDamageAmount']),
+      nonCoveredChargeAmount: _asDouble(json['nonCoveredChargeAmount']),
+      deductibleAmount: _asDouble(json['deductibleAmount']),
+      deductibleAppliedAmount: _asDouble(json['deductibleAppliedAmount']),
+      coverageLimit: _asDouble(json['coverageLimit']),
+      platformCoverageAmount: _asDouble(json['platformCoverageAmount']),
+      renterLiabilityAmount: _asDouble(json['renterLiabilityAmount']),
+      excessAboveCoverageAmount: _asDouble(json['excessAboveCoverageAmount']),
+    );
+  }
+
+  ClaimProtectionSettlementEntity toEntity() {
+    return ClaimProtectionSettlementEntity(
+      status: status,
+      protectionPlan: protectionPlan,
+      eligibleDamageAmount: eligibleDamageAmount,
+      nonCoveredChargeAmount: nonCoveredChargeAmount,
+      deductibleAmount: deductibleAmount,
+      deductibleAppliedAmount: deductibleAppliedAmount,
+      coverageLimit: coverageLimit,
+      platformCoverageAmount: platformCoverageAmount,
+      renterLiabilityAmount: renterLiabilityAmount,
+      excessAboveCoverageAmount: excessAboveCoverageAmount,
+    );
+  }
+}
+
 class ClaimCaseSnapshotModel {
   final String id;
   final String caseNumber;
@@ -225,6 +281,7 @@ class ClaimCaseSnapshotModel {
   final DateTime? secondReviewedAt;
   final DateTime? resolvedAt;
   final ClaimCaseSlaSnapshotModel? sla;
+  final ClaimProtectionSettlementModel? protectionSettlement;
 
   const ClaimCaseSnapshotModel({
     required this.id,
@@ -238,10 +295,14 @@ class ClaimCaseSnapshotModel {
     this.secondReviewedAt,
     this.resolvedAt,
     this.sla,
+    this.protectionSettlement,
   });
 
   factory ClaimCaseSnapshotModel.fromJson(Map<String, dynamic> json) {
     final slaJson = _asNullableMap(json['sla']);
+    final protectionSettlementJson = _asNullableMap(
+      json['protectionSettlement'],
+    );
     return ClaimCaseSnapshotModel(
       id: json['id'] as String? ?? '',
       caseNumber: json['caseNumber'] as String? ?? '',
@@ -254,6 +315,9 @@ class ClaimCaseSnapshotModel {
       secondReviewedAt: _parseDate(json['secondReviewedAt']),
       resolvedAt: _parseDate(json['resolvedAt']),
       sla: slaJson == null ? null : ClaimCaseSlaSnapshotModel.fromJson(slaJson),
+      protectionSettlement: protectionSettlementJson == null
+          ? null
+          : ClaimProtectionSettlementModel.fromJson(protectionSettlementJson),
     );
   }
 
@@ -270,6 +334,7 @@ class ClaimCaseSnapshotModel {
       secondReviewedAt: secondReviewedAt,
       resolvedAt: resolvedAt,
       sla: sla?.toEntity(),
+      protectionSettlement: protectionSettlement?.toEntity(),
     );
   }
 }

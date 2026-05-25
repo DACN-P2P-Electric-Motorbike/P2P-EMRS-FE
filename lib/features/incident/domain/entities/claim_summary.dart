@@ -201,6 +201,49 @@ class ClaimCaseSlaSnapshotEntity extends Equatable {
   ];
 }
 
+class ClaimProtectionSettlementEntity extends Equatable {
+  final String status;
+  final String protectionPlan;
+  final double eligibleDamageAmount;
+  final double nonCoveredChargeAmount;
+  final double deductibleAmount;
+  final double deductibleAppliedAmount;
+  final double coverageLimit;
+  final double platformCoverageAmount;
+  final double renterLiabilityAmount;
+  final double excessAboveCoverageAmount;
+
+  const ClaimProtectionSettlementEntity({
+    required this.status,
+    required this.protectionPlan,
+    required this.eligibleDamageAmount,
+    required this.nonCoveredChargeAmount,
+    required this.deductibleAmount,
+    required this.deductibleAppliedAmount,
+    required this.coverageLimit,
+    required this.platformCoverageAmount,
+    required this.renterLiabilityAmount,
+    required this.excessAboveCoverageAmount,
+  });
+
+  bool get isAwaitingDamageCharge =>
+      status == 'AWAITING_APPROVED_DAMAGE_CHARGE';
+
+  @override
+  List<Object?> get props => [
+    status,
+    protectionPlan,
+    eligibleDamageAmount,
+    nonCoveredChargeAmount,
+    deductibleAmount,
+    deductibleAppliedAmount,
+    coverageLimit,
+    platformCoverageAmount,
+    renterLiabilityAmount,
+    excessAboveCoverageAmount,
+  ];
+}
+
 class ClaimCaseSnapshotEntity extends Equatable {
   final String id;
   final String caseNumber;
@@ -213,6 +256,7 @@ class ClaimCaseSnapshotEntity extends Equatable {
   final DateTime? secondReviewedAt;
   final DateTime? resolvedAt;
   final ClaimCaseSlaSnapshotEntity? sla;
+  final ClaimProtectionSettlementEntity? protectionSettlement;
 
   const ClaimCaseSnapshotEntity({
     required this.id,
@@ -226,6 +270,7 @@ class ClaimCaseSnapshotEntity extends Equatable {
     this.secondReviewedAt,
     this.resolvedAt,
     this.sla,
+    this.protectionSettlement,
   });
 
   bool get isFinalized =>
@@ -247,6 +292,7 @@ class ClaimCaseSnapshotEntity extends Equatable {
     secondReviewedAt,
     resolvedAt,
     sla,
+    protectionSettlement,
   ];
 }
 

@@ -223,6 +223,10 @@ class _ClaimStatusPageState extends State<ClaimStatusPage> {
         _buildInfoLine('Trạng thái', _claimCaseStatusText(claimCase.status)),
         if (claimCase.outcome != null)
           _buildInfoLine('Kết luận', _claimOutcomeText(claimCase.outcome!)),
+        if (claimCase.protectionSettlement != null) ...[
+          const Divider(height: 22),
+          _buildProtectionSettlement(claimCase.protectionSettlement!),
+        ],
         if (claimCase.summary?.trim().isNotEmpty ?? false)
           _buildInfoLine('Tóm tắt', claimCase.summary!.trim()),
         if (sla != null) ...[
@@ -257,6 +261,59 @@ class _ClaimStatusPageState extends State<ClaimStatusPage> {
             'Duyệt lần 2',
             '${_claimOutcomeText(claimCase.secondDecision!)} · ${_formatDateTime(claimCase.secondReviewedAt)}',
           ),
+      ],
+    );
+  }
+
+  Widget _buildProtectionSettlement(
+    ClaimProtectionSettlementEntity settlement,
+  ) {
+    final plan = _protectionPlanText(settlement.protectionPlan);
+    if (settlement.isAwaitingDamageCharge) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildInfoLine('Gói bảo vệ', plan),
+          _buildMutedText(
+            'Đang chờ phí hư hại được duyệt để tính khấu trừ và hạn mức.',
+          ),
+        ],
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildInfoLine('Gói bảo vệ', plan),
+        _buildInfoLine(
+          'Hư hại đủ điều kiện',
+          _formatMoney(settlement.eligibleDamageAmount),
+        ),
+        _buildInfoLine(
+          'Khấu trừ áp dụng',
+          _formatMoney(settlement.deductibleAppliedAmount),
+        ),
+        _buildInfoLine(
+          'Nền tảng hỗ trợ',
+          _formatMoney(settlement.platformCoverageAmount),
+        ),
+        _buildInfoLine(
+          'Renter chịu',
+          _formatMoney(settlement.renterLiabilityAmount),
+        ),
+        if (settlement.excessAboveCoverageAmount > 0)
+          _buildInfoLine(
+            'Vượt hạn mức',
+            _formatMoney(settlement.excessAboveCoverageAmount),
+          ),
+        if (settlement.nonCoveredChargeAmount > 0)
+          _buildInfoLine(
+            'Phí ngoài bảo vệ',
+            _formatMoney(settlement.nonCoveredChargeAmount),
+          ),
+        _buildMutedText(
+          'Phân bổ nội bộ; không xác nhận giao dịch cổng thanh toán.',
+        ),
       ],
     );
   }
@@ -645,6 +702,19 @@ class _ClaimStatusPageState extends State<ClaimStatusPage> {
         return 'Không cần xử lý';
       default:
         return outcome;
+    }
+  }
+
+  String _protectionPlanText(String plan) {
+    switch (plan) {
+      case 'BASIC':
+        return 'Basic';
+      case 'STANDARD':
+        return 'Standard';
+      case 'PREMIUM':
+        return 'Premium';
+      default:
+        return plan;
     }
   }
 
