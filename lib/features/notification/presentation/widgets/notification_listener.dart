@@ -4,6 +4,7 @@ import 'package:fe_capstone_project/core/services/notification_toast_service.dar
 import 'package:fe_capstone_project/core/services/socket_service.dart';
 import 'package:fe_capstone_project/core/router/app_router.dart';
 import 'package:fe_capstone_project/features/booking/presentation/pages/booking_detail_page.dart';
+import 'package:fe_capstone_project/features/incident/presentation/pages/claim_status_page.dart';
 import 'package:fe_capstone_project/features/notification/presentation/bloc/notification_bloc.dart';
 import 'package:fe_capstone_project/features/notification/presentation/bloc/notification_event.dart';
 import 'package:fe_capstone_project/injection_container.dart';
@@ -102,12 +103,14 @@ class _NotificationListenerWidgetState
         recipientRole?.toLowerCase() == 'owner' ||
         type == 'BOOKING_REQUEST' ||
         type == 'PAYOUT_UPDATED';
+    final isClaimUpdate = type == 'CLAIM_UPDATED';
 
     // Use root navigator key to navigate from notification
     rootNavigatorKey.currentState?.push(
       MaterialPageRoute(
-        builder: (_) =>
-            BookingDetailPage(bookingId: bookingId, isOwnerView: isOwnerView),
+        builder: (_) => isClaimUpdate
+            ? ClaimStatusPage(bookingId: bookingId, isOwnerView: isOwnerView)
+            : BookingDetailPage(bookingId: bookingId, isOwnerView: isOwnerView),
       ),
     );
   }

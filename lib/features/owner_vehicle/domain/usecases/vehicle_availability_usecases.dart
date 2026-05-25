@@ -55,6 +55,43 @@ class CreateVehicleAvailabilityParams extends Equatable {
   List<Object?> get props => [vehicleId, windowParams];
 }
 
+class UpdateVehicleAvailabilityUseCase
+    implements
+        UseCase<
+          VehicleAvailabilityWindowEntity,
+          UpdateVehicleAvailabilityParams
+        > {
+  final OwnerVehicleRepository repository;
+
+  UpdateVehicleAvailabilityUseCase(this.repository);
+
+  @override
+  Future<Either<Failure, VehicleAvailabilityWindowEntity>> call(
+    UpdateVehicleAvailabilityParams params,
+  ) {
+    return repository.updateAvailabilityWindow(
+      params.vehicleId,
+      params.windowId,
+      params.windowParams,
+    );
+  }
+}
+
+class UpdateVehicleAvailabilityParams extends Equatable {
+  final String vehicleId;
+  final String windowId;
+  final CreateAvailabilityWindowParams windowParams;
+
+  const UpdateVehicleAvailabilityParams({
+    required this.vehicleId,
+    required this.windowId,
+    required this.windowParams,
+  });
+
+  @override
+  List<Object?> get props => [vehicleId, windowId, windowParams];
+}
+
 class DeleteVehicleAvailabilityUseCase
     implements UseCase<void, DeleteVehicleAvailabilityParams> {
   final OwnerVehicleRepository repository;

@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/utils/availability_time_zone.dart';
 import '../../../../core/widgets/app_network_image.dart';
 import '../../../../core/utils/open_external_map.dart';
 import '../../../../injection_container.dart';
@@ -651,6 +652,23 @@ class _VehicleDetailContentState extends State<_VehicleDetailContent> {
     final color = window.isAvailableWindow
         ? AppColors.success
         : AppColors.warning;
+    final weeklyStart = AvailabilityTimeZone.toWallTime(
+      window.startTime,
+      timezoneName: window.timezoneName,
+      fallbackOffsetMinutes: window.timezoneOffsetMinutes,
+    );
+    final weeklyEnd = AvailabilityTimeZone.toWallTime(
+      window.endTime,
+      timezoneName: window.timezoneName,
+      fallbackOffsetMinutes: window.timezoneOffsetMinutes,
+    );
+    final weeklyEndsAt = window.recurrenceEndsAt == null
+        ? null
+        : AvailabilityTimeZone.toWallTime(
+            window.recurrenceEndsAt!,
+            timezoneName: window.timezoneName,
+            fallbackOffsetMinutes: window.timezoneOffsetMinutes,
+          );
 
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
@@ -681,12 +699,26 @@ class _VehicleDetailContentState extends State<_VehicleDetailContent> {
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  '${_formatDateTime(window.startTime)} - ${_formatDateTime(window.endTime)}',
+                  window.isWeekly
+                      ? '${_formatWeekdays(window.recurringWeekdays)} · ${_formatTime(weeklyStart)} - ${_formatTime(weeklyEnd)}'
+                      : '${_formatDateTime(window.startTime)} - ${_formatDateTime(window.endTime)}',
                   style: GoogleFonts.poppins(
                     fontSize: 12,
                     color: AppColors.textSecondary,
                   ),
                 ),
+                if (window.isWeekly) ...[
+                  const SizedBox(height: 2),
+                  Text(
+                    window.recurrenceEndsAt == null
+                        ? 'Lặp lại hàng tuần · ${_availabilityTimezoneLabel(window)}'
+                        : 'Lặp lại đến ${_formatWallDate(weeklyEndsAt!)} · ${_availabilityTimezoneLabel(window)}',
+                    style: GoogleFonts.poppins(
+                      fontSize: 12,
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+                ],
                 if (window.note != null && window.note!.isNotEmpty) ...[
                   const SizedBox(height: 2),
                   Text(
@@ -699,6 +731,16 @@ class _VehicleDetailContentState extends State<_VehicleDetailContent> {
                 ],
               ],
             ),
+          ),
+          IconButton(
+            onPressed: () => _showAvailabilityWindowSheet(
+              context,
+              vehicle,
+              existingWindow: window,
+            ),
+            icon: const Icon(Icons.edit_outlined),
+            color: AppColors.primary,
+            tooltip: 'Sửa lịch',
           ),
           IconButton(
             onPressed: () {
@@ -1222,12 +1264,21 @@ class _VehicleDetailContentState extends State<_VehicleDetailContent> {
 
   void _showAvailabilityWindowSheet(
     BuildContext context,
-    VehicleEntity vehicle,
-  ) {
-    final noteController = TextEditingController();
-    var type = AvailabilityWindowType.available;
-    var startTime = DateTime.now().add(const Duration(hours: 2));
-    var endTime = startTime.add(const Duration(hours: 8));
+    VehicleEntity vehicle, {
+    VehicleAvailabilityWindowEntity? existingWindow,
+  }) {
+    final noteController = TextEditingController(text: existingWindow?.note);
+    var type = existingWindow?.type ?? AvailabilityWindowType.available;
+    var recurrence =
+        existingWindow?.recurrence ?? AvailabilityWindowRecurrence.once;
+    var startTime =
+        existingWindow?.startTime ??
+        DateTime.now().add(const Duration(hours: 2));
+    var endTime =
+        existingWindow?.endTime ?? startTime.add(const Duration(hours: 8));
+    final recurringWeekdays =
+        existingWindow?.recurringWeekdays.toSet() ?? <int>{startTime.weekday};
+    DateTime? recurrenceEndsAt = existingWindow?.recurrenceEndsAt;
 
     showModalBottomSheet(
       context: context,
@@ -1273,6 +1324,27 @@ class _VehicleDetailContentState extends State<_VehicleDetailContent> {
             });
           }
 
+          Future<void> pickRecurrenceEndDate() async {
+            final date = await showDatePicker(
+              context: sheetContext,
+              initialDate:
+                  recurrenceEndsAt ?? startTime.add(const Duration(days: 90)),
+              firstDate: startTime,
+              lastDate: startTime.add(const Duration(days: 730)),
+            );
+            if (date == null) return;
+            setSheetState(() {
+              recurrenceEndsAt = DateTime(
+                date.year,
+                date.month,
+                date.day,
+                23,
+                59,
+                59,
+              );
+            });
+          }
+
           void submit() {
             if (!endTime.isAfter(startTime)) {
               ScaffoldMessenger.of(sheetContext).showSnackBar(
@@ -1285,22 +1357,60 @@ class _VehicleDetailContentState extends State<_VehicleDetailContent> {
               );
               return;
             }
-
-            context.read<OwnerVehicleBloc>().add(
-              CreateVehicleAvailability(
-                vehicleId: vehicle.id,
-                params: CreateAvailabilityWindowParams(
-                  type: type,
-                  startTime: startTime,
-                  endTime: endTime,
-                  note: noteController.text,
+            if (recurrence == AvailabilityWindowRecurrence.weekly &&
+                (recurringWeekdays.isEmpty ||
+                    endTime.difference(startTime) > const Duration(days: 1))) {
+              ScaffoldMessenger.of(sheetContext).showSnackBar(
+                const SnackBar(
+                  content: Text(
+                    'Lịch hàng tuần cần ít nhất một ngày và khung giờ tối đa 24 giờ',
+                  ),
+                  backgroundColor: AppColors.error,
                 ),
-              ),
+              );
+              return;
+            }
+
+            final params = CreateAvailabilityWindowParams(
+              type: type,
+              recurrence: recurrence,
+              recurringWeekdays: recurringWeekdays.toList()..sort(),
+              timezoneOffsetMinutes:
+                  existingWindow?.timezoneOffsetMinutes ??
+                  AvailabilityTimeZone.vietnamOffsetMinutes,
+              timezoneName: recurrence == AvailabilityWindowRecurrence.weekly
+                  ? existingWindow?.timezoneName ??
+                        (existingWindow == null ||
+                                existingWindow.timezoneOffsetMinutes ==
+                                    AvailabilityTimeZone.vietnamOffsetMinutes
+                            ? AvailabilityTimeZone.vietnamName
+                            : null)
+                  : null,
+              recurrenceEndsAt: recurrenceEndsAt,
+              startTime: startTime,
+              endTime: endTime,
+              note: noteController.text,
             );
+            if (existingWindow == null) {
+              context.read<OwnerVehicleBloc>().add(
+                CreateVehicleAvailability(
+                  vehicleId: vehicle.id,
+                  params: params,
+                ),
+              );
+            } else {
+              context.read<OwnerVehicleBloc>().add(
+                UpdateVehicleAvailability(
+                  vehicleId: vehicle.id,
+                  windowId: existingWindow.id,
+                  params: params,
+                ),
+              );
+            }
             Navigator.of(sheetContext).pop();
           }
 
-          return Padding(
+          return SingleChildScrollView(
             padding: EdgeInsets.only(
               bottom: MediaQuery.of(sheetContext).viewInsets.bottom + 20,
               left: 20,
@@ -1323,7 +1433,9 @@ class _VehicleDetailContentState extends State<_VehicleDetailContent> {
                 ),
                 const SizedBox(height: 20),
                 Text(
-                  'Thêm lịch cho thuê',
+                  existingWindow == null
+                      ? 'Thêm lịch cho thuê'
+                      : 'Sửa lịch cho thuê',
                   style: GoogleFonts.poppins(
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
@@ -1354,14 +1466,102 @@ class _VehicleDetailContentState extends State<_VehicleDetailContent> {
                   },
                 ),
                 const SizedBox(height: 16),
+                SegmentedButton<AvailabilityWindowRecurrence>(
+                  segments: AvailabilityWindowRecurrence.values
+                      .map(
+                        (value) => ButtonSegment(
+                          value: value,
+                          label: Text(value.displayName),
+                          icon: Icon(
+                            value == AvailabilityWindowRecurrence.once
+                                ? Icons.event_outlined
+                                : Icons.repeat,
+                          ),
+                        ),
+                      )
+                      .toList(),
+                  selected: {recurrence},
+                  onSelectionChanged: (selected) {
+                    setSheetState(() => recurrence = selected.first);
+                  },
+                ),
+                if (recurrence == AvailabilityWindowRecurrence.weekly) ...[
+                  const SizedBox(height: 16),
+                  Text(
+                    'Ngày lặp lại',
+                    style: GoogleFonts.poppins(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: List.generate(7, (index) {
+                      final weekday = index + 1;
+                      return FilterChip(
+                        label: Text(_weekdayLabel(weekday)),
+                        selected: recurringWeekdays.contains(weekday),
+                        onSelected: (selected) {
+                          setSheetState(() {
+                            if (selected) {
+                              recurringWeekdays.add(weekday);
+                            } else {
+                              recurringWeekdays.remove(weekday);
+                            }
+                          });
+                        },
+                      );
+                    }),
+                  ),
+                  const SizedBox(height: 12),
+                  SwitchListTile.adaptive(
+                    contentPadding: EdgeInsets.zero,
+                    title: const Text('Đặt ngày kết thúc'),
+                    value: recurrenceEndsAt != null,
+                    onChanged: (enabled) async {
+                      if (enabled) {
+                        await pickRecurrenceEndDate();
+                      } else {
+                        setSheetState(() => recurrenceEndsAt = null);
+                      }
+                    },
+                  ),
+                  if (recurrenceEndsAt != null)
+                    _buildDateTimeTile(
+                      label: 'Lặp lại đến',
+                      value: _formatDate(recurrenceEndsAt!),
+                      onTap: pickRecurrenceEndDate,
+                    ),
+                  const SizedBox(height: 8),
+                  Text(
+                    existingWindow?.timezoneName != null
+                        ? 'Múi giờ: ${existingWindow!.timezoneName}'
+                        : existingWindow != null &&
+                              existingWindow.timezoneOffsetMinutes !=
+                                  AvailabilityTimeZone.vietnamOffsetMinutes
+                        ? 'Múi giờ: UTC${_offsetLabel(existingWindow.timezoneOffsetMinutes)}'
+                        : 'Múi giờ: Việt Nam (GMT+7)',
+                    style: GoogleFonts.poppins(
+                      fontSize: 12,
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                ],
                 _buildDateTimeTile(
-                  label: 'Bắt đầu',
+                  label: recurrence == AvailabilityWindowRecurrence.weekly
+                      ? 'Giờ bắt đầu (mốc đầu tiên)'
+                      : 'Bắt đầu',
                   value: _formatDateTime(startTime),
                   onTap: () => pickDateTime(true),
                 ),
                 const SizedBox(height: 12),
                 _buildDateTimeTile(
-                  label: 'Kết thúc',
+                  label: recurrence == AvailabilityWindowRecurrence.weekly
+                      ? 'Giờ kết thúc (mốc đầu tiên)'
+                      : 'Kết thúc',
                   value: _formatDateTime(endTime),
                   onTap: () => pickDateTime(false),
                 ),
@@ -2321,6 +2521,42 @@ class _VehicleDetailContentState extends State<_VehicleDetailContent> {
   String _formatDateTime(DateTime value) {
     final twoDigits = (int number) => number.toString().padLeft(2, '0');
     return '${twoDigits(value.day)}/${twoDigits(value.month)}/${value.year} ${twoDigits(value.hour)}:${twoDigits(value.minute)}';
+  }
+
+  String _formatTime(DateTime value) {
+    final twoDigits = (int number) => number.toString().padLeft(2, '0');
+    return '${twoDigits(value.hour)}:${twoDigits(value.minute)}';
+  }
+
+  String _formatWallDate(DateTime value) {
+    final twoDigits = (int number) => number.toString().padLeft(2, '0');
+    return '${twoDigits(value.day)}/${twoDigits(value.month)}/${value.year}';
+  }
+
+  String _availabilityTimezoneLabel(VehicleAvailabilityWindowEntity window) {
+    if (window.timezoneName == AvailabilityTimeZone.vietnamName) {
+      return 'GMT+7';
+    }
+    return window.timezoneName ??
+        'UTC${_offsetLabel(window.timezoneOffsetMinutes)}';
+  }
+
+  String _offsetLabel(int? minutes) {
+    final offset = minutes ?? 0;
+    final sign = offset >= 0 ? '+' : '-';
+    final absolute = offset.abs();
+    final hours = (absolute ~/ 60).toString().padLeft(2, '0');
+    final remaining = (absolute % 60).toString().padLeft(2, '0');
+    return '$sign$hours:$remaining';
+  }
+
+  String _weekdayLabel(int weekday) {
+    return weekday == 7 ? 'CN' : 'T${weekday + 1}';
+  }
+
+  String _formatWeekdays(List<int> weekdays) {
+    if (weekdays.length == 7) return 'Mỗi ngày';
+    return weekdays.map(_weekdayLabel).join(', ');
   }
 
   String _formatDate(DateTime value) {

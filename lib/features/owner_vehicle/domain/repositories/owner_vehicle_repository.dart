@@ -38,6 +38,14 @@ abstract class OwnerVehicleRepository {
     CreateAvailabilityWindowParams params,
   );
 
+  /// Update an owner-managed availability window
+  Future<Either<Failure, VehicleAvailabilityWindowEntity>>
+  updateAvailabilityWindow(
+    String vehicleId,
+    String windowId,
+    CreateAvailabilityWindowParams params,
+  );
+
   /// Delete an owner-managed availability window
   Future<Either<Failure, void>> deleteAvailabilityWindow(
     String vehicleId,

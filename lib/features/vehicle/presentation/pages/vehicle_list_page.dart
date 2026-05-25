@@ -37,8 +37,11 @@ class _VehicleListViewState extends State<_VehicleListView> {
   VehicleType? _selectedType;
   double? _maxPrice;
   int? _minBatteryLevel;
+  VehicleCondition? _selectedCondition;
+  BatteryType? _selectedBatteryType;
+  int? _minBatteryHealth;
   List<VehicleFeature> _selectedFeatures = [];
-  String _sortBy = 'default'; // default, price_low, price_high, rating
+  String _sortBy = 'default';
   DateTime? _desiredStartTime;
   DateTime? _desiredEndTime;
   bool _instantBookOnly = false;
@@ -61,6 +64,9 @@ class _VehicleListViewState extends State<_VehicleListView> {
       brand: _selectedBrand,
       type: _selectedType,
       minBatteryLevel: _minBatteryLevel,
+      condition: _selectedCondition,
+      batteryType: _selectedBatteryType,
+      minBatteryHealth: _minBatteryHealth,
       features: _selectedFeatures.isEmpty ? null : _selectedFeatures,
       instantBookOnly: _instantBookOnly,
       sortBy: _sortBy,
@@ -74,6 +80,9 @@ class _VehicleListViewState extends State<_VehicleListView> {
       _selectedType = null;
       _maxPrice = null;
       _minBatteryLevel = null;
+      _selectedCondition = null;
+      _selectedBatteryType = null;
+      _minBatteryHealth = null;
       _selectedFeatures = [];
       _sortBy = 'default';
       _desiredStartTime = null;
@@ -90,6 +99,9 @@ class _VehicleListViewState extends State<_VehicleListView> {
       startTime: _desiredStartTime,
       endTime: _desiredEndTime,
       instantBookOnly: _instantBookOnly,
+      condition: _selectedCondition,
+      batteryType: _selectedBatteryType,
+      minBatteryHealth: _minBatteryHealth,
     );
   }
 
@@ -98,6 +110,9 @@ class _VehicleListViewState extends State<_VehicleListView> {
         _selectedType != null ||
         _maxPrice != null ||
         _minBatteryLevel != null ||
+        _selectedCondition != null ||
+        _selectedBatteryType != null ||
+        _minBatteryHealth != null ||
         _selectedFeatures.isNotEmpty ||
         _sortBy != 'default' ||
         _searchController.text.trim().isNotEmpty ||
@@ -179,6 +194,9 @@ class _VehicleListViewState extends State<_VehicleListView> {
                                   selectedType: _selectedType,
                                   maxPrice: _maxPrice,
                                   minBatteryLevel: _minBatteryLevel,
+                                  selectedCondition: _selectedCondition,
+                                  selectedBatteryType: _selectedBatteryType,
+                                  minBatteryHealth: _minBatteryHealth,
                                   selectedFeatures: _selectedFeatures,
                                   sortBy: _sortBy,
                                   selectedStartTime: _desiredStartTime,
@@ -193,18 +211,32 @@ class _VehicleListViewState extends State<_VehicleListView> {
                             final newEndTime = result['endTime'] as DateTime?;
                             final newInstantBookOnly =
                                 result['instantBookOnly'] as bool? ?? false;
+                            final newCondition =
+                                result['condition'] as VehicleCondition?;
+                            final newBatteryType =
+                                result['batteryType'] as BatteryType?;
+                            final newMinBatteryHealth =
+                                result['minBatteryHealth'] as int?;
                             final timeChanged =
                                 newStartTime != _desiredStartTime ||
                                 newEndTime != _desiredEndTime;
+                            final evMetadataChanged =
+                                newCondition != _selectedCondition ||
+                                newBatteryType != _selectedBatteryType ||
+                                newMinBatteryHealth != _minBatteryHealth;
                             final serverFilterChanged =
                                 timeChanged ||
-                                newInstantBookOnly != _instantBookOnly;
+                                newInstantBookOnly != _instantBookOnly ||
+                                evMetadataChanged;
 
                             setState(() {
                               _selectedBrand = result['brand'];
                               _selectedType = result['type'];
                               _maxPrice = result['maxPrice'];
                               _minBatteryLevel = result['minBatteryLevel'];
+                              _selectedCondition = newCondition;
+                              _selectedBatteryType = newBatteryType;
+                              _minBatteryHealth = newMinBatteryHealth;
                               _selectedFeatures = result['features'] ?? [];
                               _sortBy = result['sortBy'] ?? 'default';
                               _desiredStartTime = newStartTime;
@@ -336,6 +368,27 @@ class _VehicleListViewState extends State<_VehicleListView> {
                       _buildFilterChip('Pin tối thiểu: $_minBatteryLevel%', () {
                         setState(() => _minBatteryLevel = null);
                         _applyFilters();
+                      }),
+                    if (_selectedCondition != null)
+                      _buildFilterChip(
+                        'Tình trạng: ${_selectedCondition!.displayName}',
+                        () {
+                          setState(() => _selectedCondition = null);
+                          _loadVehiclesFromServer();
+                        },
+                      ),
+                    if (_selectedBatteryType != null)
+                      _buildFilterChip(
+                        'Loại pin: ${_selectedBatteryType!.displayName}',
+                        () {
+                          setState(() => _selectedBatteryType = null);
+                          _loadVehiclesFromServer();
+                        },
+                      ),
+                    if (_minBatteryHealth != null)
+                      _buildFilterChip('Sức khỏe pin: $_minBatteryHealth%', () {
+                        setState(() => _minBatteryHealth = null);
+                        _loadVehiclesFromServer();
                       }),
                     if (_selectedFeatures.isNotEmpty)
                       ..._selectedFeatures.map(
@@ -599,6 +652,8 @@ class _VehicleListViewState extends State<_VehicleListView> {
         return 'Đánh giá';
       case 'distance':
         return 'Khoảng cách';
+      case 'battery_health':
+        return 'Pin khỏe';
       default:
         return 'Đề xuất';
     }

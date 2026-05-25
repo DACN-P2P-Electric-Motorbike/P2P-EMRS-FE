@@ -9,23 +9,33 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/widgets/app_network_image.dart';
 import '../../../../injection_container.dart';
+import '../../../booking/domain/entities/booking_policy.dart';
 import '../../../booking/domain/repositories/booking_repository.dart';
 import '../../../booking/presentation/bloc/booking_bloc.dart';
 import '../../../booking/presentation/bloc/booking_event.dart';
 import '../../../booking/presentation/bloc/booking_state.dart';
+import '../../domain/entities/availability_summary.dart';
 import '../../domain/entities/vehicle_entity.dart';
 
 /// Enhanced Booking Bottom Sheet with full BLoC integration
 class BookingBottomSheet extends StatelessWidget {
   final VehicleEntity vehicle;
+  final VehicleAvailabilitySummary? availabilitySummary;
 
-  const BookingBottomSheet({super.key, required this.vehicle});
+  const BookingBottomSheet({
+    super.key,
+    required this.vehicle,
+    this.availabilitySummary,
+  });
 
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
       create: (_) => sl<BookingBloc>(),
-      child: _EnhancedBookingContent(vehicle: vehicle),
+      child: _EnhancedBookingContent(
+        vehicle: vehicle,
+        availabilitySummary: availabilitySummary,
+      ),
     );
   }
 }
@@ -52,8 +62,12 @@ class _ProtectionPlanOption {
 
 class _EnhancedBookingContent extends StatefulWidget {
   final VehicleEntity vehicle;
+  final VehicleAvailabilitySummary? availabilitySummary;
 
-  const _EnhancedBookingContent({required this.vehicle});
+  const _EnhancedBookingContent({
+    required this.vehicle,
+    required this.availabilitySummary,
+  });
 
   @override
   State<_EnhancedBookingContent> createState() =>
@@ -69,6 +83,9 @@ class _EnhancedBookingContentState extends State<_EnhancedBookingContent> {
   final _notesController = TextEditingController();
   bool _isProcessing = false;
   String _selectedProtectionPlan = 'STANDARD';
+  bool _prepaidCharging = false;
+  bool _roadsideSupport = false;
+  BookingPolicy _bookingPolicy = BookingPolicy.fallback;
   String? _activeLockId;
   DateTime? _lockExpiresAt;
   Duration _remainingLockTime = Duration.zero;
@@ -77,7 +94,7 @@ class _EnhancedBookingContentState extends State<_EnhancedBookingContent> {
   late final BookingRepository _bookingRepository;
   static const _minRentalDuration = Duration(minutes: 30);
   static const _maxRentalDuration = Duration(days: 30);
-  static const _protectionPlans = [
+  static const _fallbackProtectionPlans = [
     _ProtectionPlanOption(
       value: 'BASIC',
       label: 'Cơ bản',
@@ -117,6 +134,7 @@ class _EnhancedBookingContentState extends State<_EnhancedBookingContent> {
     super.initState();
     _bookingBloc = context.read<BookingBloc>();
     _bookingRepository = sl<BookingRepository>();
+    unawaited(_loadBookingPolicy());
   }
 
   @override
@@ -128,6 +146,69 @@ class _EnhancedBookingContentState extends State<_EnhancedBookingContent> {
     }
     _notesController.dispose();
     super.dispose();
+  }
+
+  Future<void> _loadBookingPolicy() async {
+    final result = await _bookingRepository.getBookingPolicy();
+    if (!mounted) return;
+
+    result.fold((_) {}, (policy) {
+      final options = _protectionOptionsForPolicy(policy);
+      final selectedPlanStillAvailable = options.any(
+        (plan) => plan.value == _selectedProtectionPlan,
+      );
+      final policyDefaultPlan = options
+          .firstWhere(
+            (plan) => plan.value == policy.defaultProtectionPlan,
+            orElse: () => options.first,
+          )
+          .value;
+      final canUsePrepaidCharging = _canUsePrepaidChargingForPolicy(policy);
+
+      setState(() {
+        _bookingPolicy = policy;
+        if (!selectedPlanStillAvailable) {
+          _selectedProtectionPlan = policyDefaultPlan;
+        }
+        if (!canUsePrepaidCharging) {
+          _prepaidCharging = false;
+        }
+      });
+    });
+  }
+
+  List<_ProtectionPlanOption> _protectionOptionsForPolicy(
+    BookingPolicy policy,
+  ) {
+    final options = policy.protectionPlans
+        .map(_protectionOptionFromPolicy)
+        .toList(growable: false);
+    return options.isEmpty ? _fallbackProtectionPlans : options;
+  }
+
+  _ProtectionPlanOption _protectionOptionFromPolicy(
+    ProtectionPlanPolicy policy,
+  ) {
+    final value = policy.protectionPlan.toUpperCase();
+    final fallback = _fallbackProtectionPlans.firstWhere(
+      (plan) => plan.value == value,
+      orElse: () => _fallbackProtectionPlans[1],
+    );
+
+    return _ProtectionPlanOption(
+      value: value,
+      label: fallback.value == value ? fallback.label : value,
+      description: fallback.description,
+      feeRate: policy.feeRate,
+      deductible: policy.deductible,
+      coverageLimit: policy.coverageLimit,
+      icon: fallback.icon,
+    );
+  }
+
+  bool _canUsePrepaidChargingForPolicy(BookingPolicy policy) {
+    return !policy.prepaidCharging.requiresBatteryReturnMinimum ||
+        widget.vehicle.batteryReturnMin != null;
   }
 
   // Calculate total hours
@@ -175,17 +256,61 @@ class _EnhancedBookingContentState extends State<_EnhancedBookingContent> {
   }
 
   _ProtectionPlanOption get _selectedProtection {
-    return _protectionPlans.firstWhere(
+    final plans = _protectionPlans;
+    return plans.firstWhere(
       (plan) => plan.value == _selectedProtectionPlan,
-      orElse: () => _protectionPlans[1],
+      orElse: () => plans.firstWhere(
+        (plan) => plan.value == _bookingPolicy.defaultProtectionPlan,
+        orElse: () => plans.first,
+      ),
     );
   }
+
+  List<_ProtectionPlanOption> get _protectionPlans =>
+      _protectionOptionsForPolicy(_bookingPolicy);
 
   double get _protectionFee =>
       (_totalPrice * _selectedProtection.feeRate).round().toDouble();
 
+  double get _prepaidChargingFee => _bookingPolicy.prepaidCharging.fee;
+
+  int get _prepaidChargingCreditPercent =>
+      _bookingPolicy.prepaidCharging.creditPercent;
+
+  double get _selectedPrepaidChargingFee =>
+      _prepaidCharging ? _prepaidChargingFee : 0;
+
+  double get _roadsideSupportFee => _bookingPolicy.roadsideSupport.fee;
+
+  double get _roadsideSupportCreditAmount =>
+      _bookingPolicy.roadsideSupport.creditAmount;
+
+  double get _selectedRoadsideSupportFee =>
+      _roadsideSupport ? _roadsideSupportFee : 0;
+
+  bool get _canUsePrepaidCharging =>
+      _canUsePrepaidChargingForPolicy(_bookingPolicy);
+
   double get _checkoutTotal =>
-      _totalPrice + _protectionFee + (widget.vehicle.deposit ?? 0);
+      _totalPrice +
+      _protectionFee +
+      _selectedPrepaidChargingFee +
+      _selectedRoadsideSupportFee +
+      (widget.vehicle.deposit ?? 0);
+
+  AvailabilityRangeEvaluation? get _availabilityEvaluation {
+    final summary = widget.availabilitySummary;
+    final start = _startDateTime;
+    final end = _endDateTime;
+    if (summary == null ||
+        summary.rules.isEmpty ||
+        start == null ||
+        end == null ||
+        !end.isAfter(start)) {
+      return null;
+    }
+    return summary.evaluateRange(start, end);
+  }
 
   // Get start DateTime
   DateTime? get _startDateTime {
@@ -351,6 +476,11 @@ class _EnhancedBookingContentState extends State<_EnhancedBookingContent> {
 
                       const SizedBox(height: 24),
 
+                      if (_availabilityEvaluation != null) ...[
+                        _buildAvailabilityPreview(_availabilityEvaluation!),
+                        const SizedBox(height: 24),
+                      ],
+
                       // Notes (optional)
                       _buildNotesField(),
 
@@ -358,6 +488,12 @@ class _EnhancedBookingContentState extends State<_EnhancedBookingContent> {
 
                       if (_totalPrice > 0) ...[
                         _buildProtectionPlanSelector(),
+                        const SizedBox(height: 24),
+                        if (_canUsePrepaidCharging) ...[
+                          _buildPrepaidChargingAddon(),
+                          const SizedBox(height: 24),
+                        ],
+                        _buildRoadsideSupportAddon(),
                         const SizedBox(height: 24),
                       ],
 
@@ -936,6 +1072,54 @@ class _EnhancedBookingContentState extends State<_EnhancedBookingContent> {
     );
   }
 
+  Widget _buildAvailabilityPreview(AvailabilityRangeEvaluation evaluation) {
+    final canBook = evaluation.canBook;
+    final color = canBook ? AppColors.success : AppColors.error;
+    final icon = canBook
+        ? Icons.event_available_outlined
+        : Icons.event_busy_outlined;
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: color.withValues(alpha: 0.35)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, color: color, size: 22),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Lịch khả dụng',
+                  style: GoogleFonts.poppins(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: color,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  evaluation.message,
+                  style: GoogleFonts.poppins(
+                    fontSize: 12,
+                    color: AppColors.textSecondary,
+                    height: 1.45,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildNotesField() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1102,6 +1286,84 @@ class _EnhancedBookingContentState extends State<_EnhancedBookingContent> {
     );
   }
 
+  Widget _buildPrepaidChargingAddon() {
+    return Container(
+      decoration: BoxDecoration(
+        color: _prepaidCharging
+            ? AppColors.primary.withValues(alpha: 0.08)
+            : Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: _prepaidCharging ? AppColors.primary : AppColors.border,
+          width: _prepaidCharging ? 2 : 1,
+        ),
+      ),
+      child: SwitchListTile(
+        value: _prepaidCharging,
+        onChanged: (value) => setState(() => _prepaidCharging = value),
+        activeThumbColor: AppColors.primary,
+        secondary: Icon(
+          Icons.battery_charging_full_outlined,
+          color: _prepaidCharging ? AppColors.primary : AppColors.textMuted,
+        ),
+        title: Text(
+          'Sạc trả trước',
+          style: GoogleFonts.poppins(
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+            color: AppColors.textPrimary,
+          ),
+        ),
+        subtitle: Text(
+          '+${_formatPrice(_prepaidChargingFee)} - bao gồm $_prepaidChargingCreditPercent% thiếu hụt pin khi trả xe',
+          style: GoogleFonts.poppins(
+            fontSize: 12,
+            color: AppColors.textSecondary,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildRoadsideSupportAddon() {
+    return Container(
+      decoration: BoxDecoration(
+        color: _roadsideSupport
+            ? AppColors.primary.withValues(alpha: 0.08)
+            : Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: _roadsideSupport ? AppColors.primary : AppColors.border,
+          width: _roadsideSupport ? 2 : 1,
+        ),
+      ),
+      child: SwitchListTile(
+        value: _roadsideSupport,
+        onChanged: (value) => setState(() => _roadsideSupport = value),
+        activeThumbColor: AppColors.primary,
+        secondary: Icon(
+          Icons.support_agent_outlined,
+          color: _roadsideSupport ? AppColors.primary : AppColors.textMuted,
+        ),
+        title: Text(
+          'Hỗ trợ cứu hộ',
+          style: GoogleFonts.poppins(
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+            color: AppColors.textPrimary,
+          ),
+        ),
+        subtitle: Text(
+          '+${_formatPrice(_roadsideSupportFee)} - bao gồm ${_formatPrice(_roadsideSupportCreditAmount)} phí cứu hộ sau chuyến',
+          style: GoogleFonts.poppins(
+            fontSize: 12,
+            color: AppColors.textSecondary,
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildPriceBreakdown() {
     return Container(
       padding: const EdgeInsets.all(20),
@@ -1181,6 +1443,52 @@ class _EnhancedBookingContentState extends State<_EnhancedBookingContent> {
               ),
             ],
           ),
+          if (_prepaidCharging) ...[
+            const SizedBox(height: 8),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Sạc trả trước ($_prepaidChargingCreditPercent% pin)',
+                  style: GoogleFonts.poppins(
+                    fontSize: 14,
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+                Text(
+                  _formatPrice(_selectedPrepaidChargingFee),
+                  style: GoogleFonts.poppins(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+              ],
+            ),
+          ],
+          if (_roadsideSupport) ...[
+            const SizedBox(height: 8),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Hỗ trợ cứu hộ',
+                  style: GoogleFonts.poppins(
+                    fontSize: 14,
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+                Text(
+                  _formatPrice(_selectedRoadsideSupportFee),
+                  style: GoogleFonts.poppins(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+              ],
+            ),
+          ],
           if (widget.vehicle.deposit != null) ...[
             const SizedBox(height: 8),
             Row(
@@ -1287,6 +1595,14 @@ class _EnhancedBookingContentState extends State<_EnhancedBookingContent> {
           _buildNote(
             'Gói bảo vệ là mô phỏng nội bộ, không phải bảo hiểm bên thứ ba',
           ),
+          if (_prepaidCharging)
+            _buildNote(
+              'Sạc trả trước bao gồm $_prepaidChargingCreditPercent% thiếu hụt pin; phần vượt mức vẫn được tính sau chuyến',
+            ),
+          if (_roadsideSupport)
+            _buildNote(
+              'Hỗ trợ cứu hộ bao gồm ${_formatPrice(_roadsideSupportCreditAmount)} phí cứu hộ; phần vượt mức vẫn được tính sau chuyến',
+            ),
           if (widget.vehicle.deposit != null)
             _buildNote('Tiền cọc sẽ được hoàn lại sau khi trả xe'),
         ],
@@ -1437,6 +1753,10 @@ class _EnhancedBookingContentState extends State<_EnhancedBookingContent> {
     if (duration > _maxRentalDuration) {
       return 'Thời gian thuê tối đa là 30 ngày';
     }
+    final availabilityEvaluation = _availabilityEvaluation;
+    if (availabilityEvaluation != null && !availabilityEvaluation.canBook) {
+      return availabilityEvaluation.message;
+    }
     return null;
   }
 
@@ -1465,6 +1785,8 @@ class _EnhancedBookingContentState extends State<_EnhancedBookingContent> {
             ? null
             : _notesController.text.trim(),
         protectionPlan: _selectedProtectionPlan,
+        prepaidCharging: _prepaidCharging,
+        roadsideSupport: _roadsideSupport,
       ),
     );
   }

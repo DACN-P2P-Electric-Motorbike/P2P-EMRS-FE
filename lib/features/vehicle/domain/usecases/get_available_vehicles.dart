@@ -9,15 +9,28 @@ class GetAvailableVehiclesParams extends Equatable {
   final DateTime? startTime;
   final DateTime? endTime;
   final bool? instantBookOnly;
+  final VehicleCondition? condition;
+  final BatteryType? batteryType;
+  final int? minBatteryHealth;
 
   const GetAvailableVehiclesParams({
     this.startTime,
     this.endTime,
     this.instantBookOnly,
+    this.condition,
+    this.batteryType,
+    this.minBatteryHealth,
   });
 
   @override
-  List<Object?> get props => [startTime, endTime, instantBookOnly];
+  List<Object?> get props => [
+    startTime,
+    endTime,
+    instantBookOnly,
+    condition,
+    batteryType,
+    minBatteryHealth,
+  ];
 }
 
 class GetAvailableVehicles
@@ -34,6 +47,9 @@ class GetAvailableVehicles
       startTime: params.startTime,
       endTime: params.endTime,
       instantBookOnly: params.instantBookOnly,
+      condition: params.condition,
+      batteryType: params.batteryType,
+      minBatteryHealth: params.minBatteryHealth,
     );
   }
 }

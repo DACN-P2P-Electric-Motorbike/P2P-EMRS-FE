@@ -32,6 +32,12 @@ class BookingEntity extends Equatable {
   final double protectionFee;
   final double protectionDeductible;
   final double protectionCoverageLimit;
+  final bool prepaidCharging;
+  final double prepaidChargingFee;
+  final int prepaidChargingCreditPercent;
+  final bool roadsideSupport;
+  final double roadsideSupportFee;
+  final double roadsideSupportCreditAmount;
   final String? notes;
   final String? cancellationReason;
   final DateTime createdAt;
@@ -56,6 +62,12 @@ class BookingEntity extends Equatable {
     this.protectionFee = 0,
     this.protectionDeductible = 1500000,
     this.protectionCoverageLimit = 15000000,
+    this.prepaidCharging = false,
+    this.prepaidChargingFee = 0,
+    this.prepaidChargingCreditPercent = 0,
+    this.roadsideSupport = false,
+    this.roadsideSupportFee = 0,
+    this.roadsideSupportCreditAmount = 0,
     this.notes,
     this.cancellationReason,
     required this.createdAt,
@@ -165,6 +177,12 @@ class BookingEntity extends Equatable {
     protectionFee,
     protectionDeductible,
     protectionCoverageLimit,
+    prepaidCharging,
+    prepaidChargingFee,
+    prepaidChargingCreditPercent,
+    roadsideSupport,
+    roadsideSupportFee,
+    roadsideSupportCreditAmount,
     notes,
     cancellationReason,
     createdAt,
@@ -190,6 +208,12 @@ class BookingEntity extends Equatable {
     double? protectionFee,
     double? protectionDeductible,
     double? protectionCoverageLimit,
+    bool? prepaidCharging,
+    double? prepaidChargingFee,
+    int? prepaidChargingCreditPercent,
+    bool? roadsideSupport,
+    double? roadsideSupportFee,
+    double? roadsideSupportCreditAmount,
     String? notes,
     String? cancellationReason,
     DateTime? createdAt,
@@ -215,6 +239,14 @@ class BookingEntity extends Equatable {
       protectionDeductible: protectionDeductible ?? this.protectionDeductible,
       protectionCoverageLimit:
           protectionCoverageLimit ?? this.protectionCoverageLimit,
+      prepaidCharging: prepaidCharging ?? this.prepaidCharging,
+      prepaidChargingFee: prepaidChargingFee ?? this.prepaidChargingFee,
+      prepaidChargingCreditPercent:
+          prepaidChargingCreditPercent ?? this.prepaidChargingCreditPercent,
+      roadsideSupport: roadsideSupport ?? this.roadsideSupport,
+      roadsideSupportFee: roadsideSupportFee ?? this.roadsideSupportFee,
+      roadsideSupportCreditAmount:
+          roadsideSupportCreditAmount ?? this.roadsideSupportCreditAmount,
       notes: notes ?? this.notes,
       cancellationReason: cancellationReason ?? this.cancellationReason,
       createdAt: createdAt ?? this.createdAt,

@@ -16,6 +16,8 @@ class CreateBookingEvent extends BookingEvent {
   final DateTime endTime;
   final String? notes;
   final String? protectionPlan;
+  final bool prepaidCharging;
+  final bool roadsideSupport;
 
   const CreateBookingEvent({
     required this.vehicleId,
@@ -23,6 +25,8 @@ class CreateBookingEvent extends BookingEvent {
     required this.endTime,
     this.notes,
     this.protectionPlan,
+    this.prepaidCharging = false,
+    this.roadsideSupport = false,
   });
 
   @override
@@ -32,6 +36,8 @@ class CreateBookingEvent extends BookingEvent {
     endTime,
     notes,
     protectionPlan,
+    prepaidCharging,
+    roadsideSupport,
   ];
 }
 

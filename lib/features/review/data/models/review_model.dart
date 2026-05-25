@@ -80,6 +80,34 @@ class ReviewModel extends ReviewEntity {
   );
 }
 
+class BookingReviewStatusModel {
+  final BookingReviewStatus entity;
+
+  const BookingReviewStatusModel(this.entity);
+
+  factory BookingReviewStatusModel.fromJson(Map<String, dynamic> json) {
+    final ownReview = json['ownReview'];
+    final receivedReview = json['receivedReview'];
+    return BookingReviewStatusModel(
+      BookingReviewStatus(
+        bookingId: json['bookingId'] as String,
+        submitted: json['submitted'] as bool? ?? false,
+        counterpartSubmitted: json['counterpartSubmitted'] as bool? ?? false,
+        isRevealed: json['isRevealed'] as bool? ?? false,
+        ownReview: ownReview is Map<String, dynamic>
+            ? ReviewModel.fromJson(ownReview).toEntity()
+            : null,
+        receivedReview: receivedReview is Map<String, dynamic>
+            ? ReviewModel.fromJson(receivedReview).toEntity()
+            : null,
+        revealAt: json['revealAt'] is String
+            ? DateTime.tryParse(json['revealAt'] as String)
+            : null,
+      ),
+    );
+  }
+}
+
 class TrustScoreBreakdownModel {
   final TrustScoreBreakdown entity;
   TrustScoreBreakdownModel._(this.entity);

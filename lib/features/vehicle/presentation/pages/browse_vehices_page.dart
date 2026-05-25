@@ -43,8 +43,11 @@ class _BrowseVehiclesViewState extends State<_BrowseVehiclesView> {
   VehicleType? _selectedType;
   double? _maxPrice;
   int? _minBatteryLevel;
+  VehicleCondition? _selectedCondition;
+  BatteryType? _selectedBatteryType;
+  int? _minBatteryHealth;
   List<VehicleFeature> _selectedFeatures = [];
-  String _sortBy = 'default'; // default, price_low, price_high, rating
+  String _sortBy = 'default';
   bool _instantBookOnly = false;
 
   // GPS / nearby filter
@@ -75,6 +78,9 @@ class _BrowseVehiclesViewState extends State<_BrowseVehiclesView> {
       brand: _selectedBrand,
       type: _selectedType,
       minBatteryLevel: _minBatteryLevel,
+      condition: _selectedCondition,
+      batteryType: _selectedBatteryType,
+      minBatteryHealth: _minBatteryHealth,
       features: _selectedFeatures.isEmpty ? null : _selectedFeatures,
       instantBookOnly: _instantBookOnly,
       sortBy: _sortBy,
@@ -90,6 +96,9 @@ class _BrowseVehiclesViewState extends State<_BrowseVehiclesView> {
         _selectedType = null;
         _maxPrice = null;
         _minBatteryLevel = null;
+        _selectedCondition = null;
+        _selectedBatteryType = null;
+        _minBatteryHealth = null;
         _selectedFeatures = [];
         _sortBy = 'default';
         _instantBookOnly = false;
@@ -108,6 +117,9 @@ class _BrowseVehiclesViewState extends State<_BrowseVehiclesView> {
       startTime: _desiredStartTime,
       endTime: _desiredEndTime,
       instantBookOnly: _instantBookOnly,
+      condition: _selectedCondition,
+      batteryType: _selectedBatteryType,
+      minBatteryHealth: _minBatteryHealth,
     );
   }
 
@@ -121,7 +133,18 @@ class _BrowseVehiclesViewState extends State<_BrowseVehiclesView> {
       startTime: _desiredStartTime,
       endTime: _desiredEndTime,
       instantBookOnly: _instantBookOnly,
+      condition: _selectedCondition,
+      batteryType: _selectedBatteryType,
+      minBatteryHealth: _minBatteryHealth,
     );
+  }
+
+  Future<void> _reloadForServerFilters() async {
+    if (_nearbyEnabled) {
+      await _loadNearbyVehiclesFromServer();
+    } else {
+      await _loadVehiclesFromServer();
+    }
   }
 
   // Toggle nearby filter — requests GPS and loads nearby vehicles
@@ -169,6 +192,9 @@ class _BrowseVehiclesViewState extends State<_BrowseVehiclesView> {
         _selectedType != null ||
         _maxPrice != null ||
         _minBatteryLevel != null ||
+        _selectedCondition != null ||
+        _selectedBatteryType != null ||
+        _minBatteryHealth != null ||
         _selectedFeatures.isNotEmpty ||
         _sortBy != 'default' ||
         _searchController.text.trim().isNotEmpty ||
@@ -363,6 +389,9 @@ class _BrowseVehiclesViewState extends State<_BrowseVehiclesView> {
                               selectedType: _selectedType,
                               maxPrice: _maxPrice,
                               minBatteryLevel: _minBatteryLevel,
+                              selectedCondition: _selectedCondition,
+                              selectedBatteryType: _selectedBatteryType,
+                              minBatteryHealth: _minBatteryHealth,
                               selectedFeatures: _selectedFeatures,
                               sortBy: _sortBy,
                               selectedStartTime: _desiredStartTime,
@@ -376,18 +405,32 @@ class _BrowseVehiclesViewState extends State<_BrowseVehiclesView> {
                         final newEndTime = result['endTime'] as DateTime?;
                         final newInstantBookOnly =
                             result['instantBookOnly'] as bool? ?? false;
+                        final newCondition =
+                            result['condition'] as VehicleCondition?;
+                        final newBatteryType =
+                            result['batteryType'] as BatteryType?;
+                        final newMinBatteryHealth =
+                            result['minBatteryHealth'] as int?;
                         final timeChanged =
                             newStartTime != _desiredStartTime ||
                             newEndTime != _desiredEndTime;
+                        final evMetadataChanged =
+                            newCondition != _selectedCondition ||
+                            newBatteryType != _selectedBatteryType ||
+                            newMinBatteryHealth != _minBatteryHealth;
                         final serverFilterChanged =
                             timeChanged ||
-                            newInstantBookOnly != _instantBookOnly;
+                            newInstantBookOnly != _instantBookOnly ||
+                            evMetadataChanged;
 
                         setState(() {
                           _selectedBrand = result['brand'];
                           _selectedType = result['type'];
                           _maxPrice = result['maxPrice'];
                           _minBatteryLevel = result['minBatteryLevel'];
+                          _selectedCondition = newCondition;
+                          _selectedBatteryType = newBatteryType;
+                          _minBatteryHealth = newMinBatteryHealth;
                           _selectedFeatures = result['features'] ?? [];
                           _sortBy = result['sortBy'] ?? 'default';
                           _desiredStartTime = newStartTime;
@@ -396,11 +439,7 @@ class _BrowseVehiclesViewState extends State<_BrowseVehiclesView> {
                         });
 
                         if (serverFilterChanged) {
-                          if (_nearbyEnabled) {
-                            await _loadNearbyVehiclesFromServer();
-                          } else {
-                            await _loadVehiclesFromServer();
-                          }
+                          await _reloadForServerFilters();
                         } else {
                           _applyFilters();
                         }
@@ -524,6 +563,33 @@ class _BrowseVehiclesViewState extends State<_BrowseVehiclesView> {
                 _applyFilters();
               }
             }),
+          if (_selectedCondition != null)
+            _buildFilterChip(
+              'Tình trạng: ${_selectedCondition!.displayName}',
+              () {
+                if (mounted) {
+                  setState(() => _selectedCondition = null);
+                  _reloadForServerFilters();
+                }
+              },
+            ),
+          if (_selectedBatteryType != null)
+            _buildFilterChip(
+              'Loại pin: ${_selectedBatteryType!.displayName}',
+              () {
+                if (mounted) {
+                  setState(() => _selectedBatteryType = null);
+                  _reloadForServerFilters();
+                }
+              },
+            ),
+          if (_minBatteryHealth != null)
+            _buildFilterChip('Sức khỏe pin: $_minBatteryHealth%', () {
+              if (mounted) {
+                setState(() => _minBatteryHealth = null);
+                _reloadForServerFilters();
+              }
+            }),
           if (_selectedFeatures.isNotEmpty)
             ..._selectedFeatures.map(
               (feature) => _buildFilterChip(
@@ -547,11 +613,7 @@ class _BrowseVehiclesViewState extends State<_BrowseVehiclesView> {
             _buildFilterChip('Đặt xe nhanh', () {
               if (mounted) {
                 setState(() => _instantBookOnly = false);
-                if (_nearbyEnabled) {
-                  _loadNearbyVehiclesFromServer();
-                } else {
-                  _loadVehiclesFromServer();
-                }
+                _reloadForServerFilters();
               }
             }),
           if (_desiredStartTime != null && _desiredEndTime != null)
@@ -944,6 +1006,8 @@ class _BrowseVehiclesViewState extends State<_BrowseVehiclesView> {
         return 'Đánh giá';
       case 'distance':
         return 'Khoảng cách';
+      case 'battery_health':
+        return 'Pin khỏe';
       default:
         return 'Đề xuất';
     }

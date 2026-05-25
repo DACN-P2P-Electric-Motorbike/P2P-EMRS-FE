@@ -113,6 +113,22 @@ class CreateVehicleAvailability extends OwnerVehicleEvent {
   List<Object?> get props => [vehicleId, params];
 }
 
+/// Event to update an owner-managed availability window
+class UpdateVehicleAvailability extends OwnerVehicleEvent {
+  final String vehicleId;
+  final String windowId;
+  final CreateAvailabilityWindowParams params;
+
+  const UpdateVehicleAvailability({
+    required this.vehicleId,
+    required this.windowId,
+    required this.params,
+  });
+
+  @override
+  List<Object?> get props => [vehicleId, windowId, params];
+}
+
 /// Event to delete an owner-managed availability window
 class DeleteVehicleAvailability extends OwnerVehicleEvent {
   final String vehicleId;

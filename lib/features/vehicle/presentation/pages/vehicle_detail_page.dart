@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import '../../../../../core/theme/app_theme.dart';
+import '../../../../../core/utils/availability_time_zone.dart';
 import '../../../../../core/utils/open_external_map.dart';
 import '../../../../../core/widgets/app_avatar.dart';
 import '../../../../../injection_container.dart';
@@ -11,6 +12,7 @@ import '../../../review/domain/entities/review_entity.dart';
 import '../../../review/presentation/bloc/review_bloc.dart';
 import '../../../review/presentation/bloc/review_event.dart';
 import '../../../review/presentation/bloc/review_state.dart';
+import '../../domain/entities/availability_summary.dart';
 import '../../domain/entities/vehicle_entity.dart';
 import '../bloc/vehicle_detail_cubit.dart';
 import '../widgets/vehicle_image_carousel.dart';
@@ -95,6 +97,7 @@ class _VehicleDetailView extends StatelessWidget {
           if (state is VehicleDetailLoaded) {
             return _VehicleDetailContent(
               vehicle: state.vehicle,
+              availabilitySummary: state.availabilitySummary,
               isSaved: state.isSaved,
             );
           }
@@ -108,9 +111,14 @@ class _VehicleDetailView extends StatelessWidget {
 
 class _VehicleDetailContent extends StatelessWidget {
   final VehicleEntity vehicle;
+  final VehicleAvailabilitySummary? availabilitySummary;
   final bool isSaved;
 
-  const _VehicleDetailContent({required this.vehicle, required this.isSaved});
+  const _VehicleDetailContent({
+    required this.vehicle,
+    required this.availabilitySummary,
+    required this.isSaved,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -393,6 +401,14 @@ class _VehicleDetailContent extends StatelessWidget {
                           const SizedBox(height: 24),
                         ],
 
+                        if (availabilitySummary != null &&
+                            availabilitySummary!.rules.isNotEmpty) ...[
+                          _buildSectionTitle('Lịch khả dụng'),
+                          const SizedBox(height: 12),
+                          _buildAvailabilitySection(availabilitySummary!),
+                          const SizedBox(height: 24),
+                        ],
+
                         // Specifications
                         _buildSectionTitle('Thông số kỹ thuật'),
                         const SizedBox(height: 16),
@@ -655,8 +671,10 @@ class _VehicleDetailContent extends StatelessWidget {
                       context: context,
                       isScrollControlled: true,
                       backgroundColor: Colors.transparent,
-                      builder: (context) =>
-                          BookingBottomSheet(vehicle: vehicle),
+                      builder: (context) => BookingBottomSheet(
+                        vehicle: vehicle,
+                        availabilitySummary: availabilitySummary,
+                      ),
                     );
                   }
                 : null,
@@ -852,6 +870,115 @@ class _VehicleDetailContent extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  Widget _buildAvailabilitySection(VehicleAvailabilitySummary summary) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceVariant,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        children: summary.rules
+            .map(
+              (rule) => Padding(
+                padding: const EdgeInsets.symmetric(vertical: 7),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Icon(
+                      rule.type == PublicAvailabilityRuleType.available
+                          ? Icons.event_available_outlined
+                          : Icons.event_busy_outlined,
+                      size: 20,
+                      color: rule.type == PublicAvailabilityRuleType.available
+                          ? AppColors.success
+                          : AppColors.error,
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        rule.type == PublicAvailabilityRuleType.available
+                            ? 'Có thể thuê'
+                            : 'Tạm ngưng',
+                        style: GoogleFonts.poppins(
+                          fontSize: 13,
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                    ),
+                    Flexible(
+                      flex: 2,
+                      child: Text(
+                        _formatAvailabilityRule(rule),
+                        textAlign: TextAlign.right,
+                        style: GoogleFonts.poppins(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.textPrimary,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            )
+            .toList(),
+      ),
+    );
+  }
+
+  String _formatAvailabilityRule(VehicleAvailabilityRule rule) {
+    if (!rule.isWeekly) {
+      final start = rule.startTime.toLocal();
+      final end = rule.endTime.toLocal();
+      if (DateUtils.isSameDay(start, end)) {
+        return '${DateFormat('dd/MM').format(start)} '
+            '${DateFormat('HH:mm').format(start)} - '
+            '${DateFormat('HH:mm').format(end)}';
+      }
+      return '${DateFormat('dd/MM HH:mm').format(start)} - '
+          '${DateFormat('dd/MM HH:mm').format(end)}';
+    }
+
+    final localStart = AvailabilityTimeZone.toWallTime(
+      rule.startTime,
+      timezoneName: rule.timezoneName,
+      fallbackOffsetMinutes: rule.timezoneOffsetMinutes,
+    );
+    final localEnd = AvailabilityTimeZone.toWallTime(
+      rule.endTime,
+      timezoneName: rule.timezoneName,
+      fallbackOffsetMinutes: rule.timezoneOffsetMinutes,
+    );
+    final weekdays = rule.recurringWeekdays.map(_weekdayLabel).join(', ');
+    final until = rule.recurrenceEndsAt == null
+        ? ''
+        : ' đến ${DateFormat('dd/MM').format(AvailabilityTimeZone.toWallTime(rule.recurrenceEndsAt!, timezoneName: rule.timezoneName, fallbackOffsetMinutes: rule.timezoneOffsetMinutes))}';
+    return '$weekdays · ${DateFormat('HH:mm').format(localStart)} - '
+        '${DateFormat('HH:mm').format(localEnd)}$until';
+  }
+
+  String _weekdayLabel(int weekday) {
+    switch (weekday) {
+      case DateTime.monday:
+        return 'T2';
+      case DateTime.tuesday:
+        return 'T3';
+      case DateTime.wednesday:
+        return 'T4';
+      case DateTime.thursday:
+        return 'T5';
+      case DateTime.friday:
+        return 'T6';
+      case DateTime.saturday:
+        return 'T7';
+      case DateTime.sunday:
+        return 'CN';
+      default:
+        return '';
+    }
   }
 
   String _formatPercent(double value) {

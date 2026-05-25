@@ -32,11 +32,14 @@ class ApiConstants {
   static String toggleVehicleAvailability(String id) =>
       '/vehicles/$id/toggle-availability';
   static String vehicleAvailability(String id) => '/vehicles/$id/availability';
+  static String vehicleAvailabilitySummary(String id) =>
+      '/vehicles/$id/availability-summary';
   static String vehicleAvailabilityWindow(String id, String windowId) =>
       '/vehicles/$id/availability/$windowId';
 
   /// Booking endpoints
   static const String bookings = '/bookings';
+  static const String bookingPolicy = '/bookings/policy';
   static String bookingCancellationPreview(String id) =>
       '/bookings/$id/cancellation-preview';
   static String vehicleSchedule(String vehicleId) =>
@@ -91,6 +94,8 @@ class ApiConstants {
   static const String myReviews = '/reviews/my-reviews';
   static const String trustScore = '/reviews/trust-score';
   static String userTrustScore(String userId) => '/reviews/trust-score/$userId';
+  static String bookingReviewStatus(String bookingId) =>
+      '/reviews/bookings/$bookingId/status';
   static String vehicleReviews(String vehicleId) =>
       '/reviews/vehicle/$vehicleId';
 

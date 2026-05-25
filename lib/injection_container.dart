@@ -78,6 +78,7 @@ import 'features/vehicle/domain/repositories/vehicle_repository.dart';
 import 'features/vehicle/domain/usecases/get_available_vehicles.dart';
 import 'features/vehicle/domain/usecases/get_nearby_vehicles.dart';
 import 'features/vehicle/domain/usecases/get_vehicle_by_id.dart';
+import 'features/vehicle/domain/usecases/get_vehicle_availability_summary.dart';
 
 // Vehicle Feature - Presentation Layer
 import 'features/vehicle/presentation/bloc/vehicles_list_cubit.dart';
@@ -283,6 +284,7 @@ Future<void> init() async {
   sl.registerLazySingleton(() => ToggleAvailabilityUseCase(sl()));
   sl.registerLazySingleton(() => GetVehicleAvailabilityUseCase(sl()));
   sl.registerLazySingleton(() => CreateVehicleAvailabilityUseCase(sl()));
+  sl.registerLazySingleton(() => UpdateVehicleAvailabilityUseCase(sl()));
   sl.registerLazySingleton(() => DeleteVehicleAvailabilityUseCase(sl()));
   sl.registerLazySingleton(() => DeleteVehicleUseCase(sl()));
 
@@ -296,6 +298,7 @@ Future<void> init() async {
       toggleAvailabilityUseCase: sl(),
       getVehicleAvailabilityUseCase: sl(),
       createVehicleAvailabilityUseCase: sl(),
+      updateVehicleAvailabilityUseCase: sl(),
       deleteVehicleAvailabilityUseCase: sl(),
       deleteVehicleUseCase: sl(),
       cache: sl(),
@@ -320,6 +323,7 @@ Future<void> init() async {
   sl.registerLazySingleton(() => GetAvailableVehicles(sl()));
   sl.registerLazySingleton(() => GetNearbyVehicles(sl()));
   sl.registerLazySingleton(() => GetVehicleById(sl()));
+  sl.registerLazySingleton(() => GetVehicleAvailabilitySummary(sl()));
 
   // Cubit - Factory
   sl.registerFactory(
@@ -329,7 +333,10 @@ Future<void> init() async {
       cache: sl(),
     ),
   );
-  sl.registerFactory(() => VehicleDetailCubit(getVehicleById: sl()));
+  sl.registerFactory(
+    () =>
+        VehicleDetailCubit(getVehicleById: sl(), getAvailabilitySummary: sl()),
+  );
 
   //============================================================================
   // FEATURES - BECOME OWNER
@@ -482,6 +489,7 @@ Future<void> init() async {
   sl.registerLazySingleton(() => CreateReviewUseCase(sl()));
   sl.registerLazySingleton(() => GetVehicleReviewsUseCase(sl()));
   sl.registerLazySingleton(() => GetMyReviewsUseCase(sl()));
+  sl.registerLazySingleton(() => GetBookingReviewStatusUseCase(sl()));
   sl.registerLazySingleton(() => GetTrustScoreBreakdownUseCase(sl()));
 
   // BLoC - Factory

@@ -373,11 +373,37 @@ enum AvailabilityWindowType {
   }
 }
 
+enum AvailabilityWindowRecurrence {
+  once,
+  weekly;
+
+  static AvailabilityWindowRecurrence fromString(String value) {
+    return value.toUpperCase() == 'WEEKLY'
+        ? AvailabilityWindowRecurrence.weekly
+        : AvailabilityWindowRecurrence.once;
+  }
+
+  String toApiString() {
+    return this == AvailabilityWindowRecurrence.weekly ? 'WEEKLY' : 'ONCE';
+  }
+
+  String get displayName {
+    return this == AvailabilityWindowRecurrence.weekly
+        ? 'Hàng tuần'
+        : 'Một lần';
+  }
+}
+
 /// Owner-managed vehicle availability window
 class VehicleAvailabilityWindowEntity extends Equatable {
   final String id;
   final String vehicleId;
   final AvailabilityWindowType type;
+  final AvailabilityWindowRecurrence recurrence;
+  final List<int> recurringWeekdays;
+  final int? timezoneOffsetMinutes;
+  final String? timezoneName;
+  final DateTime? recurrenceEndsAt;
   final DateTime startTime;
   final DateTime endTime;
   final String? note;
@@ -388,6 +414,11 @@ class VehicleAvailabilityWindowEntity extends Equatable {
     required this.id,
     required this.vehicleId,
     required this.type,
+    this.recurrence = AvailabilityWindowRecurrence.once,
+    this.recurringWeekdays = const [],
+    this.timezoneOffsetMinutes,
+    this.timezoneName,
+    this.recurrenceEndsAt,
     required this.startTime,
     required this.endTime,
     this.note,
@@ -396,12 +427,18 @@ class VehicleAvailabilityWindowEntity extends Equatable {
   });
 
   bool get isAvailableWindow => type == AvailabilityWindowType.available;
+  bool get isWeekly => recurrence == AvailabilityWindowRecurrence.weekly;
 
   @override
   List<Object?> get props => [
     id,
     vehicleId,
     type,
+    recurrence,
+    recurringWeekdays,
+    timezoneOffsetMinutes,
+    timezoneName,
+    recurrenceEndsAt,
     startTime,
     endTime,
     note,

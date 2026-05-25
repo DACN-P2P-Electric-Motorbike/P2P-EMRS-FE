@@ -9,6 +9,9 @@ class FilterBottomSheet extends StatefulWidget {
   final VehicleType? selectedType;
   final double? maxPrice;
   final int? minBatteryLevel;
+  final VehicleCondition? selectedCondition;
+  final BatteryType? selectedBatteryType;
+  final int? minBatteryHealth;
   final List<VehicleFeature> selectedFeatures;
   final String sortBy;
   final DateTime? selectedStartTime;
@@ -21,6 +24,9 @@ class FilterBottomSheet extends StatefulWidget {
     this.selectedType,
     this.maxPrice,
     this.minBatteryLevel,
+    this.selectedCondition,
+    this.selectedBatteryType,
+    this.minBatteryHealth,
     this.selectedFeatures = const [],
     this.sortBy = 'default',
     this.selectedStartTime,
@@ -37,6 +43,9 @@ class _FilterBottomSheetState extends State<FilterBottomSheet> {
   late VehicleType? _selectedType;
   late double _maxPrice;
   late int _minBatteryLevel;
+  late VehicleCondition? _selectedCondition;
+  late BatteryType? _selectedBatteryType;
+  late int _minBatteryHealth;
   late List<VehicleFeature> _selectedFeatures;
   late String _sortBy;
   DateTime? _selectedStartTime;
@@ -50,6 +59,9 @@ class _FilterBottomSheetState extends State<FilterBottomSheet> {
     _selectedType = widget.selectedType;
     _maxPrice = widget.maxPrice ?? 100000;
     _minBatteryLevel = widget.minBatteryLevel ?? 0;
+    _selectedCondition = widget.selectedCondition;
+    _selectedBatteryType = widget.selectedBatteryType;
+    _minBatteryHealth = widget.minBatteryHealth ?? 0;
     _selectedFeatures = List.from(widget.selectedFeatures);
     _sortBy = widget.sortBy;
     _selectedStartTime = widget.selectedStartTime;
@@ -151,6 +163,11 @@ class _FilterBottomSheetState extends State<FilterBottomSheet> {
                           'Gần nhất',
                           _sortBy == 'distance',
                           () => setState(() => _sortBy = 'distance'),
+                        ),
+                        _buildChoiceChip(
+                          'Pin khỏe',
+                          _sortBy == 'battery_health',
+                          () => setState(() => _sortBy = 'battery_health'),
                         ),
                       ],
                     ),
@@ -361,6 +378,93 @@ class _FilterBottomSheetState extends State<FilterBottomSheet> {
 
                     const SizedBox(height: 24),
 
+                    _buildSectionTitle('Tình trạng EV'),
+                    const SizedBox(height: 12),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: VehicleCondition.values.map((condition) {
+                        return _buildChoiceChip(
+                          condition.displayName,
+                          _selectedCondition == condition,
+                          () {
+                            setState(() {
+                              _selectedCondition =
+                                  _selectedCondition == condition
+                                  ? null
+                                  : condition;
+                            });
+                          },
+                          icon: Icons.verified_outlined,
+                        );
+                      }).toList(),
+                    ),
+
+                    const SizedBox(height: 24),
+
+                    _buildSectionTitle('Loại pin'),
+                    const SizedBox(height: 12),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: BatteryType.values.map((batteryType) {
+                        return _buildChoiceChip(
+                          batteryType.displayName,
+                          _selectedBatteryType == batteryType,
+                          () {
+                            setState(() {
+                              _selectedBatteryType =
+                                  _selectedBatteryType == batteryType
+                                  ? null
+                                  : batteryType;
+                            });
+                          },
+                          icon: Icons.battery_charging_full_outlined,
+                        );
+                      }).toList(),
+                    ),
+
+                    const SizedBox(height: 24),
+
+                    _buildSectionTitle('Sức khỏe pin tối thiểu'),
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Slider(
+                            value: _minBatteryHealth.toDouble(),
+                            min: 0,
+                            max: 100,
+                            divisions: 10,
+                            label: '$_minBatteryHealth%',
+                            onChanged: (value) {
+                              setState(() => _minBatteryHealth = value.toInt());
+                            },
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 8,
+                          ),
+                          decoration: BoxDecoration(
+                            color: AppColors.surfaceVariant,
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Text(
+                            '$_minBatteryHealth%',
+                            style: GoogleFonts.poppins(
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.success,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+
+                    const SizedBox(height: 24),
+
                     // Features filter
                     _buildSectionTitle('Tính năng'),
                     const SizedBox(height: 12),
@@ -495,6 +599,9 @@ class _FilterBottomSheetState extends State<FilterBottomSheet> {
       _selectedType = null;
       _maxPrice = 100000;
       _minBatteryLevel = 0;
+      _selectedCondition = null;
+      _selectedBatteryType = null;
+      _minBatteryHealth = 0;
       _selectedFeatures.clear();
       _sortBy = 'default';
       _selectedStartTime = null;
@@ -531,6 +638,9 @@ class _FilterBottomSheetState extends State<FilterBottomSheet> {
       'type': _selectedType,
       'maxPrice': _maxPrice == 100000 ? null : _maxPrice,
       'minBatteryLevel': _minBatteryLevel == 0 ? null : _minBatteryLevel,
+      'condition': _selectedCondition,
+      'batteryType': _selectedBatteryType,
+      'minBatteryHealth': _minBatteryHealth == 0 ? null : _minBatteryHealth,
       'features': _selectedFeatures,
       'sortBy': _sortBy,
       'startTime': _selectedStartTime,

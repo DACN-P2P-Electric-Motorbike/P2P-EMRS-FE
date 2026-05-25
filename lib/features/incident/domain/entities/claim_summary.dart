@@ -166,10 +166,141 @@ class ClaimTimelineEventEntity extends Equatable {
   ];
 }
 
+class ClaimCaseSlaSnapshotEntity extends Equatable {
+  final String status;
+  final String stage;
+  final DateTime? dueAt;
+  final String label;
+  final int remainingMinutes;
+  final int overdueMinutes;
+  final int escalationLevel;
+
+  const ClaimCaseSlaSnapshotEntity({
+    required this.status,
+    required this.stage,
+    this.dueAt,
+    required this.label,
+    required this.remainingMinutes,
+    required this.overdueMinutes,
+    required this.escalationLevel,
+  });
+
+  bool get isOverdue => status == 'OVERDUE';
+  bool get isAtRisk => status == 'AT_RISK';
+  bool get isCompleted => status == 'COMPLETED';
+
+  @override
+  List<Object?> get props => [
+    status,
+    stage,
+    dueAt,
+    label,
+    remainingMinutes,
+    overdueMinutes,
+    escalationLevel,
+  ];
+}
+
+class ClaimProtectionSettlementEntity extends Equatable {
+  final String status;
+  final String protectionPlan;
+  final double eligibleDamageAmount;
+  final double nonCoveredChargeAmount;
+  final double deductibleAmount;
+  final double deductibleAppliedAmount;
+  final double coverageLimit;
+  final double platformCoverageAmount;
+  final double renterLiabilityAmount;
+  final double excessAboveCoverageAmount;
+
+  const ClaimProtectionSettlementEntity({
+    required this.status,
+    required this.protectionPlan,
+    required this.eligibleDamageAmount,
+    required this.nonCoveredChargeAmount,
+    required this.deductibleAmount,
+    required this.deductibleAppliedAmount,
+    required this.coverageLimit,
+    required this.platformCoverageAmount,
+    required this.renterLiabilityAmount,
+    required this.excessAboveCoverageAmount,
+  });
+
+  bool get isAwaitingDamageCharge =>
+      status == 'AWAITING_APPROVED_DAMAGE_CHARGE';
+
+  @override
+  List<Object?> get props => [
+    status,
+    protectionPlan,
+    eligibleDamageAmount,
+    nonCoveredChargeAmount,
+    deductibleAmount,
+    deductibleAppliedAmount,
+    coverageLimit,
+    platformCoverageAmount,
+    renterLiabilityAmount,
+    excessAboveCoverageAmount,
+  ];
+}
+
+class ClaimCaseSnapshotEntity extends Equatable {
+  final String id;
+  final String caseNumber;
+  final String status;
+  final String? outcome;
+  final String? summary;
+  final String? firstDecision;
+  final DateTime? firstReviewedAt;
+  final String? secondDecision;
+  final DateTime? secondReviewedAt;
+  final DateTime? resolvedAt;
+  final ClaimCaseSlaSnapshotEntity? sla;
+  final ClaimProtectionSettlementEntity? protectionSettlement;
+
+  const ClaimCaseSnapshotEntity({
+    required this.id,
+    required this.caseNumber,
+    required this.status,
+    this.outcome,
+    this.summary,
+    this.firstDecision,
+    this.firstReviewedAt,
+    this.secondDecision,
+    this.secondReviewedAt,
+    this.resolvedAt,
+    this.sla,
+    this.protectionSettlement,
+  });
+
+  bool get isFinalized =>
+      status == 'APPROVED' ||
+      status == 'REJECTED' ||
+      status == 'RESOLVED' ||
+      status == 'CANCELLED';
+
+  @override
+  List<Object?> get props => [
+    id,
+    caseNumber,
+    status,
+    outcome,
+    summary,
+    firstDecision,
+    firstReviewedAt,
+    secondDecision,
+    secondReviewedAt,
+    resolvedAt,
+    sla,
+    protectionSettlement,
+  ];
+}
+
 class BookingClaimSummaryEntity extends Equatable {
   final String bookingId;
   final ClaimWorkflowStatus status;
   final String statusLabel;
+  final ClaimCaseSnapshotEntity? claimCase;
   final ClaimSummaryTotalsEntity totals;
   final List<ClaimBlockerEntity> blockers;
   final List<ClaimNextActionEntity> nextActions;
@@ -182,6 +313,7 @@ class BookingClaimSummaryEntity extends Equatable {
     required this.bookingId,
     required this.status,
     required this.statusLabel,
+    this.claimCase,
     required this.totals,
     required this.blockers,
     required this.nextActions,
@@ -199,6 +331,7 @@ class BookingClaimSummaryEntity extends Equatable {
     bookingId,
     status,
     statusLabel,
+    claimCase,
     totals,
     blockers,
     nextActions,

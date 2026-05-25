@@ -12,6 +12,9 @@ class NearbyVehicleParams extends Equatable {
   final DateTime? startTime;
   final DateTime? endTime;
   final bool? instantBookOnly;
+  final VehicleCondition? condition;
+  final BatteryType? batteryType;
+  final int? minBatteryHealth;
 
   const NearbyVehicleParams({
     required this.latitude,
@@ -20,6 +23,9 @@ class NearbyVehicleParams extends Equatable {
     this.startTime,
     this.endTime,
     this.instantBookOnly,
+    this.condition,
+    this.batteryType,
+    this.minBatteryHealth,
   });
 
   @override
@@ -30,6 +36,9 @@ class NearbyVehicleParams extends Equatable {
     startTime,
     endTime,
     instantBookOnly,
+    condition,
+    batteryType,
+    minBatteryHealth,
   ];
 }
 
@@ -50,6 +59,9 @@ class GetNearbyVehicles
       startTime: params.startTime,
       endTime: params.endTime,
       instantBookOnly: params.instantBookOnly,
+      condition: params.condition,
+      batteryType: params.batteryType,
+      minBatteryHealth: params.minBatteryHealth,
     );
   }
 }

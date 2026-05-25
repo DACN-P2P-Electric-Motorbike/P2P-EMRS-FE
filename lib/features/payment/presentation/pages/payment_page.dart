@@ -21,6 +21,8 @@ class PaymentPage extends StatelessWidget {
   final String bookingId;
   final double totalAmount;
   final double protectionFee;
+  final double prepaidChargingFee;
+  final double roadsideSupportFee;
   final double deposit;
 
   const PaymentPage({
@@ -28,6 +30,8 @@ class PaymentPage extends StatelessWidget {
     required this.bookingId,
     required this.totalAmount,
     this.protectionFee = 0,
+    this.prepaidChargingFee = 0,
+    this.roadsideSupportFee = 0,
     required this.deposit,
   });
 
@@ -40,6 +44,8 @@ class PaymentPage extends StatelessWidget {
         bookingId: bookingId,
         totalAmount: totalAmount,
         protectionFee: protectionFee,
+        prepaidChargingFee: prepaidChargingFee,
+        roadsideSupportFee: roadsideSupportFee,
         deposit: deposit,
       ),
     );
@@ -50,12 +56,16 @@ class _PaymentView extends StatefulWidget {
   final String bookingId;
   final double totalAmount;
   final double protectionFee;
+  final double prepaidChargingFee;
+  final double roadsideSupportFee;
   final double deposit;
 
   const _PaymentView({
     required this.bookingId,
     required this.totalAmount,
     required this.protectionFee,
+    required this.prepaidChargingFee,
+    required this.roadsideSupportFee,
     required this.deposit,
   });
 
@@ -72,7 +82,11 @@ class _PaymentViewState extends State<_PaymentView>
   final _formatter = NumberFormat.currency(locale: 'vi_VN', symbol: 'đ');
 
   double get _checkoutTotal =>
-      widget.totalAmount + widget.protectionFee + widget.deposit;
+      widget.totalAmount +
+      widget.protectionFee +
+      widget.prepaidChargingFee +
+      widget.roadsideSupportFee +
+      widget.deposit;
 
   @override
   void initState() {
@@ -647,6 +661,16 @@ class _PaymentViewState extends State<_PaymentView>
               _summaryItem('Tiền thuê', _formatter.format(widget.totalAmount)),
               if (widget.protectionFee > 0)
                 _summaryItem('Bảo vệ', _formatter.format(widget.protectionFee)),
+              if (widget.prepaidChargingFee > 0)
+                _summaryItem(
+                  'Sạc trả trước',
+                  _formatter.format(widget.prepaidChargingFee),
+                ),
+              if (widget.roadsideSupportFee > 0)
+                _summaryItem(
+                  'Hỗ trợ cứu hộ',
+                  _formatter.format(widget.roadsideSupportFee),
+                ),
               _summaryItem('Tiền cọc', _formatter.format(widget.deposit)),
             ],
           ),
@@ -807,6 +831,22 @@ class _PaymentViewState extends State<_PaymentView>
             _revenueRow(
               'Gói bảo vệ nội bộ',
               _formatter.format(widget.protectionFee),
+              AppColors.primary,
+            ),
+          ],
+          if (widget.prepaidChargingFee > 0) ...[
+            const SizedBox(height: 8),
+            _revenueRow(
+              'Sạc trả trước',
+              _formatter.format(widget.prepaidChargingFee),
+              AppColors.primary,
+            ),
+          ],
+          if (widget.roadsideSupportFee > 0) ...[
+            const SizedBox(height: 8),
+            _revenueRow(
+              'Hỗ trợ cứu hộ',
+              _formatter.format(widget.roadsideSupportFee),
               AppColors.primary,
             ),
           ],

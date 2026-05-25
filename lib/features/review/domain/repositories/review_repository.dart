@@ -16,5 +16,9 @@ abstract class ReviewRepository {
 
   Future<Either<Failure, List<ReviewEntity>>> getMyReviews();
 
+  Future<Either<Failure, BookingReviewStatus>> getBookingReviewStatus(
+    String bookingId,
+  );
+
   Future<Either<Failure, TrustScoreBreakdown>> getTrustScoreBreakdown();
 }

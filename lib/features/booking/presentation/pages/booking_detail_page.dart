@@ -11,21 +11,25 @@ import '../../../../core/services/location_service.dart';
 import '../../../../core/services/socket_service.dart';
 import '../../../../core/services/upload_service.dart';
 import '../../../../core/theme/app_theme.dart';
-import '../../../../core/usecases/usecase.dart';
 import '../../../../core/utils/vietnam_time.dart';
+import '../../../../core/widgets/app_network_image.dart';
 import '../../../../injection_container.dart';
 import '../../../financial/domain/entities/financial_summary.dart';
 import '../../../financial/domain/usecases/financial_usecases.dart';
 import '../../../financial/presentation/cubit/financial_cubit.dart';
 import '../../../financial/presentation/widgets/financial_summary_card.dart';
+import '../../../handover/domain/entities/handover.dart';
+import '../../../handover/domain/usecases/handover_usecases.dart';
 import '../../../handover/presentation/pages/check_in_page.dart';
 import '../../../handover/presentation/pages/handover_summary_page.dart';
 import '../../../incident/domain/entities/claim_summary.dart';
 import '../../../incident/domain/entities/incident_report.dart';
 import '../../../incident/domain/usecases/incident_usecases.dart';
 import '../../../payment/presentation/pages/payment_page.dart';
+import '../../../review/domain/entities/review_entity.dart';
 import '../../../review/domain/usecases/review_usecases.dart';
 import '../../../review/presentation/pages/create_review_page.dart';
+import '../../../review/presentation/widgets/blind_review_status_card.dart';
 import '../../../trip/presentation/bloc/trip_bloc.dart';
 import '../../../trip/presentation/bloc/trip_event.dart';
 import '../../../trip/presentation/bloc/trip_state.dart';
@@ -55,7 +59,7 @@ class BookingDetailPage extends StatefulWidget {
 class _BookingDetailPageState extends State<BookingDetailPage> {
   final SocketService _socketService = sl<SocketService>();
   StreamSubscription? _bookingUpdateSubscription;
-  Future<Set<String>>? _reviewedBookingIdsFuture;
+  Future<BookingReviewStatus?>? _reviewStatusFuture;
 
   @override
   void initState() {
@@ -65,7 +69,7 @@ class _BookingDetailPageState extends State<BookingDetailPage> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<BookingBloc>().add(LoadBookingByIdEvent(widget.bookingId));
     });
-    _reviewedBookingIdsFuture = _loadReviewedBookingIds();
+    _reviewStatusFuture = _loadReviewStatus();
   }
 
   void _setupRealtimeUpdates() {
@@ -91,18 +95,16 @@ class _BookingDetailPageState extends State<BookingDetailPage> {
     super.dispose();
   }
 
-  Future<Set<String>> _loadReviewedBookingIds() async {
-    final result = await sl<GetMyReviewsUseCase>()(const NoParams());
-    return result.fold(
-      (_) => <String>{},
-      (reviews) =>
-          reviews.map((review) => review.bookingId).whereType<String>().toSet(),
+  Future<BookingReviewStatus?> _loadReviewStatus() async {
+    final result = await sl<GetBookingReviewStatusUseCase>()(
+      GetBookingReviewStatusParams(widget.bookingId),
     );
+    return result.fold((_) => null, (status) => status);
   }
 
-  void _refreshReviewedBookingIds() {
+  void _refreshReviewStatus() {
     setState(() {
-      _reviewedBookingIdsFuture = _loadReviewedBookingIds();
+      _reviewStatusFuture = _loadReviewStatus();
     });
   }
 
@@ -427,6 +429,22 @@ class _BookingDetailPageState extends State<BookingDetailPage> {
             'Gói bảo vệ ${_protectionPlanLabel(booking.protectionPlan)}',
             '${NumberFormat.currency(locale: 'vi_VN', symbol: 'đ').format(booking.protectionFee)} - khấu trừ ${NumberFormat.currency(locale: 'vi_VN', symbol: 'đ').format(booking.protectionDeductible)}',
           ),
+          if (booking.prepaidCharging) ...[
+            const SizedBox(height: 12),
+            _buildInfoRow(
+              Icons.battery_charging_full_outlined,
+              'Sạc trả trước',
+              '${NumberFormat.currency(locale: 'vi_VN', symbol: 'đ').format(booking.prepaidChargingFee)} - bao gồm ${booking.prepaidChargingCreditPercent}% pin',
+            ),
+          ],
+          if (booking.roadsideSupport) ...[
+            const SizedBox(height: 12),
+            _buildInfoRow(
+              Icons.support_agent_outlined,
+              'Hỗ trợ cứu hộ',
+              '${NumberFormat.currency(locale: 'vi_VN', symbol: 'đ').format(booking.roadsideSupportFee)} - bao gồm ${NumberFormat.currency(locale: 'vi_VN', symbol: 'đ').format(booking.roadsideSupportCreditAmount)} phí cứu hộ',
+            ),
+          ],
           const SizedBox(height: 12),
           _buildInfoRow(
             Icons.account_balance_wallet,
@@ -450,7 +468,11 @@ class _BookingDetailPageState extends State<BookingDetailPage> {
               ),
               Text(
                 NumberFormat.currency(locale: 'vi_VN', symbol: 'đ').format(
-                  booking.totalPrice + booking.protectionFee + booking.deposit,
+                  booking.totalPrice +
+                      booking.protectionFee +
+                      booking.prepaidChargingFee +
+                      booking.roadsideSupportFee +
+                      booking.deposit,
                 ),
                 style: GoogleFonts.poppins(
                   fontSize: 20,
@@ -656,7 +678,8 @@ class _BookingDetailPageState extends State<BookingDetailPage> {
                   ),
                 )
               else ...[
-                if (summary != null) _buildClaimSummaryOverview(summary),
+                if (summary != null)
+                  _buildClaimSummaryOverview(context, summary),
                 if (reports.isEmpty)
                   Padding(
                     padding: const EdgeInsets.only(top: 8),
@@ -684,7 +707,10 @@ class _BookingDetailPageState extends State<BookingDetailPage> {
     );
   }
 
-  Widget _buildClaimSummaryOverview(BookingClaimSummaryEntity summary) {
+  Widget _buildClaimSummaryOverview(
+    BuildContext context,
+    BookingClaimSummaryEntity summary,
+  ) {
     final color = _claimStatusColor(summary.status);
     final formatter = NumberFormat.currency(
       locale: 'vi_VN',
@@ -806,6 +832,18 @@ class _BookingDetailPageState extends State<BookingDetailPage> {
                     'Payout: ${formatter.format(summary.totals.ownerPayoutAmount)}',
               ),
             ],
+          ),
+          const SizedBox(height: 8),
+          Align(
+            alignment: Alignment.centerRight,
+            child: TextButton.icon(
+              onPressed: () {
+                final ownerQuery = widget.isOwnerView ? '?owner=1' : '';
+                context.push('/bookings/${summary.bookingId}/claim$ownerQuery');
+              },
+              icon: const Icon(Icons.open_in_new_outlined, size: 16),
+              label: const Text('Xem trạng thái'),
+            ),
           ),
         ],
       ),
@@ -1165,52 +1203,7 @@ class _BookingDetailPageState extends State<BookingDetailPage> {
               ),
             ),
             const SizedBox(height: 12),
-            FutureBuilder<Set<String>>(
-              future: _reviewedBookingIdsFuture,
-              builder: (context, snapshot) {
-                final isChecking =
-                    snapshot.connectionState != ConnectionState.done;
-                final hasReviewed =
-                    snapshot.data?.contains(booking.id) ?? false;
-                return SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton.icon(
-                    onPressed: isChecking || hasReviewed
-                        ? null
-                        : () => _navigateToReview(context, booking),
-                    icon: Icon(
-                      hasReviewed
-                          ? Icons.check_circle_outline
-                          : Icons.person_search_outlined,
-                    ),
-                    label: Text(
-                      hasReviewed
-                          ? 'Đã đánh giá người thuê'
-                          : isChecking
-                          ? 'Đang kiểm tra đánh giá...'
-                          : 'Đánh giá người thuê',
-                      style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
-                    ),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: hasReviewed
-                          ? AppColors.success
-                          : const Color(0xFFFFB300),
-                      foregroundColor: Colors.white,
-                      disabledBackgroundColor: hasReviewed
-                          ? AppColors.success.withOpacity(0.85)
-                          : AppColors.textMuted.withOpacity(0.18),
-                      disabledForegroundColor: hasReviewed
-                          ? Colors.white
-                          : AppColors.textMuted,
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                  ),
-                );
-              },
-            ),
+            _buildReviewExperience(context, booking),
           ],
         ),
       );
@@ -1351,61 +1344,80 @@ class _BookingDetailPageState extends State<BookingDetailPage> {
 
     // Completed booking - show review button
     if (!widget.isOwnerView && booking.isCompleted) {
-      return FutureBuilder<Set<String>>(
-        future: _reviewedBookingIdsFuture,
-        builder: (context, snapshot) {
-          final isChecking = snapshot.connectionState != ConnectionState.done;
-          final hasReviewed = snapshot.data?.contains(booking.id) ?? false;
-          return Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: SizedBox(
-              width: double.infinity,
-              child: ElevatedButton.icon(
-                onPressed: isChecking || hasReviewed
-                    ? null
-                    : () => _navigateToReview(context, booking),
-                icon: Icon(
-                  hasReviewed ? Icons.check_circle_outline : Icons.star_outline,
-                ),
-                label: Text(
-                  hasReviewed
-                      ? 'Đã đánh giá chuyến đi'
-                      : isChecking
-                      ? 'Đang kiểm tra đánh giá...'
-                      : 'Đánh giá chuyến đi',
-                  style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
-                ),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: hasReviewed
-                      ? AppColors.success
-                      : const Color(0xFFFFB300),
-                  foregroundColor: Colors.white,
-                  disabledBackgroundColor: hasReviewed
-                      ? AppColors.success.withOpacity(0.85)
-                      : AppColors.textMuted.withOpacity(0.18),
-                  disabledForegroundColor: hasReviewed
-                      ? Colors.white
-                      : AppColors.textMuted,
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-              ),
-            ),
-          );
-        },
+      return Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        child: _buildReviewExperience(context, booking),
       );
     }
 
     return const SizedBox.shrink();
   }
 
+  Widget _buildReviewExperience(BuildContext context, BookingEntity booking) {
+    return FutureBuilder<BookingReviewStatus?>(
+      future: _reviewStatusFuture,
+      builder: (context, snapshot) {
+        final isChecking = snapshot.connectionState != ConnectionState.done;
+        final status = snapshot.data;
+        final hasSubmitted = status?.submitted ?? false;
+        final hasActivity = status?.hasActivity ?? false;
+        return Column(
+          children: [
+            if (hasActivity)
+              BlindReviewStatusCard(
+                status: status!,
+                isOwnerView: widget.isOwnerView,
+              ),
+            if (hasActivity && !hasSubmitted) const SizedBox(height: 12),
+            if (!hasSubmitted)
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  onPressed: isChecking
+                      ? null
+                      : () => _navigateToReview(context, booking),
+                  icon: Icon(
+                    widget.isOwnerView
+                        ? Icons.person_search_outlined
+                        : Icons.star_outline,
+                  ),
+                  label: Text(
+                    isChecking
+                        ? 'Đang kiểm tra đánh giá...'
+                        : widget.isOwnerView
+                        ? 'Đánh giá người thuê'
+                        : 'Đánh giá chuyến đi',
+                    style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFFFB300),
+                    foregroundColor: Colors.white,
+                    disabledBackgroundColor: AppColors.textMuted.withValues(
+                      alpha: 0.18,
+                    ),
+                    disabledForegroundColor: AppColors.textMuted,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        );
+      },
+    );
+  }
+
   Widget _buildPaymentRequiredCard(BookingEntity booking) {
-    final totalAmount = NumberFormat.currency(
-      locale: 'vi_VN',
-      symbol: 'đ',
-    ).format(booking.totalPrice + booking.protectionFee + booking.deposit);
+    final totalAmount = NumberFormat.currency(locale: 'vi_VN', symbol: 'đ')
+        .format(
+          booking.totalPrice +
+              booking.protectionFee +
+              booking.prepaidChargingFee +
+              booking.roadsideSupportFee +
+              booking.deposit,
+        );
 
     return Container(
       width: double.infinity,
@@ -1497,6 +1509,8 @@ class _BookingDetailPageState extends State<BookingDetailPage> {
           bookingId: booking.id,
           totalAmount: booking.totalPrice,
           protectionFee: booking.protectionFee,
+          prepaidChargingFee: booking.prepaidChargingFee,
+          roadsideSupportFee: booking.roadsideSupportFee,
           deposit: booking.deposit,
         ),
       ),
@@ -1525,7 +1539,7 @@ class _BookingDetailPageState extends State<BookingDetailPage> {
       ),
     );
     if (created == true && mounted) {
-      _refreshReviewedBookingIds();
+      _refreshReviewStatus();
     }
   }
 
@@ -1739,9 +1753,13 @@ class _BookingDetailPageState extends State<BookingDetailPage> {
   void _showIncidentReportDialog(BuildContext context, BookingEntity booking) {
     final descriptionController = TextEditingController();
     final formKey = GlobalKey<FormState>();
+    final handoverFuture = sl<GetHandoverByBookingUseCase>()(
+      GetHandoverByBookingParams(booking.id),
+    );
     var selectedCategory = IncidentCategory.mechanicalIssue;
     var selectedSeverity = IncidentSeverity.medium;
     var uploadedEvidenceUrls = <String>[];
+    var selectedHandoverPhotoIds = <String>{};
     var isUploading = false;
     var isSubmitting = false;
     final bookingBloc = context.read<BookingBloc>();
@@ -1801,11 +1819,13 @@ class _BookingDetailPageState extends State<BookingDetailPage> {
 
           Future<void> submit() async {
             if (!(formKey.currentState?.validate() ?? false)) return;
-            if (requiresEvidence && uploadedEvidenceUrls.isEmpty) {
+            if (requiresEvidence &&
+                uploadedEvidenceUrls.isEmpty &&
+                selectedHandoverPhotoIds.isEmpty) {
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(
                   content: Text(
-                    'Loại sự cố này cần ít nhất một ảnh bằng chứng.',
+                    'Loại sự cố này cần ảnh tải lên hoặc ảnh bàn giao.',
                   ),
                   backgroundColor: AppColors.error,
                 ),
@@ -1822,7 +1842,12 @@ class _BookingDetailPageState extends State<BookingDetailPage> {
                 category: selectedCategory,
                 severity: selectedSeverity,
                 description: descriptionController.text.trim(),
-                evidenceUrls: uploadedEvidenceUrls,
+                evidenceUrls: uploadedEvidenceUrls.isEmpty
+                    ? null
+                    : uploadedEvidenceUrls,
+                handoverPhotoIds: selectedHandoverPhotoIds.isEmpty
+                    ? null
+                    : selectedHandoverPhotoIds.toList(),
               ),
             );
 
@@ -1951,8 +1976,8 @@ class _BookingDetailPageState extends State<BookingDetailPage> {
                         children: [
                           Text(
                             requiresEvidence
-                                ? 'Loại sự cố này bắt buộc có ảnh bằng chứng.'
-                                : 'Bạn có thể thêm ảnh để Admin xử lý nhanh hơn.',
+                                ? 'Cần ảnh tải lên hoặc ảnh bàn giao đã lưu.'
+                                : 'Thêm ảnh mới hoặc dùng ảnh bàn giao đã lưu.',
                             style: GoogleFonts.poppins(
                               fontSize: 12,
                               color: AppColors.textSecondary,
@@ -1996,6 +2021,128 @@ class _BookingDetailPageState extends State<BookingDetailPage> {
                                     : pickAndUploadEvidence,
                               ),
                             ],
+                          ),
+                          const SizedBox(height: 14),
+                          Text(
+                            'Ảnh bàn giao đã lưu',
+                            style: GoogleFonts.poppins(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.textPrimary,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          FutureBuilder(
+                            future: handoverFuture,
+                            builder: (context, snapshot) {
+                              if (snapshot.connectionState !=
+                                  ConnectionState.done) {
+                                return const LinearProgressIndicator(
+                                  minHeight: 2,
+                                );
+                              }
+
+                              final handover = snapshot.data
+                                  ?.fold<HandoverSummary?>(
+                                    (_) => null,
+                                    (summary) => summary,
+                                  );
+                              final photos = <HandoverPhoto>[
+                                ...?handover?.checkOut?.photos,
+                                ...?handover?.checkIn?.photos,
+                              ];
+
+                              if (photos.isEmpty) {
+                                return Text(
+                                  'Chưa có ảnh bàn giao để chọn.',
+                                  style: GoogleFonts.poppins(
+                                    fontSize: 12,
+                                    color: AppColors.textSecondary,
+                                  ),
+                                );
+                              }
+
+                              return Column(
+                                children: photos.map((photo) {
+                                  final isSelected = selectedHandoverPhotoIds
+                                      .contains(photo.id);
+                                  final type =
+                                      photos.indexOf(photo) <
+                                          (handover?.checkOut?.photos.length ??
+                                              0)
+                                      ? 'Check-out'
+                                      : 'Check-in';
+                                  return CheckboxListTile(
+                                    value: isSelected,
+                                    contentPadding: EdgeInsets.zero,
+                                    dense: true,
+                                    controlAffinity:
+                                        ListTileControlAffinity.leading,
+                                    title: Row(
+                                      children: [
+                                        AppNetworkImage(
+                                          imageUrl: photo.photoUrl,
+                                          width: 44,
+                                          height: 44,
+                                          borderRadius: BorderRadius.circular(
+                                            6,
+                                          ),
+                                          cacheWidth: 88,
+                                          cacheHeight: 88,
+                                          semanticLabel:
+                                              'Ảnh bàn giao ${photo.photoType}',
+                                        ),
+                                        const SizedBox(width: 10),
+                                        Expanded(
+                                          child: Text(
+                                            '$type · ${photo.photoType}',
+                                            style: GoogleFonts.poppins(
+                                              fontSize: 12,
+                                              color: AppColors.textPrimary,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    onChanged: isSubmitting || isUploading
+                                        ? null
+                                        : (selected) {
+                                            if (selected == true &&
+                                                selectedHandoverPhotoIds
+                                                        .length >=
+                                                    10) {
+                                              ScaffoldMessenger.of(
+                                                context,
+                                              ).showSnackBar(
+                                                const SnackBar(
+                                                  content: Text(
+                                                    'Tối đa 10 ảnh bàn giao.',
+                                                  ),
+                                                  backgroundColor:
+                                                      AppColors.warning,
+                                                ),
+                                              );
+                                              return;
+                                            }
+                                            setDialogState(() {
+                                              selectedHandoverPhotoIds = {
+                                                ...selectedHandoverPhotoIds,
+                                              };
+                                              if (selected == true) {
+                                                selectedHandoverPhotoIds.add(
+                                                  photo.id,
+                                                );
+                                              } else {
+                                                selectedHandoverPhotoIds.remove(
+                                                  photo.id,
+                                                );
+                                              }
+                                            });
+                                          },
+                                  );
+                                }).toList(),
+                              );
+                            },
                           ),
                         ],
                       ),
@@ -2431,6 +2578,20 @@ class _CancellationRefundPreviewPanel extends StatelessWidget {
           if (preview.protectionAmount > 0) ...[
             const SizedBox(height: 6),
             _row('Hoàn phí bảo vệ', preview.refundableProtectionAmount),
+          ],
+          if (preview.prepaidChargingAmount > 0) ...[
+            const SizedBox(height: 6),
+            _row(
+              'Hoàn phí sạc trả trước',
+              preview.refundablePrepaidChargingAmount,
+            ),
+          ],
+          if (preview.roadsideSupportAmount > 0) ...[
+            const SizedBox(height: 6),
+            _row(
+              'Hoàn phí hỗ trợ cứu hộ',
+              preview.refundableRoadsideSupportAmount,
+            ),
           ],
           const SizedBox(height: 6),
           _row('Hoàn tiền cọc', preview.refundableDepositAmount),

@@ -49,6 +49,9 @@ class VehicleListCubit extends Cubit<VehicleListState> {
   DateTime? _activeStartTime;
   DateTime? _activeEndTime;
   bool? _activeInstantBookOnly;
+  VehicleCondition? _activeCondition;
+  BatteryType? _activeBatteryType;
+  int? _activeMinBatteryHealth;
   double? _activeNearbyLat;
   double? _activeNearbyLng;
   double? _activeNearbyRadius;
@@ -68,6 +71,9 @@ class VehicleListCubit extends Cubit<VehicleListState> {
     DateTime? startTime,
     DateTime? endTime,
     bool? instantBookOnly,
+    VehicleCondition? condition,
+    BatteryType? batteryType,
+    int? minBatteryHealth,
   }) async {
     emit(VehicleListLoading());
 
@@ -76,6 +82,9 @@ class VehicleListCubit extends Cubit<VehicleListState> {
         startTime: startTime,
         endTime: endTime,
         instantBookOnly: instantBookOnly,
+        condition: condition,
+        batteryType: batteryType,
+        minBatteryHealth: minBatteryHealth,
       ),
     );
 
@@ -85,10 +94,20 @@ class VehicleListCubit extends Cubit<VehicleListState> {
       _activeStartTime = startTime;
       _activeEndTime = endTime;
       _activeInstantBookOnly = instantBookOnly;
+      _activeCondition = condition;
+      _activeBatteryType = batteryType;
+      _activeMinBatteryHealth = minBatteryHealth;
       _activeNearbyLat = null;
       _activeNearbyLng = null;
       _activeNearbyRadius = null;
-      _activeCacheKey = _availableCacheKey(startTime, endTime, instantBookOnly);
+      _activeCacheKey = _availableCacheKey(
+        startTime,
+        endTime,
+        instantBookOnly,
+        condition,
+        batteryType,
+        minBatteryHealth,
+      );
       emit(VehicleListLoaded(vehicles));
     });
   }
@@ -100,6 +119,9 @@ class VehicleListCubit extends Cubit<VehicleListState> {
     VehicleBrand? brand,
     VehicleType? type,
     int? minBatteryLevel,
+    VehicleCondition? condition,
+    BatteryType? batteryType,
+    int? minBatteryHealth,
     List<VehicleFeature>? features,
     bool instantBookOnly = false,
     String sortBy = 'default',
@@ -153,6 +175,24 @@ class VehicleListCubit extends Cubit<VehicleListState> {
       }).toList();
     }
 
+    if (condition != null) {
+      filtered = filtered.where((vehicle) {
+        return vehicle.condition == condition;
+      }).toList();
+    }
+
+    if (batteryType != null) {
+      filtered = filtered.where((vehicle) {
+        return vehicle.batteryType == batteryType;
+      }).toList();
+    }
+
+    if (minBatteryHealth != null) {
+      filtered = filtered.where((vehicle) {
+        return (vehicle.batteryHealth ?? 0) >= minBatteryHealth;
+      }).toList();
+    }
+
     // Apply features filter
     if (features != null && features.isNotEmpty) {
       filtered = filtered.where((vehicle) {
@@ -196,6 +236,11 @@ class VehicleListCubit extends Cubit<VehicleListState> {
           ),
         );
         break;
+      case 'battery_health':
+        filtered.sort(
+          (a, b) => (b.batteryHealth ?? -1).compareTo(a.batteryHealth ?? -1),
+        );
+        break;
       case 'default':
       default:
         break;
@@ -213,6 +258,9 @@ class VehicleListCubit extends Cubit<VehicleListState> {
     DateTime? startTime,
     DateTime? endTime,
     bool? instantBookOnly,
+    VehicleCondition? condition,
+    BatteryType? batteryType,
+    int? minBatteryHealth,
   }) async {
     emit(VehicleListLoading());
 
@@ -224,6 +272,9 @@ class VehicleListCubit extends Cubit<VehicleListState> {
         startTime: startTime,
         endTime: endTime,
         instantBookOnly: instantBookOnly,
+        condition: condition,
+        batteryType: batteryType,
+        minBatteryHealth: minBatteryHealth,
       ),
     );
 
@@ -233,6 +284,9 @@ class VehicleListCubit extends Cubit<VehicleListState> {
       _activeStartTime = startTime;
       _activeEndTime = endTime;
       _activeInstantBookOnly = instantBookOnly;
+      _activeCondition = condition;
+      _activeBatteryType = batteryType;
+      _activeMinBatteryHealth = minBatteryHealth;
       _activeNearbyLat = userLat;
       _activeNearbyLng = userLng;
       _activeNearbyRadius = radiusKm;
@@ -243,6 +297,9 @@ class VehicleListCubit extends Cubit<VehicleListState> {
         startTime,
         endTime,
         instantBookOnly,
+        condition,
+        batteryType,
+        minBatteryHealth,
       );
       emit(VehicleListLoaded(vehicles));
     });
@@ -309,6 +366,9 @@ class VehicleListCubit extends Cubit<VehicleListState> {
               startTime: _activeStartTime,
               endTime: _activeEndTime,
               instantBookOnly: _activeInstantBookOnly,
+              condition: _activeCondition,
+              batteryType: _activeBatteryType,
+              minBatteryHealth: _activeMinBatteryHealth,
             ),
           )
         : await _getAvailableVehicles(
@@ -316,6 +376,9 @@ class VehicleListCubit extends Cubit<VehicleListState> {
               startTime: _activeStartTime,
               endTime: _activeEndTime,
               instantBookOnly: _activeInstantBookOnly,
+              condition: _activeCondition,
+              batteryType: _activeBatteryType,
+              minBatteryHealth: _activeMinBatteryHealth,
             ),
           );
 
@@ -328,6 +391,9 @@ class VehicleListCubit extends Cubit<VehicleListState> {
     DateTime? startTime,
     DateTime? endTime,
     bool? instantBookOnly,
+    VehicleCondition? condition,
+    BatteryType? batteryType,
+    int? minBatteryHealth,
   ) {
     final queryParameters = <String, dynamic>{};
     if (startTime != null) {
@@ -337,6 +403,12 @@ class VehicleListCubit extends Cubit<VehicleListState> {
       queryParameters['endTime'] = VietnamTime.toApiIsoString(endTime);
     }
     if (instantBookOnly == true) queryParameters['instantBook'] = true;
+    _appendEvMetadataQuery(
+      queryParameters,
+      condition: condition,
+      batteryType: batteryType,
+      minBatteryHealth: minBatteryHealth,
+    );
     return 'vehicles.available:${_cacheSuffix(queryParameters)}';
   }
 
@@ -347,6 +419,9 @@ class VehicleListCubit extends Cubit<VehicleListState> {
     DateTime? startTime,
     DateTime? endTime,
     bool? instantBookOnly,
+    VehicleCondition? condition,
+    BatteryType? batteryType,
+    int? minBatteryHealth,
   ) {
     final queryParameters = <String, dynamic>{
       'latitude': latitude,
@@ -360,7 +435,30 @@ class VehicleListCubit extends Cubit<VehicleListState> {
       queryParameters['endTime'] = VietnamTime.toApiIsoString(endTime);
     }
     if (instantBookOnly == true) queryParameters['instantBook'] = true;
+    _appendEvMetadataQuery(
+      queryParameters,
+      condition: condition,
+      batteryType: batteryType,
+      minBatteryHealth: minBatteryHealth,
+    );
     return 'vehicles.nearby:${_cacheSuffix(queryParameters)}';
+  }
+
+  void _appendEvMetadataQuery(
+    Map<String, dynamic> queryParameters, {
+    VehicleCondition? condition,
+    BatteryType? batteryType,
+    int? minBatteryHealth,
+  }) {
+    if (condition != null) {
+      queryParameters['condition'] = condition.toApiString();
+    }
+    if (batteryType != null) {
+      queryParameters['batteryType'] = batteryType.toApiString();
+    }
+    if (minBatteryHealth != null) {
+      queryParameters['minBatteryHealth'] = minBatteryHealth;
+    }
   }
 
   String _cacheSuffix(Map<String, dynamic> params) {

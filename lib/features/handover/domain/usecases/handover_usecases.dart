@@ -10,7 +10,6 @@ class HandoverMutationParams {
   final List<HandoverPhotoInput> photos;
   final double? odometerReading;
   final int? batteryLevel;
-  final int? fuelLevel;
   final double? latitude;
   final double? longitude;
   final String? notes;
@@ -20,7 +19,6 @@ class HandoverMutationParams {
     required this.photos,
     this.odometerReading,
     this.batteryLevel,
-    this.fuelLevel,
     this.latitude,
     this.longitude,
     this.notes,
@@ -39,7 +37,6 @@ class CreateCheckInUseCase
       photos: params.photos,
       odometerReading: params.odometerReading,
       batteryLevel: params.batteryLevel,
-      fuelLevel: params.fuelLevel,
       latitude: params.latitude,
       longitude: params.longitude,
       notes: params.notes,
@@ -59,7 +56,6 @@ class CreateCheckOutUseCase
       photos: params.photos,
       odometerReading: params.odometerReading,
       batteryLevel: params.batteryLevel,
-      fuelLevel: params.fuelLevel,
       latitude: params.latitude,
       longitude: params.longitude,
       notes: params.notes,

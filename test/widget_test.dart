@@ -5,6 +5,7 @@ import 'package:fe_capstone_project/core/widgets/app_network_image.dart';
 import 'package:fe_capstone_project/core/utils/vietnam_time.dart';
 import 'package:fe_capstone_project/core/localization/notification_text_localizer.dart';
 import 'package:fe_capstone_project/features/booking/data/models/booking_model.dart';
+import 'package:fe_capstone_project/features/booking/data/models/booking_policy_model.dart';
 import 'package:fe_capstone_project/core/localization/app_localizations.dart';
 import 'package:fe_capstone_project/features/booking/domain/entities/booking.dart';
 import 'package:fe_capstone_project/features/auth/data/models/user_model.dart';
@@ -20,9 +21,15 @@ import 'package:fe_capstone_project/features/incident/data/models/incident_repor
 import 'package:fe_capstone_project/features/incident/data/repositories/incident_repository_impl.dart';
 import 'package:fe_capstone_project/features/incident/domain/entities/claim_summary.dart';
 import 'package:fe_capstone_project/features/incident/domain/entities/incident_report.dart';
+import 'package:fe_capstone_project/features/owner_vehicle/data/models/availability_window_model.dart';
+import 'package:fe_capstone_project/features/owner_vehicle/domain/entities/vehicle_entity.dart';
+import 'package:fe_capstone_project/features/vehicle/data/models/availability_summary_model.dart';
+import 'package:fe_capstone_project/features/vehicle/data/models/vehicle_model.dart';
+import 'package:fe_capstone_project/features/vehicle/domain/entities/availability_summary.dart';
 import 'package:fe_capstone_project/features/renter/data/models/become_owner_response_model.dart';
 import 'package:fe_capstone_project/features/review/data/models/review_model.dart';
 import 'package:fe_capstone_project/features/review/domain/entities/review_entity.dart';
+import 'package:fe_capstone_project/features/review/presentation/widgets/blind_review_status_card.dart';
 import 'package:fe_capstone_project/features/settings/data/privacy_remote_data_source.dart';
 import 'package:fe_capstone_project/features/settings/presentation/pages/app_settings_page.dart';
 import 'package:flutter/material.dart';
@@ -98,6 +105,12 @@ void main() {
       'protectionFee': 2500,
       'protectionDeductible': 500000,
       'protectionCoverageLimit': 30000000,
+      'prepaidCharging': true,
+      'prepaidChargingFee': 50000,
+      'prepaidChargingCreditPercent': 10,
+      'roadsideSupport': true,
+      'roadsideSupportFee': 30000,
+      'roadsideSupportCreditAmount': 200000,
       'createdAt': '2026-05-09T03:00:00.000Z',
       'updatedAt': '2026-05-09T03:00:00.000Z',
       'vehicle': {'batteryLevel': 87},
@@ -112,6 +125,58 @@ void main() {
     expect(booking.protectionFee, 2500);
     expect(booking.protectionDeductible, 500000);
     expect(booking.protectionCoverageLimit, 30000000);
+    expect(booking.prepaidCharging, isTrue);
+    expect(booking.prepaidChargingFee, 50000);
+    expect(booking.prepaidChargingCreditPercent, 10);
+    expect(booking.roadsideSupport, isTrue);
+    expect(booking.roadsideSupportFee, 30000);
+    expect(booking.roadsideSupportCreditAmount, 200000);
+  });
+
+  test('BookingPolicyModel parses protection and add-on policy payload', () {
+    final policy = BookingPolicyModel.fromJson({
+      'defaultProtectionPlan': 'STANDARD',
+      'protectionPlans': [
+        {
+          'protectionPlan': 'BASIC',
+          'feeRate': 0,
+          'deductible': 3000000,
+          'coverageLimit': 5000000,
+          'isDefault': false,
+        },
+        {
+          'protectionPlan': 'STANDARD',
+          'feeRate': 0.05,
+          'deductible': 1500000,
+          'coverageLimit': 15000000,
+          'isDefault': true,
+        },
+        {
+          'protectionPlan': 'PREMIUM',
+          'feeRate': 0.1,
+          'deductible': 500000,
+          'coverageLimit': 30000000,
+          'isDefault': false,
+        },
+      ],
+      'prepaidCharging': {
+        'fee': 50000,
+        'creditPercent': 10,
+        'requiresBatteryReturnMinimum': true,
+      },
+      'roadsideSupport': {'fee': 30000, 'creditAmount': 200000},
+    }).toEntity();
+
+    expect(policy.defaultProtectionPlan, 'STANDARD');
+    expect(policy.protectionPlans, hasLength(3));
+    expect(policy.protectionPlans[1].protectionPlan, 'STANDARD');
+    expect(policy.protectionPlans[1].feeRate, 0.05);
+    expect(policy.protectionPlans[1].isDefault, isTrue);
+    expect(policy.prepaidCharging.fee, 50000);
+    expect(policy.prepaidCharging.creditPercent, 10);
+    expect(policy.prepaidCharging.requiresBatteryReturnMinimum, isTrue);
+    expect(policy.roadsideSupport.fee, 30000);
+    expect(policy.roadsideSupport.creditAmount, 200000);
   });
 
   test('BecomeOwnerResponseDto tolerates non-string and minimal payloads', () {
@@ -203,16 +268,22 @@ void main() {
       'trustPenalty': 5,
       'rentalAmount': 100000,
       'protectionAmount': 10000,
+      'prepaidChargingAmount': 50000,
+      'roadsideSupportAmount': 30000,
       'depositAmount': 500000,
-      'paidAmount': 610000,
+      'paidAmount': 690000,
       'refundableRentalAmount': 50000,
       'refundableProtectionAmount': 5000,
+      'refundablePrepaidChargingAmount': 25000,
+      'refundableRoadsideSupportAmount': 15000,
       'refundableDepositAmount': 500000,
-      'refundAmount': 555000,
+      'refundAmount': 595000,
       'forfeitedRentalAmount': 50000,
       'forfeitedProtectionAmount': 5000,
+      'forfeitedPrepaidChargingAmount': 25000,
+      'forfeitedRoadsideSupportAmount': 15000,
       'forfeitedDepositAmount': 0,
-      'forfeitedAmount': 55000,
+      'forfeitedAmount': 95000,
       'isPaid': true,
       'paymentStatus': 'COMPLETED',
       'refundType': 'partial',
@@ -221,10 +292,16 @@ void main() {
     final preview = model.toEntity();
     expect(preview.policyDisplayText, 'Hoàn 50% tiền thuê');
     expect(preview.refundableProtectionAmount, 5000);
+    expect(preview.prepaidChargingAmount, 50000);
+    expect(preview.refundablePrepaidChargingAmount, 25000);
+    expect(preview.roadsideSupportAmount, 30000);
+    expect(preview.refundableRoadsideSupportAmount, 15000);
     expect(preview.refundableDepositAmount, 500000);
-    expect(preview.refundAmount, 555000);
+    expect(preview.refundAmount, 595000);
     expect(preview.forfeitedProtectionAmount, 5000);
-    expect(preview.forfeitedAmount, 55000);
+    expect(preview.forfeitedPrepaidChargingAmount, 25000);
+    expect(preview.forfeitedRoadsideSupportAmount, 15000);
+    expect(preview.forfeitedAmount, 95000);
     expect(preview.trustPenalty, 5);
   });
 
@@ -317,6 +394,40 @@ void main() {
       'bookingId': 'booking-id',
       'status': 'AWAITING_DEPOSIT_DECISION',
       'statusLabel': 'Awaiting deposit decision',
+      'claimCase': {
+        'id': 'claim-case-id',
+        'caseNumber': 'CLM-20260525-0001',
+        'bookingId': 'booking-id',
+        'status': 'PENDING_SECOND_REVIEW',
+        'outcome': 'OWNER_CLAIM_APPROVED',
+        'summary': 'Owner damage evidence accepted.',
+        'firstDecision': 'OWNER_CLAIM_APPROVED',
+        'firstReviewedAt': '2026-05-24T03:00:00.000Z',
+        'secondDecision': null,
+        'secondReviewedAt': null,
+        'resolvedAt': null,
+        'sla': {
+          'status': 'AT_RISK',
+          'stage': 'SECOND_REVIEW',
+          'dueAt': '2026-05-24T15:00:00.000Z',
+          'label': 'Second review due soon',
+          'remainingMinutes': 75,
+          'overdueMinutes': 0,
+          'escalationLevel': 0,
+        },
+        'protectionSettlement': {
+          'status': 'CALCULATED',
+          'protectionPlan': 'PREMIUM',
+          'eligibleDamageAmount': 4000000,
+          'nonCoveredChargeAmount': 100000,
+          'deductibleAmount': 500000,
+          'deductibleAppliedAmount': 500000,
+          'coverageLimit': 3000000,
+          'platformCoverageAmount': 3000000,
+          'renterLiabilityAmount': 1000000,
+          'excessAboveCoverageAmount': 500000,
+        },
+      },
       'totals': {
         'incidentCount': 1,
         'openIncidentCount': 0,
@@ -376,6 +487,18 @@ void main() {
 
     final summary = model.toEntity();
     expect(summary.status, ClaimWorkflowStatus.awaitingDepositDecision);
+    expect(summary.claimCase?.caseNumber, 'CLM-20260525-0001');
+    expect(summary.claimCase?.sla?.status, 'AT_RISK');
+    expect(summary.claimCase?.sla?.remainingMinutes, 75);
+    expect(summary.claimCase?.protectionSettlement?.protectionPlan, 'PREMIUM');
+    expect(
+      summary.claimCase?.protectionSettlement?.platformCoverageAmount,
+      3000000,
+    );
+    expect(
+      summary.claimCase?.protectionSettlement?.renterLiabilityAmount,
+      1000000,
+    );
     expect(summary.totals.releasableDepositAmount, 350000);
     expect(summary.blockers.single.code, 'DEPOSIT_DECISION_PENDING');
     expect(summary.nextActions.single.actor, 'ADMIN');
@@ -398,6 +521,7 @@ void main() {
         severity: IncidentSeverity.critical,
         description: 'Vehicle does not match listing photos',
         evidenceUrls: const ['https://example.com/mismatch.jpg'],
+        handoverPhotoIds: const ['handover-photo-id'],
       );
 
       expect(result.isRight(), isTrue);
@@ -411,6 +535,7 @@ void main() {
       expect(remoteDataSource.lastEvidenceUrls, [
         'https://example.com/mismatch.jpg',
       ]);
+      expect(remoteDataSource.lastHandoverPhotoIds, ['handover-photo-id']);
     },
   );
 
@@ -457,6 +582,89 @@ void main() {
     expect(model.tripId, 'trip-id');
     expect(model.bookingId, 'booking-id');
     expect(model.toEntity().bookingId, 'booking-id');
+  });
+
+  test('BookingReviewStatusModel parses revealed counterpart review', () {
+    final model = BookingReviewStatusModel.fromJson({
+      'bookingId': 'booking-id',
+      'submitted': true,
+      'counterpartSubmitted': true,
+      'isRevealed': true,
+      'revealAt': '2026-05-30T03:00:00.000Z',
+      'ownReview': null,
+      'receivedReview': {
+        'id': 'received-review',
+        'userId': 'owner-id',
+        'vehicleId': 'vehicle-id',
+        'rating': 5,
+        'comment': 'Rất cẩn thận',
+        'createdAt': '2026-05-09T03:00:00.000Z',
+        'updatedAt': '2026-05-09T03:00:00.000Z',
+      },
+    });
+
+    expect(model.entity.isRevealed, isTrue);
+    expect(model.entity.receivedReview?.comment, 'Rất cẩn thận');
+    expect(model.entity.revealAt, DateTime.parse('2026-05-30T03:00:00.000Z'));
+  });
+
+  testWidgets('BlindReviewStatusCard shows a waiting blind-review state', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: Scaffold(
+          body: BlindReviewStatusCard(
+            isOwnerView: false,
+            status: BookingReviewStatus(
+              bookingId: 'booking-id',
+              submitted: true,
+              counterpartSubmitted: false,
+              isRevealed: false,
+              revealAt: null,
+            ),
+          ),
+        ),
+      ),
+    );
+
+    expect(find.text('Đánh giá đang ẩn'), findsOneWidget);
+    expect(find.textContaining('Đang chờ chủ xe'), findsOneWidget);
+    expect(find.text('Chủ xe đánh giá bạn'), findsNothing);
+  });
+
+  testWidgets('BlindReviewStatusCard renders a received review after reveal', (
+    tester,
+  ) async {
+    final now = DateTime.utc(2026, 5, 25);
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: BlindReviewStatusCard(
+            isOwnerView: false,
+            status: BookingReviewStatus(
+              bookingId: 'booking-id',
+              submitted: false,
+              counterpartSubmitted: true,
+              isRevealed: true,
+              receivedReview: ReviewEntity(
+                id: 'received-review',
+                userId: 'owner-id',
+                vehicleId: 'vehicle-id',
+                rating: 5,
+                comment: 'Rất cẩn thận',
+                createdAt: now,
+                updatedAt: now,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    expect(find.text('Đánh giá đã hiển thị'), findsOneWidget);
+    expect(find.text('Chủ xe đánh giá bạn'), findsOneWidget);
+    expect(find.text('Rất cẩn thận'), findsOneWidget);
   });
 
   test('TrustScoreBreakdownModel parses recent events and active warnings', () {
@@ -587,6 +795,197 @@ void main() {
 
     expect(model.roles, ['RENTER', 'OWNER']);
     expect(model.toEntity().isOwner, isTrue);
+  });
+
+  test(
+    'Weekly availability models serialize and parse recurrence settings',
+    () {
+      final params = CreateAvailabilityWindowParams(
+        type: AvailabilityWindowType.available,
+        recurrence: AvailabilityWindowRecurrence.weekly,
+        recurringWeekdays: const [1, 3, 5],
+        timezoneOffsetMinutes: 420,
+        timezoneName: 'Asia/Ho_Chi_Minh',
+        recurrenceEndsAt: DateTime.utc(2026, 12, 31, 16, 59, 59),
+        startTime: DateTime.utc(2026, 5, 25, 1),
+        endTime: DateTime.utc(2026, 5, 25, 11),
+      );
+
+      expect(params.toJson()['recurrence'], 'WEEKLY');
+      expect(params.toJson()['recurringWeekdays'], [1, 3, 5]);
+      expect(params.toJson()['timezoneOffsetMinutes'], 420);
+      expect(params.toJson()['timezoneName'], 'Asia/Ho_Chi_Minh');
+
+      final model = VehicleAvailabilityWindowModel.fromJson({
+        'id': 'rule-id',
+        'vehicleId': 'vehicle-id',
+        'type': 'BLOCKED',
+        'recurrence': 'WEEKLY',
+        'recurringWeekdays': [2, 4],
+        'timezoneOffsetMinutes': 420,
+        'timezoneName': 'Asia/Ho_Chi_Minh',
+        'recurrenceEndsAt': '2026-12-31T16:59:59.000Z',
+        'startTime': '2026-05-26T01:00:00.000Z',
+        'endTime': '2026-05-26T11:00:00.000Z',
+        'note': null,
+        'createdAt': '2026-05-25T00:00:00.000Z',
+        'updatedAt': '2026-05-25T00:00:00.000Z',
+      });
+
+      expect(model.recurrence, AvailabilityWindowRecurrence.weekly);
+      expect(model.recurringWeekdays, [2, 4]);
+      expect(model.isWeekly, isTrue);
+      expect(model.type, AvailabilityWindowType.blocked);
+      expect(model.timezoneName, 'Asia/Ho_Chi_Minh');
+    },
+  );
+
+  test('Renter availability summary parses public rules only', () {
+    final summary = VehicleAvailabilitySummaryModel.fromJson({
+      'hasAvailableCalendar': true,
+      'rules': [
+        {
+          'type': 'AVAILABLE',
+          'recurrence': 'WEEKLY',
+          'recurringWeekdays': [1, 5],
+          'timezoneOffsetMinutes': 420,
+          'timezoneName': 'Asia/Ho_Chi_Minh',
+          'recurrenceEndsAt': null,
+          'startTime': '2026-05-25T01:00:00.000Z',
+          'endTime': '2026-05-25T11:00:00.000Z',
+        },
+        {
+          'type': 'BLOCKED',
+          'recurrence': 'ONCE',
+          'recurringWeekdays': [],
+          'timezoneOffsetMinutes': null,
+          'recurrenceEndsAt': null,
+          'startTime': '2026-05-30T01:00:00.000Z',
+          'endTime': '2026-05-30T11:00:00.000Z',
+        },
+      ],
+    }).toEntity();
+
+    expect(summary.hasAvailableCalendar, isTrue);
+    expect(summary.availableRules.single.isWeekly, isTrue);
+    expect(summary.availableRules.single.recurringWeekdays, [1, 5]);
+    expect(summary.availableRules.single.timezoneName, 'Asia/Ho_Chi_Minh');
+    expect(
+      summary.blockedRules.single.type,
+      PublicAvailabilityRuleType.blocked,
+    );
+  });
+
+  test('Renter availability summary evaluates one-off blocked ranges', () {
+    final summary = VehicleAvailabilitySummary(
+      hasAvailableCalendar: false,
+      rules: [
+        VehicleAvailabilityRule(
+          type: PublicAvailabilityRuleType.blocked,
+          recurrence: PublicAvailabilityRecurrence.once,
+          startTime: DateTime.utc(2026, 5, 30, 1),
+          endTime: DateTime.utc(2026, 5, 30, 11),
+        ),
+      ],
+    );
+
+    final blocked = summary.evaluateRange(
+      DateTime.utc(2026, 5, 30, 2),
+      DateTime.utc(2026, 5, 30, 4),
+    );
+    final available = summary.evaluateRange(
+      DateTime.utc(2026, 5, 31, 2),
+      DateTime.utc(2026, 5, 31, 4),
+    );
+
+    expect(blocked.status, AvailabilityRangeStatus.blocked);
+    expect(blocked.canBook, isFalse);
+    expect(available.status, AvailabilityRangeStatus.available);
+    expect(available.canBook, isTrue);
+  });
+
+  test('Renter availability summary evaluates weekly available calendar', () {
+    final summary = VehicleAvailabilitySummary(
+      hasAvailableCalendar: true,
+      rules: [
+        VehicleAvailabilityRule(
+          type: PublicAvailabilityRuleType.available,
+          recurrence: PublicAvailabilityRecurrence.weekly,
+          recurringWeekdays: const [DateTime.monday],
+          timezoneOffsetMinutes: 420,
+          startTime: DateTime.utc(2026, 5, 25, 1),
+          endTime: DateTime.utc(2026, 5, 25, 11),
+        ),
+      ],
+    );
+
+    final covered = summary.evaluateRange(
+      DateTime.utc(2026, 6, 1, 2),
+      DateTime.utc(2026, 6, 1, 4),
+    );
+    final uncovered = summary.evaluateRange(
+      DateTime.utc(2026, 6, 2, 2),
+      DateTime.utc(2026, 6, 2, 4),
+    );
+
+    expect(covered.status, AvailabilityRangeStatus.available);
+    expect(covered.canBook, isTrue);
+    expect(uncovered.status, AvailabilityRangeStatus.unavailable);
+    expect(uncovered.canBook, isFalse);
+  });
+
+  test('Renter availability summary keeps weekly local hours across DST', () {
+    final summary = VehicleAvailabilitySummary(
+      hasAvailableCalendar: true,
+      rules: [
+        VehicleAvailabilityRule(
+          type: PublicAvailabilityRuleType.available,
+          recurrence: PublicAvailabilityRecurrence.weekly,
+          recurringWeekdays: const [DateTime.monday],
+          timezoneOffsetMinutes: -300,
+          timezoneName: 'America/New_York',
+          startTime: DateTime.utc(2026, 3, 2, 14),
+          endTime: DateTime.utc(2026, 3, 2, 16),
+        ),
+      ],
+    );
+
+    final afterSpringForward = summary.evaluateRange(
+      DateTime.utc(2026, 3, 9, 13, 30),
+      DateTime.utc(2026, 3, 9, 14, 30),
+    );
+
+    expect(afterSpringForward.status, AvailabilityRangeStatus.available);
+    expect(afterSpringForward.canBook, isTrue);
+  });
+
+  test('Renter vehicle model parses EV metadata used by filters', () {
+    final vehicle = VehicleModel.fromJson({
+      'id': 'vehicle-id',
+      'licensePlate': '59-E1 12345',
+      'model': 'Vento S',
+      'brand': 'VINFAST',
+      'type': 'ELECTRIC_MOTORBIKE',
+      'status': 'AVAILABLE',
+      'features': [],
+      'batteryLevel': 88,
+      'pricePerHour': 25000,
+      'condition': 'LIKE_NEW',
+      'batteryType': 'SWAPPABLE',
+      'batteryHealth': 96,
+      'isAvailable': true,
+      'address': 'Quan 1, TP.HCM',
+      'images': [],
+      'totalTrips': 0,
+      'totalRating': 5,
+      'ownerId': 'owner-id',
+      'createdAt': '2026-05-25T00:00:00.000Z',
+      'updatedAt': '2026-05-25T00:00:00.000Z',
+    });
+
+    expect(vehicle.condition?.toApiString(), 'LIKE_NEW');
+    expect(vehicle.batteryType?.toApiString(), 'SWAPPABLE');
+    expect(vehicle.batteryHealth, 96);
   });
 
   test('NotificationTextLocalizer follows the selected app language', () {
@@ -886,6 +1285,7 @@ class _FakeIncidentRemoteDataSource implements IncidentRemoteDataSource {
   String? lastSeverity;
   String? lastDescription;
   List<String>? lastEvidenceUrls;
+  List<String>? lastHandoverPhotoIds;
 
   @override
   Future<List<IncidentReportModel>> getBookingIncidents(String bookingId) {
@@ -938,6 +1338,7 @@ class _FakeIncidentRemoteDataSource implements IncidentRemoteDataSource {
     lastSeverity = severity;
     lastDescription = description;
     lastEvidenceUrls = evidenceUrls;
+    lastHandoverPhotoIds = handoverPhotoIds;
     return Future.value(_emptyIncident(bookingId));
   }
 

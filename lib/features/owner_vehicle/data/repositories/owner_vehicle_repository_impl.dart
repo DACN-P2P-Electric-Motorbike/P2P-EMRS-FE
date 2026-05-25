@@ -128,6 +128,29 @@ class OwnerVehicleRepositoryImpl implements OwnerVehicleRepository {
   }
 
   @override
+  Future<Either<Failure, VehicleAvailabilityWindowEntity>>
+  updateAvailabilityWindow(
+    String vehicleId,
+    String windowId,
+    CreateAvailabilityWindowParams params,
+  ) async {
+    try {
+      final window = await _remoteDataSource.updateAvailabilityWindow(
+        vehicleId,
+        windowId,
+        params,
+      );
+      return Right(window.toEntity());
+    } on ServerException catch (e) {
+      return Left(ServerFailure(message: e.message));
+    } on ConnectionException {
+      return const Left(ConnectionFailure());
+    } catch (e) {
+      return Left(ServerFailure(message: e.toString()));
+    }
+  }
+
+  @override
   Future<Either<Failure, void>> deleteAvailabilityWindow(
     String vehicleId,
     String windowId,

@@ -29,6 +29,7 @@ class OwnerVehicleBloc extends Bloc<OwnerVehicleEvent, OwnerVehicleState> {
   final ToggleAvailabilityUseCase _toggleAvailabilityUseCase;
   final GetVehicleAvailabilityUseCase _getVehicleAvailabilityUseCase;
   final CreateVehicleAvailabilityUseCase _createVehicleAvailabilityUseCase;
+  final UpdateVehicleAvailabilityUseCase _updateVehicleAvailabilityUseCase;
   final DeleteVehicleAvailabilityUseCase _deleteVehicleAvailabilityUseCase;
   final DeleteVehicleUseCase _deleteVehicleUseCase;
   final HiveCacheService _cache;
@@ -43,6 +44,7 @@ class OwnerVehicleBloc extends Bloc<OwnerVehicleEvent, OwnerVehicleState> {
     required ToggleAvailabilityUseCase toggleAvailabilityUseCase,
     required GetVehicleAvailabilityUseCase getVehicleAvailabilityUseCase,
     required CreateVehicleAvailabilityUseCase createVehicleAvailabilityUseCase,
+    required UpdateVehicleAvailabilityUseCase updateVehicleAvailabilityUseCase,
     required DeleteVehicleAvailabilityUseCase deleteVehicleAvailabilityUseCase,
     required DeleteVehicleUseCase deleteVehicleUseCase,
     required HiveCacheService cache,
@@ -53,6 +55,7 @@ class OwnerVehicleBloc extends Bloc<OwnerVehicleEvent, OwnerVehicleState> {
        _toggleAvailabilityUseCase = toggleAvailabilityUseCase,
        _getVehicleAvailabilityUseCase = getVehicleAvailabilityUseCase,
        _createVehicleAvailabilityUseCase = createVehicleAvailabilityUseCase,
+       _updateVehicleAvailabilityUseCase = updateVehicleAvailabilityUseCase,
        _deleteVehicleAvailabilityUseCase = deleteVehicleAvailabilityUseCase,
        _deleteVehicleUseCase = deleteVehicleUseCase,
        _cache = cache,
@@ -68,6 +71,7 @@ class OwnerVehicleBloc extends Bloc<OwnerVehicleEvent, OwnerVehicleState> {
     on<ToggleVehicleAvailability>(_onToggleAvailability);
     on<LoadVehicleAvailability>(_onLoadVehicleAvailability);
     on<CreateVehicleAvailability>(_onCreateVehicleAvailability);
+    on<UpdateVehicleAvailability>(_onUpdateVehicleAvailability);
     on<DeleteVehicleAvailability>(_onDeleteVehicleAvailability);
     on<ResetOwnerVehicleState>(_onResetState);
   }
@@ -487,6 +491,56 @@ class OwnerVehicleBloc extends Bloc<OwnerVehicleEvent, OwnerVehicleState> {
             isAvailabilityLoading: false,
             availabilityWindows: windows,
             successMessage: 'Đã xóa khung lịch',
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> _onUpdateVehicleAvailability(
+    UpdateVehicleAvailability event,
+    Emitter<OwnerVehicleState> emit,
+  ) async {
+    emit(
+      state.copyWith(
+        status: OwnerVehicleStatus.updating,
+        isAvailabilityLoading: true,
+        clearError: true,
+        clearSuccess: true,
+      ),
+    );
+
+    final result = await _updateVehicleAvailabilityUseCase(
+      UpdateVehicleAvailabilityParams(
+        vehicleId: event.vehicleId,
+        windowId: event.windowId,
+        windowParams: event.params,
+      ),
+    );
+
+    result.fold(
+      (failure) => emit(
+        state.copyWith(
+          status: OwnerVehicleStatus.error,
+          isAvailabilityLoading: false,
+          errorMessage: failure.message,
+        ),
+      ),
+      (updatedWindow) {
+        final windows =
+            state.availabilityWindows
+                .map(
+                  (window) =>
+                      window.id == updatedWindow.id ? updatedWindow : window,
+                )
+                .toList()
+              ..sort((a, b) => a.startTime.compareTo(b.startTime));
+        emit(
+          state.copyWith(
+            status: OwnerVehicleStatus.updated,
+            isAvailabilityLoading: false,
+            availabilityWindows: windows,
+            successMessage: 'Đã sửa lịch cho thuê',
           ),
         );
       },

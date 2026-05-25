@@ -8,6 +8,7 @@ import '../../../../core/network/dio_client.dart';
 import '../../../../core/utils/vietnam_time.dart';
 import '../../domain/entities/booking_lock.dart';
 import '../models/booking_model.dart';
+import '../models/booking_policy_model.dart';
 import '../models/cancellation_refund_preview_model.dart';
 
 /// Abstract class for booking remote data source
@@ -19,6 +20,8 @@ abstract class BookingRemoteDataSource {
     required DateTime endTime,
     String? notes,
     String? protectionPlan,
+    bool prepaidCharging = false,
+    bool roadsideSupport = false,
   });
 
   /// Create a temporary booking lock while the renter confirms checkout
@@ -30,6 +33,9 @@ abstract class BookingRemoteDataSource {
 
   /// Release a temporary booking lock
   Future<void> releaseBookingLock(String lockId);
+
+  /// Get current booking protection and add-on policy
+  Future<BookingPolicyModel> getBookingPolicy();
 
   /// Get renter bookings
   Future<List<BookingModel>> getRenterBookings({String? status});
@@ -82,6 +88,8 @@ class BookingRemoteDataSourceImpl implements BookingRemoteDataSource {
     required DateTime endTime,
     String? notes,
     String? protectionPlan,
+    bool prepaidCharging = false,
+    bool roadsideSupport = false,
   }) async {
     try {
       final response = await _dioClient.post(
@@ -92,6 +100,8 @@ class BookingRemoteDataSourceImpl implements BookingRemoteDataSource {
           'endTime': VietnamTime.toApiIsoString(endTime),
           if (notes != null) 'notes': notes,
           if (protectionPlan != null) 'protectionPlan': protectionPlan,
+          if (prepaidCharging) 'prepaidCharging': true,
+          if (roadsideSupport) 'roadsideSupport': true,
         },
       );
 
@@ -158,6 +168,26 @@ class BookingRemoteDataSourceImpl implements BookingRemoteDataSource {
 
       throw ServerException(
         message: 'Failed to release booking lock',
+        statusCode: response.statusCode,
+      );
+    } on DioException catch (e) {
+      throw ServerException.fromDioException(e);
+    }
+  }
+
+  @override
+  Future<BookingPolicyModel> getBookingPolicy() async {
+    try {
+      final response = await _dioClient.get(ApiConstants.bookingPolicy);
+
+      if (response.statusCode == 200) {
+        return BookingPolicyModel.fromJson(
+          Map<String, dynamic>.from(response.data as Map),
+        );
+      }
+
+      throw ServerException(
+        message: 'Failed to get booking policy',
         statusCode: response.statusCode,
       );
     } on DioException catch (e) {
