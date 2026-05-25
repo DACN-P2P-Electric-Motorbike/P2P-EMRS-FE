@@ -1,5 +1,7 @@
 import 'package:equatable/equatable.dart';
 
+import '../../../../core/utils/availability_time_zone.dart';
+
 enum PublicAvailabilityRuleType {
   available,
   blocked;
@@ -27,6 +29,7 @@ class VehicleAvailabilityRule extends Equatable {
   final PublicAvailabilityRecurrence recurrence;
   final List<int> recurringWeekdays;
   final int? timezoneOffsetMinutes;
+  final String? timezoneName;
   final DateTime? recurrenceEndsAt;
   final DateTime startTime;
   final DateTime endTime;
@@ -36,6 +39,7 @@ class VehicleAvailabilityRule extends Equatable {
     required this.recurrence,
     this.recurringWeekdays = const [],
     this.timezoneOffsetMinutes,
+    this.timezoneName,
     this.recurrenceEndsAt,
     required this.startTime,
     required this.endTime,
@@ -69,22 +73,44 @@ class VehicleAvailabilityRule extends Equatable {
     DateTime rangeStart,
     DateTime rangeEnd,
   ) {
-    final offsetMs = (timezoneOffsetMinutes ?? 0) * 60 * 1000;
-    final durationMs = endTime.difference(startTime).inMilliseconds;
-    if (durationMs <= 0 || recurringWeekdays.isEmpty) return const [];
+    if (!endTime.isAfter(startTime) || recurringWeekdays.isEmpty) {
+      return const [];
+    }
 
-    final anchorLocal = DateTime.fromMillisecondsSinceEpoch(
-      startTime.millisecondsSinceEpoch + offsetMs,
-      isUtc: true,
+    final anchorLocal = AvailabilityTimeZone.toWallTime(
+      startTime,
+      timezoneName: timezoneName,
+      fallbackOffsetMinutes: timezoneOffsetMinutes,
     );
-    final scanStartLocal = DateTime.fromMillisecondsSinceEpoch(
-      rangeStart.millisecondsSinceEpoch + offsetMs - durationMs,
-      isUtc: true,
+    final anchorEndLocal = AvailabilityTimeZone.toWallTime(
+      endTime,
+      timezoneName: timezoneName,
+      fallbackOffsetMinutes: timezoneOffsetMinutes,
     );
-    final scanEndLocal = DateTime.fromMillisecondsSinceEpoch(
-      rangeEnd.millisecondsSinceEpoch + offsetMs,
-      isUtc: true,
+    final scanStartLocal = AvailabilityTimeZone.toWallTime(
+      rangeStart,
+      timezoneName: timezoneName,
+      fallbackOffsetMinutes: timezoneOffsetMinutes,
+    ).subtract(const Duration(days: 1));
+    final scanEndLocal = AvailabilityTimeZone.toWallTime(
+      rangeEnd,
+      timezoneName: timezoneName,
+      fallbackOffsetMinutes: timezoneOffsetMinutes,
     );
+    final endDayOffset =
+        DateTime.utc(
+              anchorEndLocal.year,
+              anchorEndLocal.month,
+              anchorEndLocal.day,
+            )
+            .difference(
+              DateTime.utc(
+                anchorLocal.year,
+                anchorLocal.month,
+                anchorLocal.day,
+              ),
+            )
+            .inDays;
     final weekdays = recurringWeekdays.toSet();
     final occurrences = <_AvailabilityOccurrence>[];
 
@@ -101,27 +127,26 @@ class VehicleAvailabilityRule extends Equatable {
 
     while (!cursor.isAfter(finalDate)) {
       if (weekdays.contains(cursor.weekday)) {
-        final occurrenceUtc = DateTime.utc(
-          cursor.year,
-          cursor.month,
-          cursor.day,
-          anchorLocal.hour,
-          anchorLocal.minute,
-          anchorLocal.second,
-          anchorLocal.millisecond,
-          anchorLocal.microsecond,
+        final occurrenceStart = AvailabilityTimeZone.fromWallTime(
+          cursor,
+          anchorLocal,
+          timezoneName: timezoneName,
+          fallbackOffsetMinutes: timezoneOffsetMinutes,
         );
-        final occurrenceStart = DateTime.fromMillisecondsSinceEpoch(
-          occurrenceUtc.millisecondsSinceEpoch - offsetMs,
-          isUtc: true,
-        ).toLocal();
+        final endDate = cursor.add(Duration(days: endDayOffset));
+        final occurrenceEnd = AvailabilityTimeZone.fromWallTime(
+          endDate,
+          anchorEndLocal,
+          timezoneName: timezoneName,
+          fallbackOffsetMinutes: timezoneOffsetMinutes,
+        );
         if (!occurrenceStart.isBefore(startTime) &&
             (recurrenceEndsAt == null ||
                 occurrenceStart.isBefore(recurrenceEndsAt!))) {
           occurrences.add(
             _AvailabilityOccurrence(
               startTime: occurrenceStart,
-              endTime: occurrenceStart.add(Duration(milliseconds: durationMs)),
+              endTime: occurrenceEnd,
             ),
           );
         }
@@ -137,6 +162,7 @@ class VehicleAvailabilityRule extends Equatable {
     recurrence,
     recurringWeekdays,
     timezoneOffsetMinutes,
+    timezoneName,
     recurrenceEndsAt,
     startTime,
     endTime,

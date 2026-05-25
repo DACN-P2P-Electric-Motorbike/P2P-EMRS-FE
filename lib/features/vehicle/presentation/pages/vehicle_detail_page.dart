@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import '../../../../../core/theme/app_theme.dart';
+import '../../../../../core/utils/availability_time_zone.dart';
 import '../../../../../core/utils/open_external_map.dart';
 import '../../../../../core/widgets/app_avatar.dart';
 import '../../../../../injection_container.dart';
@@ -941,14 +942,20 @@ class _VehicleDetailContent extends StatelessWidget {
           '${DateFormat('dd/MM HH:mm').format(end)}';
     }
 
-    final offsetMinutes = rule.timezoneOffsetMinutes ?? 0;
-    final offset = Duration(minutes: offsetMinutes);
-    final localStart = rule.startTime.toUtc().add(offset);
-    final localEnd = rule.endTime.toUtc().add(offset);
+    final localStart = AvailabilityTimeZone.toWallTime(
+      rule.startTime,
+      timezoneName: rule.timezoneName,
+      fallbackOffsetMinutes: rule.timezoneOffsetMinutes,
+    );
+    final localEnd = AvailabilityTimeZone.toWallTime(
+      rule.endTime,
+      timezoneName: rule.timezoneName,
+      fallbackOffsetMinutes: rule.timezoneOffsetMinutes,
+    );
     final weekdays = rule.recurringWeekdays.map(_weekdayLabel).join(', ');
     final until = rule.recurrenceEndsAt == null
         ? ''
-        : ' đến ${DateFormat('dd/MM').format(rule.recurrenceEndsAt!.toUtc().add(offset))}';
+        : ' đến ${DateFormat('dd/MM').format(AvailabilityTimeZone.toWallTime(rule.recurrenceEndsAt!, timezoneName: rule.timezoneName, fallbackOffsetMinutes: rule.timezoneOffsetMinutes))}';
     return '$weekdays · ${DateFormat('HH:mm').format(localStart)} - '
         '${DateFormat('HH:mm').format(localEnd)}$until';
   }

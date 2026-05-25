@@ -713,6 +713,7 @@ void main() {
         recurrence: AvailabilityWindowRecurrence.weekly,
         recurringWeekdays: const [1, 3, 5],
         timezoneOffsetMinutes: 420,
+        timezoneName: 'Asia/Ho_Chi_Minh',
         recurrenceEndsAt: DateTime.utc(2026, 12, 31, 16, 59, 59),
         startTime: DateTime.utc(2026, 5, 25, 1),
         endTime: DateTime.utc(2026, 5, 25, 11),
@@ -721,6 +722,7 @@ void main() {
       expect(params.toJson()['recurrence'], 'WEEKLY');
       expect(params.toJson()['recurringWeekdays'], [1, 3, 5]);
       expect(params.toJson()['timezoneOffsetMinutes'], 420);
+      expect(params.toJson()['timezoneName'], 'Asia/Ho_Chi_Minh');
 
       final model = VehicleAvailabilityWindowModel.fromJson({
         'id': 'rule-id',
@@ -729,6 +731,7 @@ void main() {
         'recurrence': 'WEEKLY',
         'recurringWeekdays': [2, 4],
         'timezoneOffsetMinutes': 420,
+        'timezoneName': 'Asia/Ho_Chi_Minh',
         'recurrenceEndsAt': '2026-12-31T16:59:59.000Z',
         'startTime': '2026-05-26T01:00:00.000Z',
         'endTime': '2026-05-26T11:00:00.000Z',
@@ -741,6 +744,7 @@ void main() {
       expect(model.recurringWeekdays, [2, 4]);
       expect(model.isWeekly, isTrue);
       expect(model.type, AvailabilityWindowType.blocked);
+      expect(model.timezoneName, 'Asia/Ho_Chi_Minh');
     },
   );
 
@@ -753,6 +757,7 @@ void main() {
           'recurrence': 'WEEKLY',
           'recurringWeekdays': [1, 5],
           'timezoneOffsetMinutes': 420,
+          'timezoneName': 'Asia/Ho_Chi_Minh',
           'recurrenceEndsAt': null,
           'startTime': '2026-05-25T01:00:00.000Z',
           'endTime': '2026-05-25T11:00:00.000Z',
@@ -772,6 +777,7 @@ void main() {
     expect(summary.hasAvailableCalendar, isTrue);
     expect(summary.availableRules.single.isWeekly, isTrue);
     expect(summary.availableRules.single.recurringWeekdays, [1, 5]);
+    expect(summary.availableRules.single.timezoneName, 'Asia/Ho_Chi_Minh');
     expect(
       summary.blockedRules.single.type,
       PublicAvailabilityRuleType.blocked,
@@ -834,6 +840,31 @@ void main() {
     expect(covered.canBook, isTrue);
     expect(uncovered.status, AvailabilityRangeStatus.unavailable);
     expect(uncovered.canBook, isFalse);
+  });
+
+  test('Renter availability summary keeps weekly local hours across DST', () {
+    final summary = VehicleAvailabilitySummary(
+      hasAvailableCalendar: true,
+      rules: [
+        VehicleAvailabilityRule(
+          type: PublicAvailabilityRuleType.available,
+          recurrence: PublicAvailabilityRecurrence.weekly,
+          recurringWeekdays: const [DateTime.monday],
+          timezoneOffsetMinutes: -300,
+          timezoneName: 'America/New_York',
+          startTime: DateTime.utc(2026, 3, 2, 14),
+          endTime: DateTime.utc(2026, 3, 2, 16),
+        ),
+      ],
+    );
+
+    final afterSpringForward = summary.evaluateRange(
+      DateTime.utc(2026, 3, 9, 13, 30),
+      DateTime.utc(2026, 3, 9, 14, 30),
+    );
+
+    expect(afterSpringForward.status, AvailabilityRangeStatus.available);
+    expect(afterSpringForward.canBook, isTrue);
   });
 
   test('Renter vehicle model parses EV metadata used by filters', () {

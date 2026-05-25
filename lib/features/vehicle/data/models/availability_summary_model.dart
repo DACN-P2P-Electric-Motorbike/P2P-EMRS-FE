@@ -6,6 +6,7 @@ class VehicleAvailabilityRuleModel extends VehicleAvailabilityRule {
     required super.recurrence,
     super.recurringWeekdays,
     super.timezoneOffsetMinutes,
+    super.timezoneName,
     super.recurrenceEndsAt,
     required super.startTime,
     required super.endTime,
@@ -21,6 +22,7 @@ class VehicleAvailabilityRuleModel extends VehicleAvailabilityRule {
           .map((day) => (day as num).toInt())
           .toList(),
       timezoneOffsetMinutes: (json['timezoneOffsetMinutes'] as num?)?.toInt(),
+      timezoneName: json['timezoneName'] as String?,
       recurrenceEndsAt: json['recurrenceEndsAt'] == null
           ? null
           : DateTime.parse(json['recurrenceEndsAt'] as String).toLocal(),

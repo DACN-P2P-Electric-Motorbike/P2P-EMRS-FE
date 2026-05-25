@@ -7,6 +7,7 @@ class CreateAvailabilityWindowParams extends Equatable {
   final AvailabilityWindowRecurrence recurrence;
   final List<int> recurringWeekdays;
   final int? timezoneOffsetMinutes;
+  final String? timezoneName;
   final DateTime? recurrenceEndsAt;
   final DateTime startTime;
   final DateTime endTime;
@@ -17,6 +18,7 @@ class CreateAvailabilityWindowParams extends Equatable {
     this.recurrence = AvailabilityWindowRecurrence.once,
     this.recurringWeekdays = const [],
     this.timezoneOffsetMinutes,
+    this.timezoneName,
     this.recurrenceEndsAt,
     required this.startTime,
     required this.endTime,
@@ -30,6 +32,7 @@ class CreateAvailabilityWindowParams extends Equatable {
       if (recurrence == AvailabilityWindowRecurrence.weekly) ...{
         'recurringWeekdays': recurringWeekdays,
         'timezoneOffsetMinutes': timezoneOffsetMinutes,
+        if (timezoneName != null) 'timezoneName': timezoneName,
         if (recurrenceEndsAt != null)
           'recurrenceEndsAt': recurrenceEndsAt!.toUtc().toIso8601String(),
       },
@@ -45,6 +48,7 @@ class CreateAvailabilityWindowParams extends Equatable {
     recurrence,
     recurringWeekdays,
     timezoneOffsetMinutes,
+    timezoneName,
     recurrenceEndsAt,
     startTime,
     endTime,
@@ -60,6 +64,7 @@ class VehicleAvailabilityWindowModel extends VehicleAvailabilityWindowEntity {
     super.recurrence,
     super.recurringWeekdays,
     super.timezoneOffsetMinutes,
+    super.timezoneName,
     super.recurrenceEndsAt,
     required super.startTime,
     required super.endTime,
@@ -80,6 +85,7 @@ class VehicleAvailabilityWindowModel extends VehicleAvailabilityWindowEntity {
           .map((day) => (day as num).toInt())
           .toList(),
       timezoneOffsetMinutes: (json['timezoneOffsetMinutes'] as num?)?.toInt(),
+      timezoneName: json['timezoneName'] as String?,
       recurrenceEndsAt: json['recurrenceEndsAt'] == null
           ? null
           : DateTime.parse(json['recurrenceEndsAt'] as String).toLocal(),
@@ -99,6 +105,7 @@ class VehicleAvailabilityWindowModel extends VehicleAvailabilityWindowEntity {
       'recurrence': recurrence.toApiString(),
       'recurringWeekdays': recurringWeekdays,
       'timezoneOffsetMinutes': timezoneOffsetMinutes,
+      'timezoneName': timezoneName,
       'recurrenceEndsAt': recurrenceEndsAt?.toUtc().toIso8601String(),
       'startTime': startTime.toUtc().toIso8601String(),
       'endTime': endTime.toUtc().toIso8601String(),
@@ -116,6 +123,7 @@ class VehicleAvailabilityWindowModel extends VehicleAvailabilityWindowEntity {
       recurrence: recurrence,
       recurringWeekdays: recurringWeekdays,
       timezoneOffsetMinutes: timezoneOffsetMinutes,
+      timezoneName: timezoneName,
       recurrenceEndsAt: recurrenceEndsAt,
       startTime: startTime,
       endTime: endTime,

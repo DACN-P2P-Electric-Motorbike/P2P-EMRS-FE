@@ -402,6 +402,7 @@ class VehicleAvailabilityWindowEntity extends Equatable {
   final AvailabilityWindowRecurrence recurrence;
   final List<int> recurringWeekdays;
   final int? timezoneOffsetMinutes;
+  final String? timezoneName;
   final DateTime? recurrenceEndsAt;
   final DateTime startTime;
   final DateTime endTime;
@@ -416,6 +417,7 @@ class VehicleAvailabilityWindowEntity extends Equatable {
     this.recurrence = AvailabilityWindowRecurrence.once,
     this.recurringWeekdays = const [],
     this.timezoneOffsetMinutes,
+    this.timezoneName,
     this.recurrenceEndsAt,
     required this.startTime,
     required this.endTime,
@@ -435,6 +437,7 @@ class VehicleAvailabilityWindowEntity extends Equatable {
     recurrence,
     recurringWeekdays,
     timezoneOffsetMinutes,
+    timezoneName,
     recurrenceEndsAt,
     startTime,
     endTime,

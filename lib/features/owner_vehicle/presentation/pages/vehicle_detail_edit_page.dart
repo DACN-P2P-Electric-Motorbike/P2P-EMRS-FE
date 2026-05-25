@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/utils/availability_time_zone.dart';
 import '../../../../core/widgets/app_network_image.dart';
 import '../../../../core/utils/open_external_map.dart';
 import '../../../../injection_container.dart';
@@ -651,6 +652,23 @@ class _VehicleDetailContentState extends State<_VehicleDetailContent> {
     final color = window.isAvailableWindow
         ? AppColors.success
         : AppColors.warning;
+    final weeklyStart = AvailabilityTimeZone.toWallTime(
+      window.startTime,
+      timezoneName: window.timezoneName,
+      fallbackOffsetMinutes: window.timezoneOffsetMinutes,
+    );
+    final weeklyEnd = AvailabilityTimeZone.toWallTime(
+      window.endTime,
+      timezoneName: window.timezoneName,
+      fallbackOffsetMinutes: window.timezoneOffsetMinutes,
+    );
+    final weeklyEndsAt = window.recurrenceEndsAt == null
+        ? null
+        : AvailabilityTimeZone.toWallTime(
+            window.recurrenceEndsAt!,
+            timezoneName: window.timezoneName,
+            fallbackOffsetMinutes: window.timezoneOffsetMinutes,
+          );
 
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
@@ -682,7 +700,7 @@ class _VehicleDetailContentState extends State<_VehicleDetailContent> {
                 const SizedBox(height: 2),
                 Text(
                   window.isWeekly
-                      ? '${_formatWeekdays(window.recurringWeekdays)} · ${_formatTime(window.startTime)} - ${_formatTime(window.endTime)}'
+                      ? '${_formatWeekdays(window.recurringWeekdays)} · ${_formatTime(weeklyStart)} - ${_formatTime(weeklyEnd)}'
                       : '${_formatDateTime(window.startTime)} - ${_formatDateTime(window.endTime)}',
                   style: GoogleFonts.poppins(
                     fontSize: 12,
@@ -693,8 +711,8 @@ class _VehicleDetailContentState extends State<_VehicleDetailContent> {
                   const SizedBox(height: 2),
                   Text(
                     window.recurrenceEndsAt == null
-                        ? 'Lặp lại hàng tuần'
-                        : 'Lặp lại đến ${_formatDate(window.recurrenceEndsAt!)}',
+                        ? 'Lặp lại hàng tuần · ${_availabilityTimezoneLabel(window)}'
+                        : 'Lặp lại đến ${_formatWallDate(weeklyEndsAt!)} · ${_availabilityTimezoneLabel(window)}',
                     style: GoogleFonts.poppins(
                       fontSize: 12,
                       color: AppColors.textSecondary,
@@ -1359,7 +1377,15 @@ class _VehicleDetailContentState extends State<_VehicleDetailContent> {
               recurringWeekdays: recurringWeekdays.toList()..sort(),
               timezoneOffsetMinutes:
                   existingWindow?.timezoneOffsetMinutes ??
-                  startTime.timeZoneOffset.inMinutes,
+                  AvailabilityTimeZone.vietnamOffsetMinutes,
+              timezoneName: recurrence == AvailabilityWindowRecurrence.weekly
+                  ? existingWindow?.timezoneName ??
+                        (existingWindow == null ||
+                                existingWindow.timezoneOffsetMinutes ==
+                                    AvailabilityTimeZone.vietnamOffsetMinutes
+                            ? AvailabilityTimeZone.vietnamName
+                            : null)
+                  : null,
               recurrenceEndsAt: recurrenceEndsAt,
               startTime: startTime,
               endTime: endTime,
@@ -1508,6 +1534,20 @@ class _VehicleDetailContentState extends State<_VehicleDetailContent> {
                       value: _formatDate(recurrenceEndsAt!),
                       onTap: pickRecurrenceEndDate,
                     ),
+                  const SizedBox(height: 8),
+                  Text(
+                    existingWindow?.timezoneName != null
+                        ? 'Múi giờ: ${existingWindow!.timezoneName}'
+                        : existingWindow != null &&
+                              existingWindow.timezoneOffsetMinutes !=
+                                  AvailabilityTimeZone.vietnamOffsetMinutes
+                        ? 'Múi giờ: UTC${_offsetLabel(existingWindow.timezoneOffsetMinutes)}'
+                        : 'Múi giờ: Việt Nam (GMT+7)',
+                    style: GoogleFonts.poppins(
+                      fontSize: 12,
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
                   const SizedBox(height: 16),
                 ],
                 _buildDateTimeTile(
@@ -2486,6 +2526,28 @@ class _VehicleDetailContentState extends State<_VehicleDetailContent> {
   String _formatTime(DateTime value) {
     final twoDigits = (int number) => number.toString().padLeft(2, '0');
     return '${twoDigits(value.hour)}:${twoDigits(value.minute)}';
+  }
+
+  String _formatWallDate(DateTime value) {
+    final twoDigits = (int number) => number.toString().padLeft(2, '0');
+    return '${twoDigits(value.day)}/${twoDigits(value.month)}/${value.year}';
+  }
+
+  String _availabilityTimezoneLabel(VehicleAvailabilityWindowEntity window) {
+    if (window.timezoneName == AvailabilityTimeZone.vietnamName) {
+      return 'GMT+7';
+    }
+    return window.timezoneName ??
+        'UTC${_offsetLabel(window.timezoneOffsetMinutes)}';
+  }
+
+  String _offsetLabel(int? minutes) {
+    final offset = minutes ?? 0;
+    final sign = offset >= 0 ? '+' : '-';
+    final absolute = offset.abs();
+    final hours = (absolute ~/ 60).toString().padLeft(2, '0');
+    final remaining = (absolute % 60).toString().padLeft(2, '0');
+    return '$sign$hours:$remaining';
   }
 
   String _weekdayLabel(int weekday) {
