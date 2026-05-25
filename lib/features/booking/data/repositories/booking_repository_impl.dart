@@ -21,6 +21,7 @@ class BookingRepositoryImpl implements BookingRepository {
     required DateTime endTime,
     String? notes,
     String? protectionPlan,
+    bool prepaidCharging = false,
   }) async {
     try {
       final model = await _remoteDataSource.createBooking(
@@ -29,6 +30,7 @@ class BookingRepositoryImpl implements BookingRepository {
         endTime: endTime,
         notes: notes,
         protectionPlan: protectionPlan,
+        prepaidCharging: prepaidCharging,
       );
       return Right(model.toEntity());
     } on NetworkException {

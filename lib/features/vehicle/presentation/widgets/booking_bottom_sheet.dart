@@ -82,6 +82,7 @@ class _EnhancedBookingContentState extends State<_EnhancedBookingContent> {
   final _notesController = TextEditingController();
   bool _isProcessing = false;
   String _selectedProtectionPlan = 'STANDARD';
+  bool _prepaidCharging = false;
   String? _activeLockId;
   DateTime? _lockExpiresAt;
   Duration _remainingLockTime = Duration.zero;
@@ -90,6 +91,8 @@ class _EnhancedBookingContentState extends State<_EnhancedBookingContent> {
   late final BookingRepository _bookingRepository;
   static const _minRentalDuration = Duration(minutes: 30);
   static const _maxRentalDuration = Duration(days: 30);
+  static const _prepaidChargingFee = 50000.0;
+  static const _prepaidChargingCreditPercent = 10;
   static const _protectionPlans = [
     _ProtectionPlanOption(
       value: 'BASIC',
@@ -197,8 +200,14 @@ class _EnhancedBookingContentState extends State<_EnhancedBookingContent> {
   double get _protectionFee =>
       (_totalPrice * _selectedProtection.feeRate).round().toDouble();
 
+  double get _selectedPrepaidChargingFee =>
+      _prepaidCharging ? _prepaidChargingFee : 0;
+
   double get _checkoutTotal =>
-      _totalPrice + _protectionFee + (widget.vehicle.deposit ?? 0);
+      _totalPrice +
+      _protectionFee +
+      _selectedPrepaidChargingFee +
+      (widget.vehicle.deposit ?? 0);
 
   AvailabilityRangeEvaluation? get _availabilityEvaluation {
     final summary = widget.availabilitySummary;
@@ -391,6 +400,10 @@ class _EnhancedBookingContentState extends State<_EnhancedBookingContent> {
                       if (_totalPrice > 0) ...[
                         _buildProtectionPlanSelector(),
                         const SizedBox(height: 24),
+                        if (widget.vehicle.batteryReturnMin != null) ...[
+                          _buildPrepaidChargingAddon(),
+                          const SizedBox(height: 24),
+                        ],
                       ],
 
                       // Price breakdown
@@ -1182,6 +1195,45 @@ class _EnhancedBookingContentState extends State<_EnhancedBookingContent> {
     );
   }
 
+  Widget _buildPrepaidChargingAddon() {
+    return Container(
+      decoration: BoxDecoration(
+        color: _prepaidCharging
+            ? AppColors.primary.withValues(alpha: 0.08)
+            : Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: _prepaidCharging ? AppColors.primary : AppColors.border,
+          width: _prepaidCharging ? 2 : 1,
+        ),
+      ),
+      child: SwitchListTile(
+        value: _prepaidCharging,
+        onChanged: (value) => setState(() => _prepaidCharging = value),
+        activeThumbColor: AppColors.primary,
+        secondary: Icon(
+          Icons.battery_charging_full_outlined,
+          color: _prepaidCharging ? AppColors.primary : AppColors.textMuted,
+        ),
+        title: Text(
+          'Sạc trả trước',
+          style: GoogleFonts.poppins(
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+            color: AppColors.textPrimary,
+          ),
+        ),
+        subtitle: Text(
+          '+${_formatPrice(_prepaidChargingFee)} - bao gồm $_prepaidChargingCreditPercent% thiếu hụt pin khi trả xe',
+          style: GoogleFonts.poppins(
+            fontSize: 12,
+            color: AppColors.textSecondary,
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildPriceBreakdown() {
     return Container(
       padding: const EdgeInsets.all(20),
@@ -1261,6 +1313,29 @@ class _EnhancedBookingContentState extends State<_EnhancedBookingContent> {
               ),
             ],
           ),
+          if (_prepaidCharging) ...[
+            const SizedBox(height: 8),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Sạc trả trước ($_prepaidChargingCreditPercent% pin)',
+                  style: GoogleFonts.poppins(
+                    fontSize: 14,
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+                Text(
+                  _formatPrice(_selectedPrepaidChargingFee),
+                  style: GoogleFonts.poppins(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+              ],
+            ),
+          ],
           if (widget.vehicle.deposit != null) ...[
             const SizedBox(height: 8),
             Row(
@@ -1367,6 +1442,10 @@ class _EnhancedBookingContentState extends State<_EnhancedBookingContent> {
           _buildNote(
             'Gói bảo vệ là mô phỏng nội bộ, không phải bảo hiểm bên thứ ba',
           ),
+          if (_prepaidCharging)
+            _buildNote(
+              'Sạc trả trước bao gồm $_prepaidChargingCreditPercent% thiếu hụt pin; phần vượt mức vẫn được tính sau chuyến',
+            ),
           if (widget.vehicle.deposit != null)
             _buildNote('Tiền cọc sẽ được hoàn lại sau khi trả xe'),
         ],
@@ -1549,6 +1628,7 @@ class _EnhancedBookingContentState extends State<_EnhancedBookingContent> {
             ? null
             : _notesController.text.trim(),
         protectionPlan: _selectedProtectionPlan,
+        prepaidCharging: _prepaidCharging,
       ),
     );
   }

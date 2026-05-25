@@ -429,6 +429,14 @@ class _BookingDetailPageState extends State<BookingDetailPage> {
             'Gói bảo vệ ${_protectionPlanLabel(booking.protectionPlan)}',
             '${NumberFormat.currency(locale: 'vi_VN', symbol: 'đ').format(booking.protectionFee)} - khấu trừ ${NumberFormat.currency(locale: 'vi_VN', symbol: 'đ').format(booking.protectionDeductible)}',
           ),
+          if (booking.prepaidCharging) ...[
+            const SizedBox(height: 12),
+            _buildInfoRow(
+              Icons.battery_charging_full_outlined,
+              'Sạc trả trước',
+              '${NumberFormat.currency(locale: 'vi_VN', symbol: 'đ').format(booking.prepaidChargingFee)} - bao gồm ${booking.prepaidChargingCreditPercent}% pin',
+            ),
+          ],
           const SizedBox(height: 12),
           _buildInfoRow(
             Icons.account_balance_wallet,
@@ -452,7 +460,10 @@ class _BookingDetailPageState extends State<BookingDetailPage> {
               ),
               Text(
                 NumberFormat.currency(locale: 'vi_VN', symbol: 'đ').format(
-                  booking.totalPrice + booking.protectionFee + booking.deposit,
+                  booking.totalPrice +
+                      booking.protectionFee +
+                      booking.prepaidChargingFee +
+                      booking.deposit,
                 ),
                 style: GoogleFonts.poppins(
                   fontSize: 20,
@@ -1390,10 +1401,13 @@ class _BookingDetailPageState extends State<BookingDetailPage> {
   }
 
   Widget _buildPaymentRequiredCard(BookingEntity booking) {
-    final totalAmount = NumberFormat.currency(
-      locale: 'vi_VN',
-      symbol: 'đ',
-    ).format(booking.totalPrice + booking.protectionFee + booking.deposit);
+    final totalAmount = NumberFormat.currency(locale: 'vi_VN', symbol: 'đ')
+        .format(
+          booking.totalPrice +
+              booking.protectionFee +
+              booking.prepaidChargingFee +
+              booking.deposit,
+        );
 
     return Container(
       width: double.infinity,
@@ -1485,6 +1499,7 @@ class _BookingDetailPageState extends State<BookingDetailPage> {
           bookingId: booking.id,
           totalAmount: booking.totalPrice,
           protectionFee: booking.protectionFee,
+          prepaidChargingFee: booking.prepaidChargingFee,
           deposit: booking.deposit,
         ),
       ),
@@ -2552,6 +2567,13 @@ class _CancellationRefundPreviewPanel extends StatelessWidget {
           if (preview.protectionAmount > 0) ...[
             const SizedBox(height: 6),
             _row('Hoàn phí bảo vệ', preview.refundableProtectionAmount),
+          ],
+          if (preview.prepaidChargingAmount > 0) ...[
+            const SizedBox(height: 6),
+            _row(
+              'Hoàn phí sạc trả trước',
+              preview.refundablePrepaidChargingAmount,
+            ),
           ],
           const SizedBox(height: 6),
           _row('Hoàn tiền cọc', preview.refundableDepositAmount),

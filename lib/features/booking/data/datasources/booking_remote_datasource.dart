@@ -19,6 +19,7 @@ abstract class BookingRemoteDataSource {
     required DateTime endTime,
     String? notes,
     String? protectionPlan,
+    bool prepaidCharging = false,
   });
 
   /// Create a temporary booking lock while the renter confirms checkout
@@ -82,6 +83,7 @@ class BookingRemoteDataSourceImpl implements BookingRemoteDataSource {
     required DateTime endTime,
     String? notes,
     String? protectionPlan,
+    bool prepaidCharging = false,
   }) async {
     try {
       final response = await _dioClient.post(
@@ -92,6 +94,7 @@ class BookingRemoteDataSourceImpl implements BookingRemoteDataSource {
           'endTime': VietnamTime.toApiIsoString(endTime),
           if (notes != null) 'notes': notes,
           if (protectionPlan != null) 'protectionPlan': protectionPlan,
+          if (prepaidCharging) 'prepaidCharging': true,
         },
       );
 

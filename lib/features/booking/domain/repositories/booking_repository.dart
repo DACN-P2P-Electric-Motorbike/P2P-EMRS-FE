@@ -14,6 +14,7 @@ abstract class BookingRepository {
     required DateTime endTime,
     String? notes,
     String? protectionPlan,
+    bool prepaidCharging = false,
   });
 
   /// Create a temporary checkout lock for the selected booking window

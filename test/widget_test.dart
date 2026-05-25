@@ -104,6 +104,9 @@ void main() {
       'protectionFee': 2500,
       'protectionDeductible': 500000,
       'protectionCoverageLimit': 30000000,
+      'prepaidCharging': true,
+      'prepaidChargingFee': 50000,
+      'prepaidChargingCreditPercent': 10,
       'createdAt': '2026-05-09T03:00:00.000Z',
       'updatedAt': '2026-05-09T03:00:00.000Z',
       'vehicle': {'batteryLevel': 87},
@@ -118,6 +121,9 @@ void main() {
     expect(booking.protectionFee, 2500);
     expect(booking.protectionDeductible, 500000);
     expect(booking.protectionCoverageLimit, 30000000);
+    expect(booking.prepaidCharging, isTrue);
+    expect(booking.prepaidChargingFee, 50000);
+    expect(booking.prepaidChargingCreditPercent, 10);
   });
 
   test('BecomeOwnerResponseDto tolerates non-string and minimal payloads', () {
@@ -209,16 +215,19 @@ void main() {
       'trustPenalty': 5,
       'rentalAmount': 100000,
       'protectionAmount': 10000,
+      'prepaidChargingAmount': 50000,
       'depositAmount': 500000,
-      'paidAmount': 610000,
+      'paidAmount': 660000,
       'refundableRentalAmount': 50000,
       'refundableProtectionAmount': 5000,
+      'refundablePrepaidChargingAmount': 25000,
       'refundableDepositAmount': 500000,
-      'refundAmount': 555000,
+      'refundAmount': 580000,
       'forfeitedRentalAmount': 50000,
       'forfeitedProtectionAmount': 5000,
+      'forfeitedPrepaidChargingAmount': 25000,
       'forfeitedDepositAmount': 0,
-      'forfeitedAmount': 55000,
+      'forfeitedAmount': 80000,
       'isPaid': true,
       'paymentStatus': 'COMPLETED',
       'refundType': 'partial',
@@ -227,10 +236,13 @@ void main() {
     final preview = model.toEntity();
     expect(preview.policyDisplayText, 'Hoàn 50% tiền thuê');
     expect(preview.refundableProtectionAmount, 5000);
+    expect(preview.prepaidChargingAmount, 50000);
+    expect(preview.refundablePrepaidChargingAmount, 25000);
     expect(preview.refundableDepositAmount, 500000);
-    expect(preview.refundAmount, 555000);
+    expect(preview.refundAmount, 580000);
     expect(preview.forfeitedProtectionAmount, 5000);
-    expect(preview.forfeitedAmount, 55000);
+    expect(preview.forfeitedPrepaidChargingAmount, 25000);
+    expect(preview.forfeitedAmount, 80000);
     expect(preview.trustPenalty, 5);
   });
 

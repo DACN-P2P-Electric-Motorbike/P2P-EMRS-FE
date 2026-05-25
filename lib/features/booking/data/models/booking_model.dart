@@ -16,6 +16,9 @@ class BookingModel {
   final double protectionFee;
   final double protectionDeductible;
   final double protectionCoverageLimit;
+  final bool prepaidCharging;
+  final double prepaidChargingFee;
+  final int prepaidChargingCreditPercent;
   final String? notes;
   final String? cancellationReason;
   final DateTime createdAt;
@@ -40,6 +43,9 @@ class BookingModel {
     this.protectionFee = 0,
     this.protectionDeductible = 1500000,
     this.protectionCoverageLimit = 15000000,
+    this.prepaidCharging = false,
+    this.prepaidChargingFee = 0,
+    this.prepaidChargingCreditPercent = 0,
     this.notes,
     this.cancellationReason,
     required this.createdAt,
@@ -78,6 +84,10 @@ class BookingModel {
           (json['protectionDeductible'] as num?)?.toDouble() ?? 1500000,
       protectionCoverageLimit:
           (json['protectionCoverageLimit'] as num?)?.toDouble() ?? 15000000,
+      prepaidCharging: json['prepaidCharging'] as bool? ?? false,
+      prepaidChargingFee: (json['prepaidChargingFee'] as num?)?.toDouble() ?? 0,
+      prepaidChargingCreditPercent:
+          (json['prepaidChargingCreditPercent'] as num?)?.toInt() ?? 0,
       notes: json['notes'] as String?,
       cancellationReason: json['cancellationReason'] as String?,
       createdAt: DateTime.parse(json['createdAt'] as String),
@@ -112,6 +122,9 @@ class BookingModel {
       'protectionFee': protectionFee,
       'protectionDeductible': protectionDeductible,
       'protectionCoverageLimit': protectionCoverageLimit,
+      'prepaidCharging': prepaidCharging,
+      'prepaidChargingFee': prepaidChargingFee,
+      'prepaidChargingCreditPercent': prepaidChargingCreditPercent,
       'notes': notes,
       'cancellationReason': cancellationReason,
       'createdAt': createdAt.toIso8601String(),
@@ -143,6 +156,9 @@ class BookingModel {
       protectionFee: protectionFee,
       protectionDeductible: protectionDeductible,
       protectionCoverageLimit: protectionCoverageLimit,
+      prepaidCharging: prepaidCharging,
+      prepaidChargingFee: prepaidChargingFee,
+      prepaidChargingCreditPercent: prepaidChargingCreditPercent,
       notes: notes,
       cancellationReason: cancellationReason,
       createdAt: createdAt,
