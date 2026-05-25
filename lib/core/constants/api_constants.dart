@@ -39,6 +39,7 @@ class ApiConstants {
 
   /// Booking endpoints
   static const String bookings = '/bookings';
+  static const String bookingPolicy = '/bookings/policy';
   static String bookingCancellationPreview(String id) =>
       '/bookings/$id/cancellation-preview';
   static String vehicleSchedule(String vehicleId) =>

@@ -2,6 +2,7 @@ import 'package:dartz/dartz.dart';
 import '../../../../core/error/failures.dart';
 import '../entities/booking.dart';
 import '../entities/booking_lock.dart';
+import '../entities/booking_policy.dart';
 import '../entities/cancellation_refund_preview.dart';
 
 /// Abstract repository interface for bookings
@@ -27,6 +28,9 @@ abstract class BookingRepository {
 
   /// Release a temporary checkout lock
   Future<Either<Failure, void>> releaseBookingLock(String lockId);
+
+  /// Get current booking protection and add-on policy
+  Future<Either<Failure, BookingPolicy>> getBookingPolicy();
 
   /// Get renter bookings
   Future<Either<Failure, List<BookingEntity>>> getRenterBookings({

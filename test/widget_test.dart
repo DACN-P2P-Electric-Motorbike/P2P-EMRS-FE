@@ -5,6 +5,7 @@ import 'package:fe_capstone_project/core/widgets/app_network_image.dart';
 import 'package:fe_capstone_project/core/utils/vietnam_time.dart';
 import 'package:fe_capstone_project/core/localization/notification_text_localizer.dart';
 import 'package:fe_capstone_project/features/booking/data/models/booking_model.dart';
+import 'package:fe_capstone_project/features/booking/data/models/booking_policy_model.dart';
 import 'package:fe_capstone_project/core/localization/app_localizations.dart';
 import 'package:fe_capstone_project/features/booking/domain/entities/booking.dart';
 import 'package:fe_capstone_project/features/auth/data/models/user_model.dart';
@@ -130,6 +131,52 @@ void main() {
     expect(booking.roadsideSupport, isTrue);
     expect(booking.roadsideSupportFee, 30000);
     expect(booking.roadsideSupportCreditAmount, 200000);
+  });
+
+  test('BookingPolicyModel parses protection and add-on policy payload', () {
+    final policy = BookingPolicyModel.fromJson({
+      'defaultProtectionPlan': 'STANDARD',
+      'protectionPlans': [
+        {
+          'protectionPlan': 'BASIC',
+          'feeRate': 0,
+          'deductible': 3000000,
+          'coverageLimit': 5000000,
+          'isDefault': false,
+        },
+        {
+          'protectionPlan': 'STANDARD',
+          'feeRate': 0.05,
+          'deductible': 1500000,
+          'coverageLimit': 15000000,
+          'isDefault': true,
+        },
+        {
+          'protectionPlan': 'PREMIUM',
+          'feeRate': 0.1,
+          'deductible': 500000,
+          'coverageLimit': 30000000,
+          'isDefault': false,
+        },
+      ],
+      'prepaidCharging': {
+        'fee': 50000,
+        'creditPercent': 10,
+        'requiresBatteryReturnMinimum': true,
+      },
+      'roadsideSupport': {'fee': 30000, 'creditAmount': 200000},
+    }).toEntity();
+
+    expect(policy.defaultProtectionPlan, 'STANDARD');
+    expect(policy.protectionPlans, hasLength(3));
+    expect(policy.protectionPlans[1].protectionPlan, 'STANDARD');
+    expect(policy.protectionPlans[1].feeRate, 0.05);
+    expect(policy.protectionPlans[1].isDefault, isTrue);
+    expect(policy.prepaidCharging.fee, 50000);
+    expect(policy.prepaidCharging.creditPercent, 10);
+    expect(policy.prepaidCharging.requiresBatteryReturnMinimum, isTrue);
+    expect(policy.roadsideSupport.fee, 30000);
+    expect(policy.roadsideSupport.creditAmount, 200000);
   });
 
   test('BecomeOwnerResponseDto tolerates non-string and minimal payloads', () {

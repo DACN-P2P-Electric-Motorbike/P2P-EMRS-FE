@@ -3,6 +3,7 @@ import '../../../../core/error/exceptions.dart';
 import '../../../../core/error/failures.dart';
 import '../../domain/entities/booking.dart';
 import '../../domain/entities/booking_lock.dart';
+import '../../domain/entities/booking_policy.dart';
 import '../../domain/entities/cancellation_refund_preview.dart';
 import '../../domain/repositories/booking_repository.dart';
 import '../datasources/booking_remote_datasource.dart';
@@ -71,6 +72,20 @@ class BookingRepositoryImpl implements BookingRepository {
     try {
       await _remoteDataSource.releaseBookingLock(lockId);
       return const Right(null);
+    } on NetworkException {
+      return const Left(ConnectionFailure());
+    } on ServerException catch (e) {
+      return Left(ServerFailure(message: e.message, statusCode: e.statusCode));
+    } catch (e) {
+      return Left(ServerFailure(message: e.toString()));
+    }
+  }
+
+  @override
+  Future<Either<Failure, BookingPolicy>> getBookingPolicy() async {
+    try {
+      final model = await _remoteDataSource.getBookingPolicy();
+      return Right(model.toEntity());
     } on NetworkException {
       return const Left(ConnectionFailure());
     } on ServerException catch (e) {

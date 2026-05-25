@@ -9,6 +9,7 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/widgets/app_network_image.dart';
 import '../../../../injection_container.dart';
+import '../../../booking/domain/entities/booking_policy.dart';
 import '../../../booking/domain/repositories/booking_repository.dart';
 import '../../../booking/presentation/bloc/booking_bloc.dart';
 import '../../../booking/presentation/bloc/booking_event.dart';
@@ -84,6 +85,7 @@ class _EnhancedBookingContentState extends State<_EnhancedBookingContent> {
   String _selectedProtectionPlan = 'STANDARD';
   bool _prepaidCharging = false;
   bool _roadsideSupport = false;
+  BookingPolicy _bookingPolicy = BookingPolicy.fallback;
   String? _activeLockId;
   DateTime? _lockExpiresAt;
   Duration _remainingLockTime = Duration.zero;
@@ -92,11 +94,7 @@ class _EnhancedBookingContentState extends State<_EnhancedBookingContent> {
   late final BookingRepository _bookingRepository;
   static const _minRentalDuration = Duration(minutes: 30);
   static const _maxRentalDuration = Duration(days: 30);
-  static const _prepaidChargingFee = 50000.0;
-  static const _prepaidChargingCreditPercent = 10;
-  static const _roadsideSupportFee = 30000.0;
-  static const _roadsideSupportCreditAmount = 200000.0;
-  static const _protectionPlans = [
+  static const _fallbackProtectionPlans = [
     _ProtectionPlanOption(
       value: 'BASIC',
       label: 'Cơ bản',
@@ -136,6 +134,7 @@ class _EnhancedBookingContentState extends State<_EnhancedBookingContent> {
     super.initState();
     _bookingBloc = context.read<BookingBloc>();
     _bookingRepository = sl<BookingRepository>();
+    unawaited(_loadBookingPolicy());
   }
 
   @override
@@ -147,6 +146,69 @@ class _EnhancedBookingContentState extends State<_EnhancedBookingContent> {
     }
     _notesController.dispose();
     super.dispose();
+  }
+
+  Future<void> _loadBookingPolicy() async {
+    final result = await _bookingRepository.getBookingPolicy();
+    if (!mounted) return;
+
+    result.fold((_) {}, (policy) {
+      final options = _protectionOptionsForPolicy(policy);
+      final selectedPlanStillAvailable = options.any(
+        (plan) => plan.value == _selectedProtectionPlan,
+      );
+      final policyDefaultPlan = options
+          .firstWhere(
+            (plan) => plan.value == policy.defaultProtectionPlan,
+            orElse: () => options.first,
+          )
+          .value;
+      final canUsePrepaidCharging = _canUsePrepaidChargingForPolicy(policy);
+
+      setState(() {
+        _bookingPolicy = policy;
+        if (!selectedPlanStillAvailable) {
+          _selectedProtectionPlan = policyDefaultPlan;
+        }
+        if (!canUsePrepaidCharging) {
+          _prepaidCharging = false;
+        }
+      });
+    });
+  }
+
+  List<_ProtectionPlanOption> _protectionOptionsForPolicy(
+    BookingPolicy policy,
+  ) {
+    final options = policy.protectionPlans
+        .map(_protectionOptionFromPolicy)
+        .toList(growable: false);
+    return options.isEmpty ? _fallbackProtectionPlans : options;
+  }
+
+  _ProtectionPlanOption _protectionOptionFromPolicy(
+    ProtectionPlanPolicy policy,
+  ) {
+    final value = policy.protectionPlan.toUpperCase();
+    final fallback = _fallbackProtectionPlans.firstWhere(
+      (plan) => plan.value == value,
+      orElse: () => _fallbackProtectionPlans[1],
+    );
+
+    return _ProtectionPlanOption(
+      value: value,
+      label: fallback.value == value ? fallback.label : value,
+      description: fallback.description,
+      feeRate: policy.feeRate,
+      deductible: policy.deductible,
+      coverageLimit: policy.coverageLimit,
+      icon: fallback.icon,
+    );
+  }
+
+  bool _canUsePrepaidChargingForPolicy(BookingPolicy policy) {
+    return !policy.prepaidCharging.requiresBatteryReturnMinimum ||
+        widget.vehicle.batteryReturnMin != null;
   }
 
   // Calculate total hours
@@ -194,20 +256,40 @@ class _EnhancedBookingContentState extends State<_EnhancedBookingContent> {
   }
 
   _ProtectionPlanOption get _selectedProtection {
-    return _protectionPlans.firstWhere(
+    final plans = _protectionPlans;
+    return plans.firstWhere(
       (plan) => plan.value == _selectedProtectionPlan,
-      orElse: () => _protectionPlans[1],
+      orElse: () => plans.firstWhere(
+        (plan) => plan.value == _bookingPolicy.defaultProtectionPlan,
+        orElse: () => plans.first,
+      ),
     );
   }
+
+  List<_ProtectionPlanOption> get _protectionPlans =>
+      _protectionOptionsForPolicy(_bookingPolicy);
 
   double get _protectionFee =>
       (_totalPrice * _selectedProtection.feeRate).round().toDouble();
 
+  double get _prepaidChargingFee => _bookingPolicy.prepaidCharging.fee;
+
+  int get _prepaidChargingCreditPercent =>
+      _bookingPolicy.prepaidCharging.creditPercent;
+
   double get _selectedPrepaidChargingFee =>
       _prepaidCharging ? _prepaidChargingFee : 0;
 
+  double get _roadsideSupportFee => _bookingPolicy.roadsideSupport.fee;
+
+  double get _roadsideSupportCreditAmount =>
+      _bookingPolicy.roadsideSupport.creditAmount;
+
   double get _selectedRoadsideSupportFee =>
       _roadsideSupport ? _roadsideSupportFee : 0;
+
+  bool get _canUsePrepaidCharging =>
+      _canUsePrepaidChargingForPolicy(_bookingPolicy);
 
   double get _checkoutTotal =>
       _totalPrice +
@@ -407,7 +489,7 @@ class _EnhancedBookingContentState extends State<_EnhancedBookingContent> {
                       if (_totalPrice > 0) ...[
                         _buildProtectionPlanSelector(),
                         const SizedBox(height: 24),
-                        if (widget.vehicle.batteryReturnMin != null) ...[
+                        if (_canUsePrepaidCharging) ...[
                           _buildPrepaidChargingAddon(),
                           const SizedBox(height: 24),
                         ],
