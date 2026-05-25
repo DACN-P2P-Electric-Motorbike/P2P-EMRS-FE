@@ -22,6 +22,8 @@ import 'package:fe_capstone_project/features/incident/domain/entities/claim_summ
 import 'package:fe_capstone_project/features/incident/domain/entities/incident_report.dart';
 import 'package:fe_capstone_project/features/owner_vehicle/data/models/availability_window_model.dart';
 import 'package:fe_capstone_project/features/owner_vehicle/domain/entities/vehicle_entity.dart';
+import 'package:fe_capstone_project/features/vehicle/data/models/availability_summary_model.dart';
+import 'package:fe_capstone_project/features/vehicle/domain/entities/availability_summary.dart';
 import 'package:fe_capstone_project/features/renter/data/models/become_owner_response_model.dart';
 import 'package:fe_capstone_project/features/review/data/models/review_model.dart';
 import 'package:fe_capstone_project/features/review/domain/entities/review_entity.dart';
@@ -656,6 +658,40 @@ void main() {
       expect(model.type, AvailabilityWindowType.blocked);
     },
   );
+
+  test('Renter availability summary parses public rules only', () {
+    final summary = VehicleAvailabilitySummaryModel.fromJson({
+      'hasAvailableCalendar': true,
+      'rules': [
+        {
+          'type': 'AVAILABLE',
+          'recurrence': 'WEEKLY',
+          'recurringWeekdays': [1, 5],
+          'timezoneOffsetMinutes': 420,
+          'recurrenceEndsAt': null,
+          'startTime': '2026-05-25T01:00:00.000Z',
+          'endTime': '2026-05-25T11:00:00.000Z',
+        },
+        {
+          'type': 'BLOCKED',
+          'recurrence': 'ONCE',
+          'recurringWeekdays': [],
+          'timezoneOffsetMinutes': null,
+          'recurrenceEndsAt': null,
+          'startTime': '2026-05-30T01:00:00.000Z',
+          'endTime': '2026-05-30T11:00:00.000Z',
+        },
+      ],
+    }).toEntity();
+
+    expect(summary.hasAvailableCalendar, isTrue);
+    expect(summary.availableRules.single.isWeekly, isTrue);
+    expect(summary.availableRules.single.recurringWeekdays, [1, 5]);
+    expect(
+      summary.blockedRules.single.type,
+      PublicAvailabilityRuleType.blocked,
+    );
+  });
 
   test('NotificationTextLocalizer follows the selected app language', () {
     final vi = NotificationTextLocalizer.localize(

@@ -1,5 +1,6 @@
 import 'package:dartz/dartz.dart';
 import 'package:fe_capstone_project/features/vehicle/domain/entities/vehicle_entity.dart';
+import '../entities/availability_summary.dart';
 import '../../../../core/error/failures.dart';
 
 /// Repository interface for vehicle operations (renter side)
@@ -13,6 +14,11 @@ abstract class VehicleRepository {
 
   /// Get vehicle by ID
   Future<Either<Failure, VehicleEntity>> getVehicleById(String id);
+
+  /// Get renter-visible configured availability rules.
+  Future<Either<Failure, VehicleAvailabilitySummary>> getAvailabilitySummary(
+    String id,
+  );
 
   /// Search vehicles with filters
   Future<Either<Failure, List<VehicleEntity>>> searchVehicles({

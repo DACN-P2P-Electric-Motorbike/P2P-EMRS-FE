@@ -2,6 +2,7 @@ import 'package:dartz/dartz.dart';
 import 'package:fe_capstone_project/features/vehicle/domain/entities/vehicle_entity.dart';
 import '../../../../../core/error/exceptions.dart';
 import '../../../../../core/error/failures.dart';
+import '../../domain/entities/availability_summary.dart';
 import '../../domain/repositories/vehicle_repository.dart';
 import '../datasources/vehicle_remote_datasource.dart';
 
@@ -38,6 +39,22 @@ class VehicleRepositoryImpl implements VehicleRepository {
     try {
       final vehicle = await _remoteDataSource.getVehicleById(id);
       return Right(vehicle.toEntity());
+    } on ServerException catch (e) {
+      return Left(ServerFailure(message: e.message, statusCode: e.statusCode));
+    } on NetworkException {
+      return const Left(ConnectionFailure());
+    } catch (e) {
+      return Left(ServerFailure(message: e.toString()));
+    }
+  }
+
+  @override
+  Future<Either<Failure, VehicleAvailabilitySummary>> getAvailabilitySummary(
+    String id,
+  ) async {
+    try {
+      final summary = await _remoteDataSource.getAvailabilitySummary(id);
+      return Right(summary.toEntity());
     } on ServerException catch (e) {
       return Left(ServerFailure(message: e.message, statusCode: e.statusCode));
     } on NetworkException {

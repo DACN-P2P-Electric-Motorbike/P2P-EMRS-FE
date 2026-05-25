@@ -7,6 +7,7 @@ import '../../../../../core/error/exceptions.dart';
 import '../../../../../core/network/dio_client.dart';
 import '../../../../../core/utils/vietnam_time.dart';
 import '../models/vehicle_model.dart';
+import '../models/availability_summary_model.dart';
 
 /// Remote data source for vehicle operations
 abstract class VehicleRemoteDataSource {
@@ -16,6 +17,7 @@ abstract class VehicleRemoteDataSource {
     bool? instantBookOnly,
   });
   Future<VehicleModel> getVehicleById(String id);
+  Future<VehicleAvailabilitySummaryModel> getAvailabilitySummary(String id);
   Future<List<VehicleModel>> searchVehicles({
     String? brand,
     String? model,
@@ -80,6 +82,22 @@ class VehicleRemoteDataSourceImpl implements VehicleRemoteDataSource {
       final vehicle = VehicleModel.fromJson(data);
       await _cache.write(cacheKey, vehicle.toJson());
       return vehicle;
+    } on DioException catch (e) {
+      throw ServerException.fromDioException(e);
+    }
+  }
+
+  @override
+  Future<VehicleAvailabilitySummaryModel> getAvailabilitySummary(
+    String id,
+  ) async {
+    try {
+      final response = await _dioClient.get(
+        ApiConstants.vehicleAvailabilitySummary(id),
+      );
+      return VehicleAvailabilitySummaryModel.fromJson(
+        Map<String, dynamic>.from(response.data as Map),
+      );
     } on DioException catch (e) {
       throw ServerException.fromDioException(e);
     }

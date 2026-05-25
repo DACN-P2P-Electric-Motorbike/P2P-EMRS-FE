@@ -78,6 +78,7 @@ import 'features/vehicle/domain/repositories/vehicle_repository.dart';
 import 'features/vehicle/domain/usecases/get_available_vehicles.dart';
 import 'features/vehicle/domain/usecases/get_nearby_vehicles.dart';
 import 'features/vehicle/domain/usecases/get_vehicle_by_id.dart';
+import 'features/vehicle/domain/usecases/get_vehicle_availability_summary.dart';
 
 // Vehicle Feature - Presentation Layer
 import 'features/vehicle/presentation/bloc/vehicles_list_cubit.dart';
@@ -320,6 +321,7 @@ Future<void> init() async {
   sl.registerLazySingleton(() => GetAvailableVehicles(sl()));
   sl.registerLazySingleton(() => GetNearbyVehicles(sl()));
   sl.registerLazySingleton(() => GetVehicleById(sl()));
+  sl.registerLazySingleton(() => GetVehicleAvailabilitySummary(sl()));
 
   // Cubit - Factory
   sl.registerFactory(
@@ -329,7 +331,10 @@ Future<void> init() async {
       cache: sl(),
     ),
   );
-  sl.registerFactory(() => VehicleDetailCubit(getVehicleById: sl()));
+  sl.registerFactory(
+    () =>
+        VehicleDetailCubit(getVehicleById: sl(), getAvailabilitySummary: sl()),
+  );
 
   //============================================================================
   // FEATURES - BECOME OWNER
