@@ -6,6 +6,7 @@ class CancellationRefundPreview extends Equatable {
   final bool cancellable;
   final double hoursUntilStart;
   final String policyCode;
+  final String cancellationPolicy;
   final double rentalRefundRate;
   final double trustPenalty;
   final double rentalAmount;
@@ -36,6 +37,7 @@ class CancellationRefundPreview extends Equatable {
     required this.cancellable,
     required this.hoursUntilStart,
     required this.policyCode,
+    this.cancellationPolicy = 'FLEXIBLE',
     required this.rentalRefundRate,
     required this.trustPenalty,
     required this.rentalAmount,
@@ -65,12 +67,18 @@ class CancellationRefundPreview extends Equatable {
     switch (policyCode) {
       case 'OWNER_FULL_REFUND':
         return 'Chủ xe hủy: hoàn toàn bộ';
-      case 'RENTER_EARLY_FULL_REFUND':
-        return 'Hủy sớm: hoàn toàn bộ';
-      case 'RENTER_STANDARD_PARTIAL_REFUND':
-        return 'Hoàn 50% tiền thuê';
-      case 'RENTER_LATE_DEPOSIT_ONLY':
-        return 'Hoàn tiền cọc';
+      case 'RENTER_FLEXIBLE_FULL_REFUND':
+        return 'Linh hoạt: hoàn toàn bộ phí thuê';
+      case 'RENTER_FLEXIBLE_PARTIAL_REFUND':
+        return 'Linh hoạt: hoàn 50% phí thuê';
+      case 'RENTER_MODERATE_FULL_REFUND':
+        return 'Trung bình: hoàn toàn bộ phí thuê';
+      case 'RENTER_MODERATE_PARTIAL_REFUND':
+        return 'Trung bình: hoàn 50% phí thuê';
+      case 'RENTER_STRICT_PARTIAL_REFUND':
+        return 'Nghiêm ngặt: hoàn 50% phí thuê';
+      case 'RENTER_STRICT_NO_REFUND':
+        return 'Nghiêm ngặt: không hoàn phí thuê';
       default:
         return 'Không thể hủy';
     }
@@ -83,6 +91,7 @@ class CancellationRefundPreview extends Equatable {
     cancellable,
     hoursUntilStart,
     policyCode,
+    cancellationPolicy,
     rentalRefundRate,
     trustPenalty,
     rentalAmount,

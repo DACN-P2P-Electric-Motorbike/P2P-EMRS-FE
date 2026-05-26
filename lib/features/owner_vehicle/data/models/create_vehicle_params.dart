@@ -11,6 +11,7 @@ class CreateVehicleParams extends Equatable {
   final double pricePerHour;
   final double? pricePerDay;
   final bool instantBook;
+  final CancellationPolicy cancellationPolicy;
   final int? dailyKmLimit;
   final double? excessKmPrice;
   final double? weeklyDiscount;
@@ -44,6 +45,7 @@ class CreateVehicleParams extends Equatable {
     required this.pricePerHour,
     this.pricePerDay,
     this.instantBook = false,
+    this.cancellationPolicy = CancellationPolicy.flexible,
     this.dailyKmLimit,
     this.excessKmPrice,
     this.weeklyDiscount,
@@ -78,6 +80,7 @@ class CreateVehicleParams extends Equatable {
       'type': type.toApiString(),
       'pricePerHour': pricePerHour,
       'instantBook': instantBook,
+      'cancellationPolicy': cancellationPolicy.toApiString(),
       'allowSmoke': allowSmoke,
       'allowPets': allowPets,
       'address': address,
@@ -135,6 +138,7 @@ class CreateVehicleParams extends Equatable {
     pricePerHour,
     pricePerDay,
     instantBook,
+    cancellationPolicy,
     dailyKmLimit,
     excessKmPrice,
     weeklyDiscount,

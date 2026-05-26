@@ -394,12 +394,10 @@ class _VehicleDetailContent extends StatelessWidget {
                           const SizedBox(height: 24),
                         ],
 
-                        if (_hasVehiclePolicies(vehicle)) ...[
-                          _buildSectionTitle('Chính sách thuê'),
-                          const SizedBox(height: 12),
-                          _buildPolicySection(vehicle),
-                          const SizedBox(height: 24),
-                        ],
+                        _buildSectionTitle('Chính sách thuê'),
+                        const SizedBox(height: 12),
+                        _buildPolicySection(vehicle),
+                        const SizedBox(height: 24),
 
                         if (availabilitySummary != null &&
                             availabilitySummary!.rules.isNotEmpty) ...[
@@ -756,18 +754,6 @@ class _VehicleDetailContent extends StatelessWidget {
     );
   }
 
-  bool _hasVehiclePolicies(VehicleEntity vehicle) {
-    return vehicle.instantBook ||
-        vehicle.dailyKmLimit != null ||
-        vehicle.excessKmPrice != null ||
-        vehicle.weeklyDiscount != null ||
-        vehicle.monthlyDiscount != null ||
-        vehicle.allowSmoke ||
-        vehicle.allowPets ||
-        vehicle.geoRestriction != null ||
-        vehicle.batteryReturnMin != null;
-  }
-
   Widget _buildPolicySection(VehicleEntity vehicle) {
     final policies = <Widget>[
       if (vehicle.instantBook)
@@ -777,6 +763,12 @@ class _VehicleDetailContent extends StatelessWidget {
           value: 'Tự động xác nhận khi gửi yêu cầu',
           color: AppColors.warning,
         ),
+      _buildPolicyRow(
+        icon: Icons.event_busy_outlined,
+        label: 'Chính sách hủy',
+        value:
+            '${vehicle.cancellationPolicy.displayName}: ${vehicle.cancellationPolicy.summaryText}',
+      ),
       if (vehicle.dailyKmLimit != null)
         _buildPolicyRow(
           icon: Icons.route,

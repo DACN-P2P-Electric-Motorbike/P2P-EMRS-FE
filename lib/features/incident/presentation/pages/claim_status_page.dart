@@ -527,12 +527,15 @@ class _ClaimStatusPageState extends State<ClaimStatusPage> {
   }
 
   Widget _buildIncidentLine(IncidentReportEntity report) {
+    final confirmedEvidenceText = report.jointlyConfirmedHandoverPhotoCount > 0
+        ? ' · ${report.jointlyConfirmedHandoverPhotoCount} ảnh xác nhận hai bên'
+        : '';
     return _buildBulletLine(
       Icons.report_outlined,
       '${report.category.displayText} · ${report.status.displayText}',
       _incidentStatusColor(report.status),
       subtitle:
-          '${report.severity.displayText} · ${VietnamTime.format(report.createdAt, 'dd/MM/yyyy HH:mm')}',
+          '${report.severity.displayText} · ${VietnamTime.format(report.createdAt, 'dd/MM/yyyy HH:mm')}$confirmedEvidenceText',
     );
   }
 

@@ -21,6 +21,7 @@ class VehicleModel extends VehicleEntity {
     super.pricePerDay,
     super.deposit,
     super.instantBook = false,
+    super.cancellationPolicy = CancellationPolicy.flexible,
     super.dailyKmLimit,
     super.excessKmPrice,
     super.weeklyDiscount,
@@ -84,6 +85,9 @@ class VehicleModel extends VehicleEntity {
           ? (json['deposit'] as num).toDouble()
           : null,
       instantBook: json['instantBook'] as bool? ?? false,
+      cancellationPolicy: CancellationPolicy.fromString(
+        json['cancellationPolicy'] as String?,
+      ),
       dailyKmLimit: _parseInt(json['dailyKmLimit']),
       excessKmPrice: json['excessKmPrice'] != null
           ? _parsePrice(json['excessKmPrice'])
@@ -166,6 +170,7 @@ class VehicleModel extends VehicleEntity {
       'pricePerDay': pricePerDay,
       'deposit': deposit,
       'instantBook': instantBook,
+      'cancellationPolicy': cancellationPolicy.toApiString(),
       'dailyKmLimit': dailyKmLimit,
       'excessKmPrice': excessKmPrice,
       'weeklyDiscount': weeklyDiscount,
@@ -218,6 +223,7 @@ class VehicleModel extends VehicleEntity {
       pricePerDay: pricePerDay,
       deposit: deposit,
       instantBook: instantBook,
+      cancellationPolicy: cancellationPolicy,
       dailyKmLimit: dailyKmLimit,
       excessKmPrice: excessKmPrice,
       weeklyDiscount: weeklyDiscount,

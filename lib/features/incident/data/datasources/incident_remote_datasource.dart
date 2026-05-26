@@ -3,6 +3,7 @@ import 'package:dio/dio.dart';
 import '../../../../core/constants/api_constants.dart';
 import '../../../../core/error/exceptions.dart';
 import '../../../../core/network/dio_client.dart';
+import '../../domain/entities/incident_report.dart';
 import '../models/claim_summary_model.dart';
 import '../models/incident_report_model.dart';
 
@@ -19,6 +20,7 @@ abstract class IncidentRemoteDataSource {
     required String severity,
     required String description,
     List<String>? evidenceUrls,
+    List<IncidentEvidenceUpload>? evidenceUploads,
     List<String>? handoverPhotoIds,
   });
 }
@@ -90,6 +92,7 @@ class IncidentRemoteDataSourceImpl implements IncidentRemoteDataSource {
     required String severity,
     required String description,
     List<String>? evidenceUrls,
+    List<IncidentEvidenceUpload>? evidenceUploads,
     List<String>? handoverPhotoIds,
   }) async {
     try {
@@ -103,6 +106,10 @@ class IncidentRemoteDataSourceImpl implements IncidentRemoteDataSource {
           'severity': severity,
           'description': description,
           if (evidenceUrls != null) 'evidenceUrls': evidenceUrls,
+          if (evidenceUploads != null)
+            'evidenceUploads': evidenceUploads
+                .map((upload) => upload.toJson())
+                .toList(),
           if (handoverPhotoIds != null) 'handoverPhotoIds': handoverPhotoIds,
         },
       );

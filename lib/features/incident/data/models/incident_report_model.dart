@@ -12,6 +12,7 @@ class IncidentReportModel {
   final String description;
   final List<String> evidenceUrls;
   final int handoverPhotoCount;
+  final int jointlyConfirmedHandoverPhotoCount;
   final bool photoRequired;
   final bool evidenceSatisfied;
   final String? adminNotes;
@@ -32,6 +33,7 @@ class IncidentReportModel {
     required this.description,
     required this.evidenceUrls,
     required this.handoverPhotoCount,
+    this.jointlyConfirmedHandoverPhotoCount = 0,
     required this.photoRequired,
     required this.evidenceSatisfied,
     this.adminNotes,
@@ -45,6 +47,9 @@ class IncidentReportModel {
     final evidence = _asMap(json['evidence']);
     final requiredEvidence = _asMap(json['requiredEvidence']);
     final handoverPhotos = evidence['handoverPhotos'];
+    final handoverPhotoList = handoverPhotos is List
+        ? handoverPhotos
+        : const <dynamic>[];
 
     return IncidentReportModel(
       id: json['id'] as String? ?? '',
@@ -57,7 +62,14 @@ class IncidentReportModel {
       status: json['status'] as String? ?? 'OPEN',
       description: json['description'] as String? ?? '',
       evidenceUrls: _stringList(evidence['evidenceUrls']),
-      handoverPhotoCount: handoverPhotos is List ? handoverPhotos.length : 0,
+      handoverPhotoCount: handoverPhotoList.length,
+      jointlyConfirmedHandoverPhotoCount: handoverPhotoList
+          .where(
+            (photo) =>
+                photo is Map &&
+                Map<String, dynamic>.from(photo)['jointlyConfirmed'] == true,
+          )
+          .length,
       photoRequired: requiredEvidence['photoRequired'] == true,
       evidenceSatisfied: requiredEvidence['satisfied'] != false,
       adminNotes: json['adminNotes'] as String?,
@@ -81,6 +93,7 @@ class IncidentReportModel {
       description: description,
       evidenceUrls: evidenceUrls,
       handoverPhotoCount: handoverPhotoCount,
+      jointlyConfirmedHandoverPhotoCount: jointlyConfirmedHandoverPhotoCount,
       photoRequired: photoRequired,
       evidenceSatisfied: evidenceSatisfied,
       adminNotes: adminNotes,

@@ -38,6 +38,7 @@ class BookingEntity extends Equatable {
   final bool roadsideSupport;
   final double roadsideSupportFee;
   final double roadsideSupportCreditAmount;
+  final String cancellationPolicy;
   final String? notes;
   final String? cancellationReason;
   final DateTime createdAt;
@@ -68,6 +69,7 @@ class BookingEntity extends Equatable {
     this.roadsideSupport = false,
     this.roadsideSupportFee = 0,
     this.roadsideSupportCreditAmount = 0,
+    this.cancellationPolicy = 'FLEXIBLE',
     this.notes,
     this.cancellationReason,
     required this.createdAt,
@@ -183,6 +185,7 @@ class BookingEntity extends Equatable {
     roadsideSupport,
     roadsideSupportFee,
     roadsideSupportCreditAmount,
+    cancellationPolicy,
     notes,
     cancellationReason,
     createdAt,
@@ -214,6 +217,7 @@ class BookingEntity extends Equatable {
     bool? roadsideSupport,
     double? roadsideSupportFee,
     double? roadsideSupportCreditAmount,
+    String? cancellationPolicy,
     String? notes,
     String? cancellationReason,
     DateTime? createdAt,
@@ -247,6 +251,7 @@ class BookingEntity extends Equatable {
       roadsideSupportFee: roadsideSupportFee ?? this.roadsideSupportFee,
       roadsideSupportCreditAmount:
           roadsideSupportCreditAmount ?? this.roadsideSupportCreditAmount,
+      cancellationPolicy: cancellationPolicy ?? this.cancellationPolicy,
       notes: notes ?? this.notes,
       cancellationReason: cancellationReason ?? this.cancellationReason,
       createdAt: createdAt ?? this.createdAt,

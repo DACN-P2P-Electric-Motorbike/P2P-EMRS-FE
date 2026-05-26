@@ -6,6 +6,7 @@ class CancellationRefundPreviewModel {
   final bool cancellable;
   final double hoursUntilStart;
   final String policyCode;
+  final String cancellationPolicy;
   final double rentalRefundRate;
   final double trustPenalty;
   final double rentalAmount;
@@ -36,6 +37,7 @@ class CancellationRefundPreviewModel {
     required this.cancellable,
     required this.hoursUntilStart,
     required this.policyCode,
+    this.cancellationPolicy = 'FLEXIBLE',
     required this.rentalRefundRate,
     required this.trustPenalty,
     required this.rentalAmount,
@@ -68,6 +70,7 @@ class CancellationRefundPreviewModel {
       cancellable: json['cancellable'] as bool? ?? false,
       hoursUntilStart: _asDouble(json['hoursUntilStart']),
       policyCode: json['policyCode'] as String? ?? 'NOT_CANCELLABLE',
+      cancellationPolicy: json['cancellationPolicy'] as String? ?? 'FLEXIBLE',
       rentalRefundRate: _asDouble(json['rentalRefundRate']),
       trustPenalty: _asDouble(json['trustPenalty']),
       rentalAmount: _asDouble(json['rentalAmount']),
@@ -109,6 +112,7 @@ class CancellationRefundPreviewModel {
       cancellable: cancellable,
       hoursUntilStart: hoursUntilStart,
       policyCode: policyCode,
+      cancellationPolicy: cancellationPolicy,
       rentalRefundRate: rentalRefundRate,
       trustPenalty: trustPenalty,
       rentalAmount: rentalAmount,

@@ -54,6 +54,7 @@ class IncidentRepositoryImpl implements IncidentRepository {
     required IncidentSeverity severity,
     required String description,
     List<String>? evidenceUrls,
+    List<IncidentEvidenceUpload>? evidenceUploads,
     List<String>? handoverPhotoIds,
   }) async {
     try {
@@ -65,6 +66,7 @@ class IncidentRepositoryImpl implements IncidentRepository {
         severity: severity.apiValue,
         description: description,
         evidenceUrls: evidenceUrls,
+        evidenceUploads: evidenceUploads,
         handoverPhotoIds: handoverPhotoIds,
       );
       return Right(report.toEntity());

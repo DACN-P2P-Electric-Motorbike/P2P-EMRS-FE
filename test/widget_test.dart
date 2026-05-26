@@ -3,6 +3,7 @@ import 'package:fe_capstone_project/core/storage/storage_service.dart';
 import 'package:fe_capstone_project/core/widgets/app_avatar.dart';
 import 'package:fe_capstone_project/core/widgets/app_network_image.dart';
 import 'package:fe_capstone_project/core/utils/vietnam_time.dart';
+import 'package:fe_capstone_project/core/services/upload_service.dart';
 import 'package:fe_capstone_project/core/localization/notification_text_localizer.dart';
 import 'package:fe_capstone_project/features/booking/data/models/booking_model.dart';
 import 'package:fe_capstone_project/features/booking/data/models/booking_policy_model.dart';
@@ -111,6 +112,7 @@ void main() {
       'roadsideSupport': true,
       'roadsideSupportFee': 30000,
       'roadsideSupportCreditAmount': 200000,
+      'cancellationPolicy': 'STRICT',
       'createdAt': '2026-05-09T03:00:00.000Z',
       'updatedAt': '2026-05-09T03:00:00.000Z',
       'vehicle': {'batteryLevel': 87},
@@ -131,6 +133,7 @@ void main() {
     expect(booking.roadsideSupport, isTrue);
     expect(booking.roadsideSupportFee, 30000);
     expect(booking.roadsideSupportCreditAmount, 200000);
+    expect(booking.cancellationPolicy, 'STRICT');
   });
 
   test('BookingPolicyModel parses protection and add-on policy payload', () {
@@ -263,7 +266,8 @@ void main() {
       'cancelledBy': 'RENTER',
       'cancellable': true,
       'hoursUntilStart': 12,
-      'policyCode': 'RENTER_STANDARD_PARTIAL_REFUND',
+      'policyCode': 'RENTER_MODERATE_PARTIAL_REFUND',
+      'cancellationPolicy': 'MODERATE',
       'rentalRefundRate': 0.5,
       'trustPenalty': 5,
       'rentalAmount': 100000,
@@ -290,7 +294,8 @@ void main() {
     });
 
     final preview = model.toEntity();
-    expect(preview.policyDisplayText, 'Hoàn 50% tiền thuê');
+    expect(preview.policyDisplayText, 'Trung bình: hoàn 50% phí thuê');
+    expect(preview.cancellationPolicy, 'MODERATE');
     expect(preview.refundableProtectionAmount, 5000);
     expect(preview.prepaidChargingAmount, 50000);
     expect(preview.refundablePrepaidChargingAmount, 25000);
@@ -366,7 +371,7 @@ void main() {
       'evidence': {
         'evidenceUrls': ['https://example.com/damage.jpg'],
         'handoverPhotos': [
-          {'id': 'photo-1'},
+          {'id': 'photo-1', 'jointlyConfirmed': true},
           {'id': 'photo-2'},
         ],
       },
@@ -384,9 +389,21 @@ void main() {
     expect(incident.status, IncidentStatus.underReview);
     expect(incident.evidenceUrls, ['https://example.com/damage.jpg']);
     expect(incident.handoverPhotoCount, 2);
+    expect(incident.jointlyConfirmedHandoverPhotoCount, 1);
     expect(incident.photoRequired, isTrue);
     expect(incident.evidenceSatisfied, isTrue);
     expect(incident.isOpen, isTrue);
+  });
+
+  test('UploadResult parses signed incident evidence receipt', () {
+    final upload = UploadResult.fromJson({
+      'url': 'https://example.com/incidents/damage.jpg',
+      'key': 'incidents/damage.jpg',
+      'fileName': 'damage.jpg',
+      'evidenceReceipt': 'incident-upload:v1:signed',
+    });
+
+    expect(upload.evidenceReceipt, 'incident-upload:v1:signed');
   });
 
   test('BookingClaimSummaryModel parses unified claim workflow payload', () {
@@ -521,6 +538,12 @@ void main() {
         severity: IncidentSeverity.critical,
         description: 'Vehicle does not match listing photos',
         evidenceUrls: const ['https://example.com/mismatch.jpg'],
+        evidenceUploads: const [
+          IncidentEvidenceUpload(
+            url: 'https://example.com/uploaded.jpg',
+            receipt: 'signed-receipt',
+          ),
+        ],
         handoverPhotoIds: const ['handover-photo-id'],
       );
 
@@ -534,6 +557,12 @@ void main() {
       );
       expect(remoteDataSource.lastEvidenceUrls, [
         'https://example.com/mismatch.jpg',
+      ]);
+      expect(remoteDataSource.lastEvidenceUploads, [
+        const IncidentEvidenceUpload(
+          url: 'https://example.com/uploaded.jpg',
+          receipt: 'signed-receipt',
+        ),
       ]);
       expect(remoteDataSource.lastHandoverPhotoIds, ['handover-photo-id']);
     },
@@ -973,6 +1002,7 @@ void main() {
       'condition': 'LIKE_NEW',
       'batteryType': 'SWAPPABLE',
       'batteryHealth': 96,
+      'cancellationPolicy': 'MODERATE',
       'isAvailable': true,
       'address': 'Quan 1, TP.HCM',
       'images': [],
@@ -986,6 +1016,8 @@ void main() {
     expect(vehicle.condition?.toApiString(), 'LIKE_NEW');
     expect(vehicle.batteryType?.toApiString(), 'SWAPPABLE');
     expect(vehicle.batteryHealth, 96);
+    expect(vehicle.cancellationPolicy.toApiString(), 'MODERATE');
+    expect(vehicle.cancellationPolicy.summaryText, contains('5 ngày'));
   });
 
   test('NotificationTextLocalizer follows the selected app language', () {
@@ -1285,6 +1317,7 @@ class _FakeIncidentRemoteDataSource implements IncidentRemoteDataSource {
   String? lastSeverity;
   String? lastDescription;
   List<String>? lastEvidenceUrls;
+  List<IncidentEvidenceUpload>? lastEvidenceUploads;
   List<String>? lastHandoverPhotoIds;
 
   @override
@@ -1331,6 +1364,7 @@ class _FakeIncidentRemoteDataSource implements IncidentRemoteDataSource {
     required String severity,
     required String description,
     List<String>? evidenceUrls,
+    List<IncidentEvidenceUpload>? evidenceUploads,
     List<String>? handoverPhotoIds,
   }) {
     lastBookingId = bookingId;
@@ -1338,6 +1372,7 @@ class _FakeIncidentRemoteDataSource implements IncidentRemoteDataSource {
     lastSeverity = severity;
     lastDescription = description;
     lastEvidenceUrls = evidenceUrls;
+    lastEvidenceUploads = evidenceUploads;
     lastHandoverPhotoIds = handoverPhotoIds;
     return Future.value(_emptyIncident(bookingId));
   }

@@ -339,6 +339,57 @@ enum BatteryType {
   }
 }
 
+enum CancellationPolicy {
+  flexible,
+  moderate,
+  strict;
+
+  static CancellationPolicy fromString(String? value) {
+    switch (value?.toUpperCase()) {
+      case 'MODERATE':
+        return CancellationPolicy.moderate;
+      case 'STRICT':
+        return CancellationPolicy.strict;
+      case 'FLEXIBLE':
+      default:
+        return CancellationPolicy.flexible;
+    }
+  }
+
+  String toApiString() {
+    switch (this) {
+      case CancellationPolicy.flexible:
+        return 'FLEXIBLE';
+      case CancellationPolicy.moderate:
+        return 'MODERATE';
+      case CancellationPolicy.strict:
+        return 'STRICT';
+    }
+  }
+
+  String get displayName {
+    switch (this) {
+      case CancellationPolicy.flexible:
+        return 'Linh hoạt';
+      case CancellationPolicy.moderate:
+        return 'Trung bình';
+      case CancellationPolicy.strict:
+        return 'Nghiêm ngặt';
+    }
+  }
+
+  String get summaryText {
+    switch (this) {
+      case CancellationPolicy.flexible:
+        return 'Hoàn 100% trước 24 giờ, sau đó hoàn 50%';
+      case CancellationPolicy.moderate:
+        return 'Hoàn 100% trước 5 ngày, sau đó hoàn 50%';
+      case CancellationPolicy.strict:
+        return 'Hoàn 50% trước 7 ngày, sau đó không hoàn phí thuê';
+    }
+  }
+}
+
 /// Availability calendar window type
 enum AvailabilityWindowType {
   available,
@@ -466,6 +517,7 @@ class VehicleEntity extends Equatable {
   final double? pricePerDay;
   final double? deposit;
   final bool instantBook;
+  final CancellationPolicy cancellationPolicy;
   final int? dailyKmLimit;
   final double? excessKmPrice;
   final double? weeklyDiscount;
@@ -514,6 +566,7 @@ class VehicleEntity extends Equatable {
     this.pricePerDay,
     this.deposit,
     this.instantBook = false,
+    this.cancellationPolicy = CancellationPolicy.flexible,
     this.dailyKmLimit,
     this.excessKmPrice,
     this.weeklyDiscount,
@@ -597,6 +650,7 @@ class VehicleEntity extends Equatable {
     pricePerDay,
     deposit,
     instantBook,
+    cancellationPolicy,
     dailyKmLimit,
     excessKmPrice,
     weeklyDiscount,

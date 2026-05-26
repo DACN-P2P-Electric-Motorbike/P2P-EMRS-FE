@@ -90,6 +90,7 @@ class _BikeRegistrationContentState extends State<_BikeRegistrationContent> {
   double? _pickedLatitude;
   double? _pickedLongitude;
   bool _instantBook = false;
+  CancellationPolicy _cancellationPolicy = CancellationPolicy.flexible;
   bool _allowSmoke = false;
   bool _allowPets = false;
   String _geoRestriction = 'no_restriction';
@@ -228,6 +229,7 @@ class _BikeRegistrationContentState extends State<_BikeRegistrationContent> {
       pricePerHour: pricePerDay / 24,
       pricePerDay: pricePerDay,
       instantBook: _instantBook,
+      cancellationPolicy: _cancellationPolicy,
       dailyKmLimit: dailyKmLimit,
       excessKmPrice: excessKmPrice,
       weeklyDiscount: weeklyDiscount,
@@ -976,6 +978,10 @@ class _BikeRegistrationContentState extends State<_BikeRegistrationContent> {
                 ),
                 _buildSummaryRow('Đặt xe nhanh', _instantBook ? 'Bật' : 'Tắt'),
                 _buildSummaryRow(
+                  'Chính sách hủy',
+                  _cancellationPolicy.displayName,
+                ),
+                _buildSummaryRow(
                   'Pin tối thiểu khi trả',
                   '${_batteryReturnMin.round()}%',
                 ),
@@ -1140,6 +1146,27 @@ class _BikeRegistrationContentState extends State<_BikeRegistrationContent> {
             subtitle: 'Tự động xác nhận booking nếu khung giờ còn trống',
             value: _instantBook,
             onChanged: (value) => setState(() => _instantBook = value),
+          ),
+          const Divider(height: 24),
+          _buildLabel('Chính sách hủy của người thuê'),
+          _buildDropdown<CancellationPolicy>(
+            hint: 'Chọn chính sách hủy',
+            value: _cancellationPolicy,
+            items: CancellationPolicy.values,
+            itemLabel: (policy) => policy.displayName,
+            onChanged: (value) {
+              if (value != null) {
+                setState(() => _cancellationPolicy = value);
+              }
+            },
+          ),
+          const SizedBox(height: 8),
+          Text(
+            _cancellationPolicy.summaryText,
+            style: GoogleFonts.poppins(
+              fontSize: 12,
+              color: AppColors.textSecondary,
+            ),
           ),
           const Divider(height: 24),
           Row(

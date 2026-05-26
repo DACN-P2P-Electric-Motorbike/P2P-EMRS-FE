@@ -22,6 +22,7 @@ class BookingModel {
   final bool roadsideSupport;
   final double roadsideSupportFee;
   final double roadsideSupportCreditAmount;
+  final String cancellationPolicy;
   final String? notes;
   final String? cancellationReason;
   final DateTime createdAt;
@@ -52,6 +53,7 @@ class BookingModel {
     this.roadsideSupport = false,
     this.roadsideSupportFee = 0,
     this.roadsideSupportCreditAmount = 0,
+    this.cancellationPolicy = 'FLEXIBLE',
     this.notes,
     this.cancellationReason,
     required this.createdAt,
@@ -98,6 +100,7 @@ class BookingModel {
       roadsideSupportFee: (json['roadsideSupportFee'] as num?)?.toDouble() ?? 0,
       roadsideSupportCreditAmount:
           (json['roadsideSupportCreditAmount'] as num?)?.toDouble() ?? 0,
+      cancellationPolicy: json['cancellationPolicy'] as String? ?? 'FLEXIBLE',
       notes: json['notes'] as String?,
       cancellationReason: json['cancellationReason'] as String?,
       createdAt: DateTime.parse(json['createdAt'] as String),
@@ -138,6 +141,7 @@ class BookingModel {
       'roadsideSupport': roadsideSupport,
       'roadsideSupportFee': roadsideSupportFee,
       'roadsideSupportCreditAmount': roadsideSupportCreditAmount,
+      'cancellationPolicy': cancellationPolicy,
       'notes': notes,
       'cancellationReason': cancellationReason,
       'createdAt': createdAt.toIso8601String(),
@@ -175,6 +179,7 @@ class BookingModel {
       roadsideSupport: roadsideSupport,
       roadsideSupportFee: roadsideSupportFee,
       roadsideSupportCreditAmount: roadsideSupportCreditAmount,
+      cancellationPolicy: cancellationPolicy,
       notes: notes,
       cancellationReason: cancellationReason,
       createdAt: createdAt,
