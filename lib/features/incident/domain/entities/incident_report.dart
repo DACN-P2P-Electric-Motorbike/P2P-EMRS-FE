@@ -163,6 +163,18 @@ enum IncidentStatus {
   }
 }
 
+class IncidentEvidenceUpload extends Equatable {
+  final String url;
+  final String receipt;
+
+  const IncidentEvidenceUpload({required this.url, required this.receipt});
+
+  Map<String, String> toJson() => {'url': url, 'receipt': receipt};
+
+  @override
+  List<Object?> get props => [url, receipt];
+}
+
 class IncidentReportEntity extends Equatable {
   final String id;
   final String bookingId;
@@ -175,6 +187,7 @@ class IncidentReportEntity extends Equatable {
   final String description;
   final List<String> evidenceUrls;
   final int handoverPhotoCount;
+  final int jointlyConfirmedHandoverPhotoCount;
   final bool photoRequired;
   final bool evidenceSatisfied;
   final String? adminNotes;
@@ -195,6 +208,7 @@ class IncidentReportEntity extends Equatable {
     required this.description,
     this.evidenceUrls = const [],
     this.handoverPhotoCount = 0,
+    this.jointlyConfirmedHandoverPhotoCount = 0,
     this.photoRequired = false,
     this.evidenceSatisfied = true,
     this.adminNotes,
@@ -220,6 +234,7 @@ class IncidentReportEntity extends Equatable {
     description,
     evidenceUrls,
     handoverPhotoCount,
+    jointlyConfirmedHandoverPhotoCount,
     photoRequired,
     evidenceSatisfied,
     adminNotes,

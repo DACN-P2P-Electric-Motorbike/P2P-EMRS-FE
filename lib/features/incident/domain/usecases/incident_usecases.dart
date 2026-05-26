@@ -55,6 +55,7 @@ class CreateIncidentReportParams {
   final IncidentSeverity severity;
   final String description;
   final List<String>? evidenceUrls;
+  final List<IncidentEvidenceUpload>? evidenceUploads;
   final List<String>? handoverPhotoIds;
 
   const CreateIncidentReportParams({
@@ -65,6 +66,7 @@ class CreateIncidentReportParams {
     required this.severity,
     required this.description,
     this.evidenceUrls,
+    this.evidenceUploads,
     this.handoverPhotoIds,
   });
 }
@@ -87,6 +89,7 @@ class CreateIncidentReportUseCase
       severity: params.severity,
       description: params.description,
       evidenceUrls: params.evidenceUrls,
+      evidenceUploads: params.evidenceUploads,
       handoverPhotoIds: params.handoverPhotoIds,
     );
   }

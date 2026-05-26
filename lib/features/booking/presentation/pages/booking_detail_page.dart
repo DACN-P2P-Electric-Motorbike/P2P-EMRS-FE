@@ -966,6 +966,12 @@ class _BookingDetailPageState extends State<BookingDetailPage> {
                 icon: Icons.image_outlined,
                 text: '$evidenceCount bằng chứng',
               ),
+              if (report.jointlyConfirmedHandoverPhotoCount > 0)
+                _IncidentMetaChip(
+                  icon: Icons.verified_outlined,
+                  text:
+                      '${report.jointlyConfirmedHandoverPhotoCount} ảnh xác nhận hai bên',
+                ),
               _IncidentMetaChip(
                 icon: Icons.schedule_outlined,
                 text: VietnamTime.format(report.createdAt, 'dd/MM HH:mm'),
@@ -1758,7 +1764,7 @@ class _BookingDetailPageState extends State<BookingDetailPage> {
     );
     var selectedCategory = IncidentCategory.mechanicalIssue;
     var selectedSeverity = IncidentSeverity.medium;
-    var uploadedEvidenceUrls = <String>[];
+    var uploadedEvidence = <IncidentEvidenceUpload>[];
     var selectedHandoverPhotoIds = <String>{};
     var isUploading = false;
     var isSubmitting = false;
@@ -1773,7 +1779,7 @@ class _BookingDetailPageState extends State<BookingDetailPage> {
               selectedSeverity == IncidentSeverity.critical;
 
           Future<void> pickAndUploadEvidence() async {
-            if (uploadedEvidenceUrls.length >= 10) {
+            if (uploadedEvidence.length >= 10) {
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(
                   content: Text('Tối đa 10 ảnh bằng chứng.'),
@@ -1799,8 +1805,17 @@ class _BookingDetailPageState extends State<BookingDetailPage> {
                 fileBytes: bytes,
                 fileName: file.name,
               );
+              final receipt = uploaded.evidenceReceipt;
+              if (receipt == null || receipt.isEmpty) {
+                throw StateError(
+                  'Máy chủ không trả về xác thực cho ảnh bằng chứng.',
+                );
+              }
               setDialogState(() {
-                uploadedEvidenceUrls = [...uploadedEvidenceUrls, uploaded.url];
+                uploadedEvidence = [
+                  ...uploadedEvidence,
+                  IncidentEvidenceUpload(url: uploaded.url, receipt: receipt),
+                ];
               });
             } catch (e) {
               if (!mounted || !context.mounted) return;
@@ -1820,7 +1835,7 @@ class _BookingDetailPageState extends State<BookingDetailPage> {
           Future<void> submit() async {
             if (!(formKey.currentState?.validate() ?? false)) return;
             if (requiresEvidence &&
-                uploadedEvidenceUrls.isEmpty &&
+                uploadedEvidence.isEmpty &&
                 selectedHandoverPhotoIds.isEmpty) {
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(
@@ -1842,9 +1857,9 @@ class _BookingDetailPageState extends State<BookingDetailPage> {
                 category: selectedCategory,
                 severity: selectedSeverity,
                 description: descriptionController.text.trim(),
-                evidenceUrls: uploadedEvidenceUrls.isEmpty
+                evidenceUploads: uploadedEvidence.isEmpty
                     ? null
-                    : uploadedEvidenceUrls,
+                    : uploadedEvidence,
                 handoverPhotoIds: selectedHandoverPhotoIds.isEmpty
                     ? null
                     : selectedHandoverPhotoIds.toList(),
@@ -1988,7 +2003,7 @@ class _BookingDetailPageState extends State<BookingDetailPage> {
                             spacing: 8,
                             runSpacing: 8,
                             children: [
-                              ...uploadedEvidenceUrls.asMap().entries.map(
+                              ...uploadedEvidence.asMap().entries.map(
                                 (entry) => Chip(
                                   label: Text('Ảnh ${entry.key + 1}'),
                                   deleteIcon: const Icon(Icons.close, size: 16),
@@ -1996,8 +2011,8 @@ class _BookingDetailPageState extends State<BookingDetailPage> {
                                       ? null
                                       : () {
                                           setDialogState(() {
-                                            uploadedEvidenceUrls = [
-                                              ...uploadedEvidenceUrls,
+                                            uploadedEvidence = [
+                                              ...uploadedEvidence,
                                             ]..removeAt(entry.key);
                                           });
                                         },
@@ -2024,7 +2039,7 @@ class _BookingDetailPageState extends State<BookingDetailPage> {
                           ),
                           const SizedBox(height: 14),
                           Text(
-                            'Ảnh bàn giao đã lưu',
+                            'Ảnh bàn giao đã lưu (ưu tiên ảnh xác nhận hai bên)',
                             style: GoogleFonts.poppins(
                               fontSize: 12,
                               fontWeight: FontWeight.w600,
@@ -2047,10 +2062,33 @@ class _BookingDetailPageState extends State<BookingDetailPage> {
                                     (_) => null,
                                     (summary) => summary,
                                   );
-                              final photos = <HandoverPhoto>[
-                                ...?handover?.checkOut?.photos,
-                                ...?handover?.checkIn?.photos,
-                              ];
+                              final photos =
+                                  <
+                                    ({
+                                      HandoverPhoto photo,
+                                      String type,
+                                      bool jointlyConfirmed,
+                                    })
+                                  >[
+                                    if (handover?.checkOut != null)
+                                      for (final photo
+                                          in handover!.checkOut!.photos)
+                                        (
+                                          photo: photo,
+                                          type: 'Check-out',
+                                          jointlyConfirmed:
+                                              handover.checkOut!.isComplete,
+                                        ),
+                                    if (handover?.checkIn != null)
+                                      for (final photo
+                                          in handover!.checkIn!.photos)
+                                        (
+                                          photo: photo,
+                                          type: 'Check-in',
+                                          jointlyConfirmed:
+                                              handover.checkIn!.isComplete,
+                                        ),
+                                  ];
 
                               if (photos.isEmpty) {
                                 return Text(
@@ -2063,15 +2101,10 @@ class _BookingDetailPageState extends State<BookingDetailPage> {
                               }
 
                               return Column(
-                                children: photos.map((photo) {
+                                children: photos.map((evidencePhoto) {
+                                  final photo = evidencePhoto.photo;
                                   final isSelected = selectedHandoverPhotoIds
                                       .contains(photo.id);
-                                  final type =
-                                      photos.indexOf(photo) <
-                                          (handover?.checkOut?.photos.length ??
-                                              0)
-                                      ? 'Check-out'
-                                      : 'Check-in';
                                   return CheckboxListTile(
                                     value: isSelected,
                                     contentPadding: EdgeInsets.zero,
@@ -2094,12 +2127,31 @@ class _BookingDetailPageState extends State<BookingDetailPage> {
                                         ),
                                         const SizedBox(width: 10),
                                         Expanded(
-                                          child: Text(
-                                            '$type · ${photo.photoType}',
-                                            style: GoogleFonts.poppins(
-                                              fontSize: 12,
-                                              color: AppColors.textPrimary,
-                                            ),
+                                          child: Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
+                                            children: [
+                                              Text(
+                                                '${evidencePhoto.type} · ${photo.photoType}',
+                                                style: GoogleFonts.poppins(
+                                                  fontSize: 12,
+                                                  color: AppColors.textPrimary,
+                                                ),
+                                              ),
+                                              Text(
+                                                evidencePhoto.jointlyConfirmed
+                                                    ? 'Đã xác nhận bởi hai bên'
+                                                    : 'Chưa xác nhận bởi hai bên',
+                                                style: GoogleFonts.poppins(
+                                                  fontSize: 11,
+                                                  color:
+                                                      evidencePhoto
+                                                          .jointlyConfirmed
+                                                      ? AppColors.success
+                                                      : AppColors.warning,
+                                                ),
+                                              ),
+                                            ],
                                           ),
                                         ),
                                       ],

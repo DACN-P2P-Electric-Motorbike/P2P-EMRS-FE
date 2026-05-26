@@ -10,6 +10,7 @@ class UpdateVehicleParams extends Equatable {
   final double? pricePerHour;
   final double? pricePerDay;
   final bool? instantBook;
+  final CancellationPolicy? cancellationPolicy;
   final int? dailyKmLimit;
   final double? excessKmPrice;
   final double? weeklyDiscount;
@@ -39,6 +40,7 @@ class UpdateVehicleParams extends Equatable {
     this.pricePerHour,
     this.pricePerDay,
     this.instantBook,
+    this.cancellationPolicy,
     this.dailyKmLimit,
     this.excessKmPrice,
     this.weeklyDiscount,
@@ -72,6 +74,9 @@ class UpdateVehicleParams extends Equatable {
     if (pricePerHour != null) json['pricePerHour'] = pricePerHour;
     if (pricePerDay != null) json['pricePerDay'] = pricePerDay;
     if (instantBook != null) json['instantBook'] = instantBook;
+    if (cancellationPolicy != null) {
+      json['cancellationPolicy'] = cancellationPolicy!.toApiString();
+    }
     if (dailyKmLimit != null) json['dailyKmLimit'] = dailyKmLimit;
     if (excessKmPrice != null) json['excessKmPrice'] = excessKmPrice;
     if (weeklyDiscount != null) json['weeklyDiscount'] = weeklyDiscount;
@@ -125,6 +130,7 @@ class UpdateVehicleParams extends Equatable {
     pricePerHour,
     pricePerDay,
     instantBook,
+    cancellationPolicy,
     dailyKmLimit,
     excessKmPrice,
     weeklyDiscount,

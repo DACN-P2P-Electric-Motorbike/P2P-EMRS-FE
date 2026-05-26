@@ -8,14 +8,21 @@ class UploadResult {
   final String url;
   final String key;
   final String fileName;
+  final String? evidenceReceipt;
 
-  UploadResult({required this.url, required this.key, required this.fileName});
+  UploadResult({
+    required this.url,
+    required this.key,
+    required this.fileName,
+    this.evidenceReceipt,
+  });
 
   factory UploadResult.fromJson(Map<String, dynamic> json) {
     return UploadResult(
       url: json['url'] ?? '',
       key: json['key'] ?? '',
       fileName: json['fileName'] ?? '',
+      evidenceReceipt: json['evidenceReceipt'] as String?,
     );
   }
 }

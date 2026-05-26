@@ -230,10 +230,8 @@ class _VehicleDetailContentState extends State<_VehicleDetailContent> {
                         const SizedBox(height: 20),
                       ],
 
-                      if (_hasRentalPolicies(vehicle)) ...[
-                        _buildRentalPolicySection(vehicle),
-                        const SizedBox(height: 20),
-                      ],
+                      _buildRentalPolicySection(vehicle),
+                      const SizedBox(height: 20),
 
                       // Location
                       _buildLocationSection(context, vehicle),
@@ -1009,18 +1007,6 @@ class _VehicleDetailContentState extends State<_VehicleDetailContent> {
     );
   }
 
-  bool _hasRentalPolicies(VehicleEntity vehicle) {
-    return vehicle.instantBook ||
-        vehicle.dailyKmLimit != null ||
-        vehicle.excessKmPrice != null ||
-        vehicle.weeklyDiscount != null ||
-        vehicle.monthlyDiscount != null ||
-        vehicle.allowSmoke ||
-        vehicle.allowPets ||
-        vehicle.geoRestriction != null ||
-        vehicle.batteryReturnMin != null;
-  }
-
   Widget _buildRentalPolicySection(VehicleEntity vehicle) {
     final discountText = [
       if (vehicle.weeklyDiscount != null)
@@ -1061,6 +1047,11 @@ class _VehicleDetailContentState extends State<_VehicleDetailContent> {
               value: 'Tự động xác nhận',
               color: AppColors.warning,
             ),
+          _buildPolicyRow(
+            icon: Icons.event_busy_outlined,
+            label: 'Chính sách hủy',
+            value: vehicle.cancellationPolicy.displayName,
+          ),
           if (vehicle.dailyKmLimit != null)
             _buildPolicyRow(
               icon: Icons.route,
@@ -1699,6 +1690,7 @@ class _VehicleDetailContentState extends State<_VehicleDetailContent> {
     );
     final formKey = GlobalKey<FormState>();
     var instantBook = vehicle.instantBook;
+    var cancellationPolicy = vehicle.cancellationPolicy;
     var allowSmoke = vehicle.allowSmoke;
     var allowPets = vehicle.allowPets;
     var geoRestriction = vehicle.geoRestriction ?? 'no_restriction';
@@ -1835,6 +1827,7 @@ class _VehicleDetailContentState extends State<_VehicleDetailContent> {
                 pricePerHour: double.tryParse(priceController.text.trim()),
                 pricePerDay: pricePerDay,
                 instantBook: instantBook,
+                cancellationPolicy: cancellationPolicy,
                 dailyKmLimit: dailyKmLimit,
                 excessKmPrice: excessKmPrice,
                 weeklyDiscount: weeklyDiscount,
@@ -2016,6 +2009,38 @@ class _VehicleDetailContentState extends State<_VehicleDetailContent> {
                       activeThumbColor: AppColors.primary,
                       onChanged: (value) =>
                           setSheetState(() => instantBook = value),
+                    ),
+                    const Divider(height: 24),
+                    DropdownButtonFormField<CancellationPolicy>(
+                      initialValue: cancellationPolicy,
+                      decoration: InputDecoration(
+                        labelText: 'Chính sách hủy của người thuê',
+                        prefixIcon: const Icon(Icons.event_busy_outlined),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      items: CancellationPolicy.values
+                          .map(
+                            (value) => DropdownMenuItem(
+                              value: value,
+                              child: Text(value.displayName),
+                            ),
+                          )
+                          .toList(),
+                      onChanged: (value) {
+                        if (value != null) {
+                          setSheetState(() => cancellationPolicy = value);
+                        }
+                      },
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      cancellationPolicy.summaryText,
+                      style: GoogleFonts.poppins(
+                        fontSize: 12,
+                        color: AppColors.textSecondary,
+                      ),
                     ),
                     const Divider(height: 24),
                     Row(

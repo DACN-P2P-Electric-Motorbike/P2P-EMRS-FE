@@ -21,6 +21,7 @@ abstract class IncidentRepository {
     required IncidentSeverity severity,
     required String description,
     List<String>? evidenceUrls,
+    List<IncidentEvidenceUpload>? evidenceUploads,
     List<String>? handoverPhotoIds,
   });
 }
