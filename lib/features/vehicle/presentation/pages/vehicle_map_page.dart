@@ -39,8 +39,7 @@ class _VehicleMapPageState extends State<VehicleMapPage> {
   bool _permissionDenied = false;
 
   double _radiusKm = 5.0;
-
-  List<VehicleEntity> _allFetchedVehicles = [];
+  Timer? _radiusDebounce;
 
   static const ll.LatLng _defaultCenter = ll.LatLng(10.7769, 106.7009);
 
@@ -52,6 +51,7 @@ class _VehicleMapPageState extends State<VehicleMapPage> {
 
   @override
   void dispose() {
+    _radiusDebounce?.cancel();
     _googleMapController?.dispose();
     _osmMapController.dispose();
     super.dispose();
@@ -105,14 +105,8 @@ class _VehicleMapPageState extends State<VehicleMapPage> {
 
   void _onRadiusChanged(double value) {
     setState(() => _radiusKm = value);
-    if (_userPosition != null && _allFetchedVehicles.isNotEmpty) {
-      context.read<VehicleListCubit>().updateRadius(
-        _allFetchedVehicles,
-        _radiusKm,
-        _userPosition!.latitude,
-        _userPosition!.longitude,
-      );
-    }
+    _radiusDebounce?.cancel();
+    _radiusDebounce = Timer(const Duration(milliseconds: 350), _loadNearby);
   }
 
   Set<gmaps.Marker> _buildGoogleMarkers(List<VehicleEntity> vehicles) {
@@ -280,15 +274,7 @@ class _VehicleMapPageState extends State<VehicleMapPage> {
     return Scaffold(
       body: Stack(
         children: [
-          BlocConsumer<VehicleListCubit, VehicleListState>(
-            listener: (context, state) {
-              if (state is VehicleListLoaded) {
-                if (_allFetchedVehicles.isEmpty ||
-                    state.vehicles.length > _allFetchedVehicles.length) {
-                  _allFetchedVehicles = List.from(state.vehicles);
-                }
-              }
-            },
+          BlocBuilder<VehicleListCubit, VehicleListState>(
             builder: (context, state) {
               final vehicles = state is VehicleListLoaded
                   ? state.vehicles
@@ -428,10 +414,7 @@ class _VehicleMapPageState extends State<VehicleMapPage> {
                   ),
                   IconButton(
                     icon: const Icon(Icons.refresh),
-                    onPressed: () {
-                      _allFetchedVehicles.clear();
-                      _loadNearby();
-                    },
+                    onPressed: _loadNearby,
                   ),
                 ],
               ),
@@ -504,8 +487,8 @@ class _VehicleMapPageState extends State<VehicleMapPage> {
                       child: Slider(
                         value: _radiusKm,
                         min: 1,
-                        max: 20,
-                        divisions: 19,
+                        max: 50,
+                        divisions: 49,
                         onChanged: _onRadiusChanged,
                       ),
                     ),

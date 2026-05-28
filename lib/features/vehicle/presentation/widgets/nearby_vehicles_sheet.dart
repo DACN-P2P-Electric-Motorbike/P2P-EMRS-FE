@@ -263,10 +263,7 @@ class _NearbyVehicleListTile extends StatelessWidget {
                       ),
                       const SizedBox(width: 2),
                       Text(
-                        vehicle.reviewCount > 0
-                            ? (vehicle.totalRating / vehicle.reviewCount)
-                                  .toStringAsFixed(1)
-                            : '—',
+                        vehicle.formattedRating,
                         style: GoogleFonts.poppins(
                           fontSize: 12,
                           color: AppColors.textSecondary,

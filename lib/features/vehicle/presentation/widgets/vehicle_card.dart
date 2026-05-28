@@ -297,13 +297,7 @@ class _VehicleCardState extends State<VehicleCard> {
                                   ),
                                   const SizedBox(width: 4),
                                   Text(
-                                    vehicle.reviewCount > 0
-                                        ? (vehicle.totalRating /
-                                                  vehicle.reviewCount)
-                                              .toStringAsFixed(1)
-                                        : vehicle.totalRating.toStringAsFixed(
-                                            1,
-                                          ),
+                                    vehicle.formattedRating,
                                     style: GoogleFonts.poppins(
                                       fontSize: 13,
                                       fontWeight: FontWeight.w600,

@@ -35,6 +35,7 @@ class OwnerVehicleBloc extends Bloc<OwnerVehicleEvent, OwnerVehicleState> {
   final HiveCacheService _cache;
   late final StreamSubscription<String> _cacheSubscription;
   bool _isWatchingMyVehicles = false;
+  String? _activeVehicleId;
 
   OwnerVehicleBloc({
     required GetMyVehiclesUseCase getMyVehiclesUseCase,
@@ -282,6 +283,7 @@ class OwnerVehicleBloc extends Bloc<OwnerVehicleEvent, OwnerVehicleState> {
     LoadVehicleById event,
     Emitter<OwnerVehicleState> emit,
   ) async {
+    _activeVehicleId = event.vehicleId;
     emit(state.copyWith(status: OwnerVehicleStatus.loading, clearError: true));
 
     final result = await _getVehicleByIdUseCase(event.vehicleId);
@@ -390,7 +392,16 @@ class OwnerVehicleBloc extends Bloc<OwnerVehicleEvent, OwnerVehicleState> {
     LoadVehicleAvailability event,
     Emitter<OwnerVehicleState> emit,
   ) async {
-    emit(state.copyWith(isAvailabilityLoading: true, clearError: true));
+    emit(
+      state.copyWith(
+        status: state.selectedVehicle == null
+            ? state.status
+            : OwnerVehicleStatus.loaded,
+        isAvailabilityLoading: true,
+        clearError: true,
+        clearSuccess: true,
+      ),
+    );
 
     final result = await _getVehicleAvailabilityUseCase(event.vehicleId);
 
@@ -562,12 +573,18 @@ class OwnerVehicleBloc extends Bloc<OwnerVehicleEvent, OwnerVehicleState> {
   }
 
   void _onCacheChanged(String key) {
-    if (!_isWatchingMyVehicles ||
-        key != 'owner.vehicles' ||
-        state.status != OwnerVehicleStatus.loaded) {
+    if (state.status != OwnerVehicleStatus.loaded) return;
+
+    if (_isWatchingMyVehicles && key == 'owner.vehicles') {
+      add(const LoadMyVehicles());
       return;
     }
-    add(const LoadMyVehicles());
+
+    final activeVehicleId = _activeVehicleId;
+    if (activeVehicleId != null &&
+        key == 'owner.vehicle.availability:$activeVehicleId') {
+      add(LoadVehicleAvailability(activeVehicleId));
+    }
   }
 
   @override

@@ -27,6 +27,7 @@ import 'package:fe_capstone_project/features/owner_vehicle/domain/entities/vehic
 import 'package:fe_capstone_project/features/vehicle/data/models/availability_summary_model.dart';
 import 'package:fe_capstone_project/features/vehicle/data/models/vehicle_model.dart';
 import 'package:fe_capstone_project/features/vehicle/domain/entities/availability_summary.dart';
+import 'package:fe_capstone_project/features/vehicle/presentation/pages/vehicle_owner_profile_page.dart';
 import 'package:fe_capstone_project/features/renter/data/models/become_owner_response_model.dart';
 import 'package:fe_capstone_project/features/review/data/models/review_model.dart';
 import 'package:fe_capstone_project/features/review/domain/entities/review_entity.dart';
@@ -1007,8 +1008,16 @@ void main() {
       'address': 'Quan 1, TP.HCM',
       'images': [],
       'totalTrips': 0,
-      'totalRating': 5,
+      'totalRating': 4.5,
+      'reviewCount': 2,
+      'distance': 2.4,
       'ownerId': 'owner-id',
+      'owner': {
+        'id': 'owner-id',
+        'fullName': 'Nguyen Owner',
+        'avatarUrl': null,
+        'trustScore': 121.5,
+      },
       'createdAt': '2026-05-25T00:00:00.000Z',
       'updatedAt': '2026-05-25T00:00:00.000Z',
     });
@@ -1018,6 +1027,56 @@ void main() {
     expect(vehicle.batteryHealth, 96);
     expect(vehicle.cancellationPolicy.toApiString(), 'MODERATE');
     expect(vehicle.cancellationPolicy.summaryText, contains('5 ngày'));
+    expect(vehicle.formattedRating, '4.5');
+    expect(vehicle.distanceFromUser, 2.4);
+    expect(vehicle.toEntity().formattedRating, '4.5');
+    expect(vehicle.owner?.fullName, 'Nguyen Owner');
+    expect(vehicle.owner?.trustScore, 121.5);
+    expect(vehicle.toEntity().owner, vehicle.owner);
+    expect(
+      (vehicle.toJson()['owner'] as Map<String, dynamic>)['fullName'],
+      'Nguyen Owner',
+    );
+  });
+
+  testWidgets('Renter owner profile displays public owner trust summary', (
+    tester,
+  ) async {
+    final vehicle = VehicleModel.fromJson({
+      'id': 'vehicle-id',
+      'licensePlate': '59-E1 12345',
+      'model': 'Vento S',
+      'brand': 'VINFAST',
+      'type': 'ELECTRIC_MOTORBIKE',
+      'status': 'AVAILABLE',
+      'batteryLevel': 88,
+      'pricePerHour': 25000,
+      'cancellationPolicy': 'FLEXIBLE',
+      'isAvailable': true,
+      'address': 'Quan 1, TP.HCM',
+      'images': <String>[],
+      'totalTrips': 14,
+      'totalRating': 4.8,
+      'reviewCount': 8,
+      'ownerId': 'owner-id',
+      'owner': {
+        'id': 'owner-id',
+        'fullName': 'Nguyen Owner',
+        'avatarUrl': null,
+        'trustScore': 121.5,
+      },
+      'createdAt': '2026-05-25T00:00:00.000Z',
+      'updatedAt': '2026-05-25T00:00:00.000Z',
+    });
+
+    await tester.pumpWidget(
+      MaterialApp(home: VehicleOwnerProfilePage(vehicle: vehicle)),
+    );
+
+    expect(find.text('Hồ sơ chủ xe'), findsOneWidget);
+    expect(find.text('Nguyen Owner'), findsOneWidget);
+    expect(find.text('122/150'), findsOneWidget);
+    expect(find.text('14'), findsOneWidget);
   });
 
   test('NotificationTextLocalizer follows the selected app language', () {

@@ -106,9 +106,7 @@ Future<_FakeReviewRepository> _pumpTrustScorePage(
     ),
   );
 
-  await tester.pumpWidget(
-    MaterialApp(home: const TrustScorePage()),
-  );
+  await tester.pumpWidget(MaterialApp(home: const TrustScorePage()));
   return repository;
 }
 
@@ -130,10 +128,7 @@ void main() {
   // =========================================================================
   group('TrustScorePage component', () {
     testWidgets('renders gauge denominator on the 0–150 scale', (tester) async {
-      await _pumpTrustScorePage(
-        tester,
-        breakdown: _breakdown(trustScore: 95),
-      );
+      await _pumpTrustScorePage(tester, breakdown: _breakdown(trustScore: 95));
       await tester.pumpAndSettle();
 
       expect(find.text('95'), findsOneWidget);
@@ -174,10 +169,7 @@ void main() {
     testWidgets('does not render warnings or events sections when empty', (
       tester,
     ) async {
-      await _pumpTrustScorePage(
-        tester,
-        breakdown: _breakdown(),
-      );
+      await _pumpTrustScorePage(tester, breakdown: _breakdown());
       await tester.pumpAndSettle();
 
       expect(find.textContaining('Cảnh báo đang theo dõi'), findsNothing);
@@ -360,10 +352,7 @@ void main() {
     testWidgets('uses /150 scale and clamps gauge value at max', (
       tester,
     ) async {
-      await _pumpTrustScorePage(
-        tester,
-        breakdown: _breakdown(trustScore: 150),
-      );
+      await _pumpTrustScorePage(tester, breakdown: _breakdown(trustScore: 150));
       await tester.pumpAndSettle();
 
       expect(find.text('150'), findsOneWidget);
@@ -372,12 +361,10 @@ void main() {
       expect(tester.takeException(), isNull);
     });
 
-    testWidgets('penalty deltas show as negative chips, not absolute numbers',
-        (tester) async {
-      await _pumpTrustScorePage(
-        tester,
-        breakdown: _breakdown(),
-      );
+    testWidgets('penalty deltas show as negative chips, not absolute numbers', (
+      tester,
+    ) async {
+      await _pumpTrustScorePage(tester, breakdown: _breakdown());
       await tester.pumpAndSettle();
 
       // Cancelled bookings = 1 → cancellationPenalty = -5
@@ -385,10 +372,7 @@ void main() {
     });
 
     testWidgets('does not regress to /100 scale', (tester) async {
-      await _pumpTrustScorePage(
-        tester,
-        breakdown: _breakdown(trustScore: 100),
-      );
+      await _pumpTrustScorePage(tester, breakdown: _breakdown(trustScore: 100));
       await tester.pumpAndSettle();
 
       expect(find.text('/100'), findsNothing);
@@ -440,4 +424,9 @@ class _FakeReviewRepository implements ReviewRepository {
   Future<Either<Failure, List<ReviewEntity>>> getVehicleReviews(
     String vehicleId,
   ) async => const Right(<ReviewEntity>[]);
+
+  @override
+  Future<Either<Failure, BookingReviewStatus>> getBookingReviewStatus(
+    String bookingId,
+  ) async => const Left(ServerFailure(message: 'not used'));
 }

@@ -401,6 +401,23 @@ enum CancellationPolicy {
   }
 }
 
+class VehicleOwnerSummary extends Equatable {
+  final String id;
+  final String fullName;
+  final String? avatarUrl;
+  final double trustScore;
+
+  const VehicleOwnerSummary({
+    required this.id,
+    required this.fullName,
+    this.avatarUrl,
+    required this.trustScore,
+  });
+
+  @override
+  List<Object?> get props => [id, fullName, avatarUrl, trustScore];
+}
+
 /// Vehicle entity representing the domain model
 // ignore: must_be_immutable
 class VehicleEntity extends Equatable {
@@ -449,13 +466,14 @@ class VehicleEntity extends Equatable {
   final double totalRating;
   final int reviewCount;
   final String ownerId;
+  final VehicleOwnerSummary? owner;
   final DateTime createdAt;
   final DateTime updatedAt;
 
   /// Distance from user's current location in km (computed, not persisted)
-  double? distanceFromUser;
+  final double? distanceFromUser;
 
-  VehicleEntity({
+  const VehicleEntity({
     required this.id,
     this.name,
     required this.licensePlate,
@@ -501,9 +519,16 @@ class VehicleEntity extends Equatable {
     required this.totalRating,
     this.reviewCount = 0,
     required this.ownerId,
+    this.owner,
     required this.createdAt,
     required this.updatedAt,
+    this.distanceFromUser,
   });
+
+  double get displayRating => reviewCount > 0 ? totalRating : 0;
+
+  String get formattedRating =>
+      reviewCount > 0 ? totalRating.toStringAsFixed(1) : '—';
 
   /// Get display name (name or model)
   String get displayName => name ?? model;
@@ -585,7 +610,9 @@ class VehicleEntity extends Equatable {
     totalRating,
     reviewCount,
     ownerId,
+    owner,
     createdAt,
     updatedAt,
+    distanceFromUser,
   ];
 }

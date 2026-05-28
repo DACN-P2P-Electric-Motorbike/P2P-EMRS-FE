@@ -89,6 +89,8 @@ class _EnhancedBookingContentState extends State<_EnhancedBookingContent> {
   String? _activeLockId;
   DateTime? _lockExpiresAt;
   Duration _remainingLockTime = Duration.zero;
+  bool _lockEndpointUnavailable = false;
+  bool _protectionPolicyUnavailable = false;
   Timer? _lockTimer;
   late final BookingBloc _bookingBloc;
   late final BookingRepository _bookingRepository;
@@ -401,12 +403,24 @@ class _EnhancedBookingContentState extends State<_EnhancedBookingContent> {
           });
         } else if (state is BookingLockCreated) {
           setState(() {
-            _isProcessing = false;
             _activeLockId = state.lock.id;
             _lockExpiresAt = state.lock.expiresAt;
           });
           _startLockTimer();
+          _submitBookingRequest();
         } else if (state is BookingFailure) {
+          if (_shouldCreateBookingWithoutLock(state.message)) {
+            setState(() => _lockEndpointUnavailable = true);
+            _submitBookingRequest();
+            return;
+          }
+
+          if (_shouldCreateBookingWithoutProtectionPlan(state.message)) {
+            setState(() => _protectionPolicyUnavailable = true);
+            _submitBookingRequest();
+            return;
+          }
+
           // Show error message
           setState(() => _isProcessing = false);
           final needsKyc = state.message.toLowerCase().contains('kyc');
@@ -1580,9 +1594,7 @@ class _EnhancedBookingContentState extends State<_EnhancedBookingContent> {
           ),
           const SizedBox(height: 12),
           _buildNote(
-            _activeLockId == null
-                ? 'Giữ chỗ trước khi xác nhận để tránh trùng lịch'
-                : 'Chỗ đang được giữ tạm thời trong lúc bạn xác nhận',
+            'Khi xác nhận, thời gian thuê được giữ tối đa 15 phút trong lúc gửi yêu cầu',
           ),
           _buildNote(
             widget.vehicle.instantBook
@@ -1690,8 +1702,8 @@ class _EnhancedBookingContentState extends State<_EnhancedBookingContent> {
                         children: [
                           Icon(
                             _activeLockId == null
-                                ? Icons.lock_clock
-                                : Icons.check_circle_outline,
+                                ? Icons.check_circle_outline
+                                : Icons.refresh,
                             size: 20,
                           ),
                           const SizedBox(width: 8),
@@ -1765,7 +1777,7 @@ class _EnhancedBookingContentState extends State<_EnhancedBookingContent> {
 
     setState(() => _isProcessing = true);
 
-    if (_activeLockId == null) {
+    if (_activeLockId == null && !_lockEndpointUnavailable) {
       _bookingBloc.add(
         CreateBookingLockEvent(
           vehicleId: widget.vehicle.id,
@@ -1776,6 +1788,10 @@ class _EnhancedBookingContentState extends State<_EnhancedBookingContent> {
       return;
     }
 
+    _submitBookingRequest();
+  }
+
+  void _submitBookingRequest() {
     _bookingBloc.add(
       CreateBookingEvent(
         vehicleId: widget.vehicle.id,
@@ -1784,17 +1800,50 @@ class _EnhancedBookingContentState extends State<_EnhancedBookingContent> {
         notes: _notesController.text.trim().isEmpty
             ? null
             : _notesController.text.trim(),
-        protectionPlan: _selectedProtectionPlan,
-        prepaidCharging: _prepaidCharging,
-        roadsideSupport: _roadsideSupport,
+        protectionPlan: _protectionPolicyUnavailable
+            ? null
+            : _selectedProtectionPlan,
+        prepaidCharging: _protectionPolicyUnavailable
+            ? false
+            : _prepaidCharging,
+        roadsideSupport: _protectionPolicyUnavailable
+            ? false
+            : _roadsideSupport,
       ),
     );
+  }
+
+  bool _shouldCreateBookingWithoutLock(String message) {
+    if (!_isProcessing || _activeLockId != null || _lockEndpointUnavailable) {
+      return false;
+    }
+
+    final normalized = message.toLowerCase();
+    return normalized.contains('/bookings/lock') &&
+        (normalized.contains('cannot post') ||
+            normalized.contains('not found') ||
+            normalized.contains('404'));
+  }
+
+  bool _shouldCreateBookingWithoutProtectionPlan(String message) {
+    if (!_isProcessing || _protectionPolicyUnavailable) {
+      return false;
+    }
+
+    final normalized = message.toLowerCase();
+    return (normalized.contains('protectionplan') ||
+            normalized.contains('prepaidcharging') ||
+            normalized.contains('roadsidesupport')) &&
+        (normalized.contains('should not exist') ||
+            normalized.contains('not found') ||
+            normalized.contains('400') ||
+            normalized.contains('validation'));
   }
 
   String get _bookingButtonLabel {
     if (_totalPrice <= 0) return 'Chọn thời gian thuê';
     final price = _formatPrice(_checkoutTotal);
-    if (_activeLockId == null) return 'Giữ chỗ 15 phút - $price';
+    if (_activeLockId != null) return 'Thử lại đặt xe - $price';
     return 'Xác nhận đặt xe - $price';
   }
 
@@ -1824,7 +1873,7 @@ class _EnhancedBookingContentState extends State<_EnhancedBookingContent> {
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  'Hoàn tất xác nhận trước khi hết thời gian',
+                  'Hoàn tất yêu cầu trước khi hết thời gian',
                   style: GoogleFonts.poppins(
                     fontSize: 12,
                     color: AppColors.textSecondary,
@@ -1870,7 +1919,7 @@ class _EnhancedBookingContentState extends State<_EnhancedBookingContent> {
       });
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Thời gian giữ chỗ đã hết, vui lòng giữ chỗ lại.'),
+          content: Text('Thời gian giữ chỗ đã hết, vui lòng xác nhận lại.'),
           backgroundColor: AppColors.warning,
         ),
       );

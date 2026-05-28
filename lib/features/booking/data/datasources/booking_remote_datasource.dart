@@ -93,7 +93,7 @@ class BookingRemoteDataSourceImpl implements BookingRemoteDataSource {
   }) async {
     try {
       final response = await _dioClient.post(
-        '/bookings',
+        ApiConstants.bookings,
         data: {
           'vehicleId': vehicleId,
           'startTime': VietnamTime.toApiIsoString(startTime),
@@ -132,7 +132,7 @@ class BookingRemoteDataSourceImpl implements BookingRemoteDataSource {
   }) async {
     try {
       final response = await _dioClient.post(
-        '/bookings/lock',
+        ApiConstants.bookingLock,
         data: {
           'vehicleId': vehicleId,
           'startTime': VietnamTime.toApiIsoString(startTime),
@@ -160,7 +160,9 @@ class BookingRemoteDataSourceImpl implements BookingRemoteDataSource {
   @override
   Future<void> releaseBookingLock(String lockId) async {
     try {
-      final response = await _dioClient.delete('/bookings/lock/$lockId');
+      final response = await _dioClient.delete(
+        ApiConstants.bookingLockById(lockId),
+      );
 
       if (response.statusCode == 204 || response.statusCode == 200) {
         return;

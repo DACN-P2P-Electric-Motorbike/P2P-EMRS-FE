@@ -159,23 +159,14 @@ class OwnerVehicleRemoteDataSourceImpl implements OwnerVehicleRemoteDataSource {
   Future<List<VehicleAvailabilityWindowModel>> getAvailabilityWindows(
     String vehicleId,
   ) async {
-    try {
-      final response = await _dioClient.get(
-        ApiConstants.vehicleAvailability(vehicleId),
-      );
-      if (response.data is! List) return [];
-
-      return (response.data as List)
-          .whereType<Map>()
-          .map(
-            (json) => VehicleAvailabilityWindowModel.fromJson(
-              Map<String, dynamic>.from(json),
-            ),
-          )
-          .toList();
-    } on DioException catch (e) {
-      throw ServerException.fromDioException(e);
+    final cacheKey = _availabilityCacheKey(vehicleId);
+    final cached = await _cachedAvailabilityWindows(cacheKey);
+    if (cached != null) {
+      unawaited(_refreshAvailabilityWindows(cacheKey, vehicleId));
+      return cached;
     }
+
+    return _fetchAndCacheAvailabilityWindows(cacheKey, vehicleId);
   }
 
   @override
@@ -188,9 +179,14 @@ class OwnerVehicleRemoteDataSourceImpl implements OwnerVehicleRemoteDataSource {
         ApiConstants.vehicleAvailability(vehicleId),
         data: params.toJson(),
       );
-      return VehicleAvailabilityWindowModel.fromJson(
+      final window = VehicleAvailabilityWindowModel.fromJson(
         response.data as Map<String, dynamic>,
       );
+      await _refreshAvailabilityCacheAfterMutation(
+        vehicleId,
+        fallback: [window],
+      );
+      return window;
     } on DioException catch (e) {
       throw ServerException.fromDioException(e);
     }
@@ -207,9 +203,14 @@ class OwnerVehicleRemoteDataSourceImpl implements OwnerVehicleRemoteDataSource {
         ApiConstants.vehicleAvailabilityWindow(vehicleId, windowId),
         data: params.toJson(),
       );
-      return VehicleAvailabilityWindowModel.fromJson(
+      final window = VehicleAvailabilityWindowModel.fromJson(
         response.data as Map<String, dynamic>,
       );
+      await _refreshAvailabilityCacheAfterMutation(
+        vehicleId,
+        fallback: [window],
+      );
+      return window;
     } on DioException catch (e) {
       throw ServerException.fromDioException(e);
     }
@@ -224,6 +225,7 @@ class OwnerVehicleRemoteDataSourceImpl implements OwnerVehicleRemoteDataSource {
       await _dioClient.delete(
         ApiConstants.vehicleAvailabilityWindow(vehicleId, windowId),
       );
+      await _refreshAvailabilityCacheAfterMutation(vehicleId);
     } on DioException catch (e) {
       throw ServerException.fromDioException(e);
     }
@@ -269,6 +271,72 @@ class OwnerVehicleRemoteDataSourceImpl implements OwnerVehicleRemoteDataSource {
     try {
       await _fetchAndCacheMyVehicles(cacheKey);
     } catch (_) {}
+  }
+
+  String _availabilityCacheKey(String vehicleId) =>
+      'owner.vehicle.availability:$vehicleId';
+
+  Future<List<VehicleAvailabilityWindowModel>?> _cachedAvailabilityWindows(
+    String cacheKey,
+  ) async {
+    final cached = await _cache.read<List<dynamic>>(cacheKey);
+    if (cached == null) return null;
+    return cached
+        .whereType<Map>()
+        .map(
+          (json) => VehicleAvailabilityWindowModel.fromJson(
+            Map<String, dynamic>.from(json),
+          ),
+        )
+        .toList();
+  }
+
+  Future<List<VehicleAvailabilityWindowModel>>
+  _fetchAndCacheAvailabilityWindows(String cacheKey, String vehicleId) async {
+    try {
+      final response = await _dioClient.get(
+        ApiConstants.vehicleAvailability(vehicleId),
+      );
+      if (response.data is! List) return [];
+
+      final windows = (response.data as List)
+          .whereType<Map>()
+          .map(
+            (json) => VehicleAvailabilityWindowModel.fromJson(
+              Map<String, dynamic>.from(json),
+            ),
+          )
+          .toList();
+      await _cache.write(cacheKey, windows.map((w) => w.toJson()).toList());
+      return windows;
+    } on DioException catch (e) {
+      if (e.response?.statusCode == 404) {
+        await _cache.write(cacheKey, const []);
+        return [];
+      }
+      throw ServerException.fromDioException(e);
+    }
+  }
+
+  Future<void> _refreshAvailabilityWindows(
+    String cacheKey,
+    String vehicleId,
+  ) async {
+    try {
+      await _fetchAndCacheAvailabilityWindows(cacheKey, vehicleId);
+    } catch (_) {}
+  }
+
+  Future<void> _refreshAvailabilityCacheAfterMutation(
+    String vehicleId, {
+    List<VehicleAvailabilityWindowModel> fallback = const [],
+  }) async {
+    final cacheKey = _availabilityCacheKey(vehicleId);
+    try {
+      await _fetchAndCacheAvailabilityWindows(cacheKey, vehicleId);
+    } catch (_) {
+      await _cache.write(cacheKey, fallback.map((w) => w.toJson()).toList());
+    }
   }
 
   Future<void> _refreshVehicleDetail(String cacheKey, String id) async {
