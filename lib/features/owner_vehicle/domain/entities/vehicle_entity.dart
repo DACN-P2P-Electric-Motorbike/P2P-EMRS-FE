@@ -598,6 +598,10 @@ class VehicleEntity extends Equatable {
     required this.updatedAt,
   });
 
+  double get displayRating => reviewCount > 0 ? totalRating : 0;
+
+  String get formattedRating => reviewCount > 0 ? totalRating.toStringAsFixed(1) : '—';
+
   /// Get display name (name or model)
   String get displayName => name ?? model;
 

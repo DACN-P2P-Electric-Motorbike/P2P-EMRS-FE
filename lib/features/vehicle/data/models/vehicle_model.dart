@@ -49,8 +49,10 @@ class VehicleModel extends VehicleEntity {
     required super.totalRating,
     super.reviewCount = 0,
     required super.ownerId,
+    super.owner,
     required super.createdAt,
     required super.updatedAt,
+    super.distanceFromUser,
   });
 
   /// Create VehicleModel from JSON response
@@ -131,8 +133,10 @@ class VehicleModel extends VehicleEntity {
       totalRating: (json['totalRating'] as num?)?.toDouble() ?? 5.0,
       reviewCount: json['reviewCount'] as int? ?? 0,
       ownerId: json['ownerId'] as String,
+      owner: _parseOwner(json['owner']),
       createdAt: DateTime.parse(json['createdAt'] as String),
       updatedAt: DateTime.parse(json['updatedAt'] as String),
+      distanceFromUser: _parseDouble(json['distance']),
     );
   }
 
@@ -150,7 +154,30 @@ class VehicleModel extends VehicleEntity {
     return null;
   }
 
+  static double? _parseDouble(dynamic value) {
+    if (value is num) return value.toDouble();
+    if (value is String) return double.tryParse(value);
+    return null;
+  }
+
+  static VehicleOwnerSummary? _parseOwner(dynamic value) {
+    if (value is! Map) return null;
+
+    final json = Map<String, dynamic>.from(value);
+    final id = json['id'];
+    final fullName = json['fullName'];
+    if (id is! String || fullName is! String) return null;
+
+    return VehicleOwnerSummary(
+      id: id,
+      fullName: fullName,
+      avatarUrl: json['avatarUrl'] as String?,
+      trustScore: _parseDouble(json['trustScore']) ?? 0,
+    );
+  }
+
   /// Convert to JSON (for debugging/logging)
+
   Map<String, dynamic> toJson() {
     return {
       'id': id,
@@ -198,8 +225,17 @@ class VehicleModel extends VehicleEntity {
       'totalRating': totalRating,
       'reviewCount': reviewCount,
       'ownerId': ownerId,
+      'owner': owner == null
+          ? null
+          : {
+              'id': owner!.id,
+              'fullName': owner!.fullName,
+              'avatarUrl': owner!.avatarUrl,
+              'trustScore': owner!.trustScore,
+            },
       'createdAt': createdAt.toIso8601String(),
       'updatedAt': updatedAt.toIso8601String(),
+      if (distanceFromUser != null) 'distance': distanceFromUser,
     };
   }
 
@@ -251,8 +287,10 @@ class VehicleModel extends VehicleEntity {
       totalRating: totalRating,
       reviewCount: reviewCount,
       ownerId: ownerId,
+      owner: owner,
       createdAt: createdAt,
       updatedAt: updatedAt,
+      distanceFromUser: distanceFromUser,
     );
   }
 }

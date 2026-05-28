@@ -17,6 +17,7 @@ import '../../domain/entities/vehicle_entity.dart';
 import '../bloc/vehicle_detail_cubit.dart';
 import '../widgets/vehicle_image_carousel.dart';
 import '../widgets/booking_bottom_sheet.dart';
+import 'vehicle_owner_profile_page.dart';
 
 class VehicleDetailPage extends StatelessWidget {
   final String vehicleId;
@@ -317,10 +318,7 @@ class _VehicleDetailContent extends StatelessWidget {
                             ),
                             const SizedBox(width: 4),
                             Text(
-                              vehicle.reviewCount > 0
-                                  ? (vehicle.totalRating / vehicle.reviewCount)
-                                        .toStringAsFixed(1)
-                                  : vehicle.totalRating.toStringAsFixed(1),
+                              vehicle.formattedRating,
                               style: GoogleFonts.poppins(
                                 fontSize: 16,
                                 fontWeight: FontWeight.w600,
@@ -573,63 +571,63 @@ class _VehicleDetailContent extends StatelessWidget {
                           const SizedBox(height: 24),
                         ],
 
-                        // Owner info (placeholder)
+                        // Public owner summary
                         _buildSectionTitle('Chủ xe'),
                         const SizedBox(height: 12),
-                        Container(
-                          padding: const EdgeInsets.all(16),
-                          decoration: BoxDecoration(
-                            color: AppColors.surfaceVariant,
+                        Material(
+                          color: AppColors.surfaceVariant,
+                          borderRadius: BorderRadius.circular(12),
+                          child: InkWell(
                             borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Row(
-                            children: [
-                              CircleAvatar(
-                                radius: 28,
-                                backgroundColor: AppColors.primary.withOpacity(
-                                  0.1,
-                                ),
-                                child: const Icon(
-                                  Icons.person,
-                                  color: AppColors.primary,
-                                  size: 28,
-                                ),
+                            onTap: () => Navigator.of(context).push(
+                              MaterialPageRoute<void>(
+                                builder: (_) =>
+                                    VehicleOwnerProfilePage(vehicle: vehicle),
                               ),
-                              const SizedBox(width: 16),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      'Chủ xe',
-                                      style: GoogleFonts.poppins(
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.w600,
-                                      ),
+                            ),
+                            child: Padding(
+                              padding: const EdgeInsets.all(16),
+                              child: Row(
+                                children: [
+                                  AppAvatar(
+                                    imageUrl: vehicle.owner?.avatarUrl,
+                                    fallbackText:
+                                        vehicle.owner?.fullName ?? 'Chủ xe',
+                                    size: 56,
+                                    semanticLabel: 'Ảnh đại diện chủ xe',
+                                  ),
+                                  const SizedBox(width: 16),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          vehicle.owner?.fullName ?? 'Chủ xe',
+                                          style: GoogleFonts.poppins(
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                        ),
+                                        Text(
+                                          vehicle.owner == null
+                                              ? 'Xem hồ sơ công khai'
+                                              : 'Điểm tin cậy ${vehicle.owner!.trustScore.toStringAsFixed(0)}/150',
+                                          style: GoogleFonts.poppins(
+                                            fontSize: 12,
+                                            color: AppColors.textMuted,
+                                          ),
+                                        ),
+                                      ],
                                     ),
-                                    Text(
-                                      'Xem thông tin',
-                                      style: GoogleFonts.poppins(
-                                        fontSize: 12,
-                                        color: AppColors.textMuted,
-                                      ),
-                                    ),
-                                  ],
-                                ),
+                                  ),
+                                  const Icon(
+                                    Icons.chevron_right,
+                                    color: AppColors.textSecondary,
+                                  ),
+                                ],
                               ),
-                              IconButton(
-                                onPressed: () {
-                                  // TODO: View owner profile
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
-                                      content: Text('Xem hồ sơ chủ xe'),
-                                    ),
-                                  );
-                                },
-                                icon: const Icon(Icons.arrow_forward_ios),
-                                iconSize: 16,
-                              ),
-                            ],
+                            ),
                           ),
                         ),
                         // ── Reviews ─────────────────────────────────────────

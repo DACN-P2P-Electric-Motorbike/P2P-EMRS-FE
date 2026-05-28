@@ -14,7 +14,6 @@ import '../../data/models/availability_window_model.dart';
 import '../../data/models/update_vehicle_params.dart';
 import '../../domain/entities/vehicle_entity.dart';
 import '../bloc/owner_vehicle_bloc.dart';
-import 'dart:typed_data'; // Cần cho Uint8List
 import 'package:file_picker/file_picker.dart'; // Cần cho FilePicker
 import '../../../../core/services/upload_service.dart'; // Cần cho UploadService
 
@@ -387,7 +386,7 @@ class _VehicleDetailContentState extends State<_VehicleDetailContent> {
               _buildStatItem(
                 icon: Icons.star,
                 label: 'Đánh giá',
-                value: vehicle.totalRating.toStringAsFixed(1),
+                value: vehicle.formattedRating,
               ),
             ],
           ),
@@ -1274,7 +1273,7 @@ class _VehicleDetailContentState extends State<_VehicleDetailContent> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: Colors.white,
+      backgroundColor: Theme.of(context).colorScheme.surface,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
@@ -1282,13 +1281,19 @@ class _VehicleDetailContentState extends State<_VehicleDetailContent> {
         builder: (context, setSheetState) {
           Future<void> pickDateTime(bool isStart) async {
             final current = isStart ? startTime : endTime;
-            final date = await showDatePicker(
-              context: sheetContext,
-              initialDate: current,
-              firstDate: DateTime.now().subtract(const Duration(days: 1)),
-              lastDate: DateTime.now().add(const Duration(days: 365)),
-            );
-            if (date == null || !sheetContext.mounted) return;
+            DateTime date;
+            if (recurrence == AvailabilityWindowRecurrence.weekly) {
+              date = current;
+            } else {
+              final pickedDate = await showDatePicker(
+                context: sheetContext,
+                initialDate: current,
+                firstDate: DateTime.now().subtract(const Duration(days: 1)),
+                lastDate: DateTime.now().add(const Duration(days: 365)),
+              );
+              if (pickedDate == null || !sheetContext.mounted) return;
+              date = pickedDate;
+            }
 
             final time = await showTimePicker(
               context: sheetContext,
@@ -1401,193 +1406,238 @@ class _VehicleDetailContentState extends State<_VehicleDetailContent> {
             Navigator.of(sheetContext).pop();
           }
 
-          return SingleChildScrollView(
-            padding: EdgeInsets.only(
-              bottom: MediaQuery.of(sheetContext).viewInsets.bottom + 20,
-              left: 20,
-              right: 20,
-              top: 20,
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Center(
-                  child: Container(
-                    width: 40,
-                    height: 4,
-                    decoration: BoxDecoration(
-                      color: Colors.grey[300],
-                      borderRadius: BorderRadius.circular(10),
+          return SafeArea(
+            child: SingleChildScrollView(
+              padding: EdgeInsets.only(
+                bottom: MediaQuery.of(sheetContext).viewInsets.bottom + 20,
+                left: 20,
+                right: 20,
+                top: 20,
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Center(
+                    child: Container(
+                      width: 40,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: Colors.grey[300],
+                        borderRadius: BorderRadius.circular(10),
+                      ),
                     ),
                   ),
-                ),
-                const SizedBox(height: 20),
-                Text(
-                  existingWindow == null
-                      ? 'Thêm lịch cho thuê'
-                      : 'Sửa lịch cho thuê',
-                  style: GoogleFonts.poppins(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 20),
-                DropdownButtonFormField<AvailabilityWindowType>(
-                  value: type,
-                  decoration: InputDecoration(
-                    labelText: 'Loại lịch',
-                    prefixIcon: const Icon(Icons.event_note),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                  items: AvailabilityWindowType.values
-                      .map(
-                        (value) => DropdownMenuItem(
-                          value: value,
-                          child: Text(value.displayName),
-                        ),
-                      )
-                      .toList(),
-                  onChanged: (value) {
-                    if (value != null) {
-                      setSheetState(() => type = value);
-                    }
-                  },
-                ),
-                const SizedBox(height: 16),
-                SegmentedButton<AvailabilityWindowRecurrence>(
-                  segments: AvailabilityWindowRecurrence.values
-                      .map(
-                        (value) => ButtonSegment(
-                          value: value,
-                          label: Text(value.displayName),
-                          icon: Icon(
-                            value == AvailabilityWindowRecurrence.once
-                                ? Icons.event_outlined
-                                : Icons.repeat,
-                          ),
-                        ),
-                      )
-                      .toList(),
-                  selected: {recurrence},
-                  onSelectionChanged: (selected) {
-                    setSheetState(() => recurrence = selected.first);
-                  },
-                ),
-                if (recurrence == AvailabilityWindowRecurrence.weekly) ...[
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 20),
                   Text(
-                    'Ngày lặp lại',
+                    existingWindow == null
+                        ? 'Thêm lịch cho thuê'
+                        : 'Sửa lịch cho thuê',
                     style: GoogleFonts.poppins(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
                     ),
                   ),
-                  const SizedBox(height: 8),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: List.generate(7, (index) {
-                      final weekday = index + 1;
-                      return FilterChip(
-                        label: Text(_weekdayLabel(weekday)),
-                        selected: recurringWeekdays.contains(weekday),
-                        onSelected: (selected) {
-                          setSheetState(() {
-                            if (selected) {
-                              recurringWeekdays.add(weekday);
-                            } else {
-                              recurringWeekdays.remove(weekday);
-                            }
-                          });
-                        },
-                      );
-                    }),
-                  ),
-                  const SizedBox(height: 12),
-                  SwitchListTile.adaptive(
-                    contentPadding: EdgeInsets.zero,
-                    title: const Text('Đặt ngày kết thúc'),
-                    value: recurrenceEndsAt != null,
-                    onChanged: (enabled) async {
-                      if (enabled) {
-                        await pickRecurrenceEndDate();
-                      } else {
-                        setSheetState(() => recurrenceEndsAt = null);
+                  const SizedBox(height: 20),
+                  DropdownButtonFormField<AvailabilityWindowType>(
+                    value: type,
+                    decoration: InputDecoration(
+                      labelText: 'Loại lịch',
+                      prefixIcon: const Icon(Icons.event_note),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    items: AvailabilityWindowType.values
+                        .map(
+                          (value) => DropdownMenuItem(
+                            value: value,
+                            child: Text(value.displayName),
+                          ),
+                        )
+                        .toList(),
+                    onChanged: (value) {
+                      if (value != null) {
+                        setSheetState(() => type = value);
                       }
                     },
                   ),
-                  if (recurrenceEndsAt != null)
-                    _buildDateTimeTile(
-                      label: 'Lặp lại đến',
-                      value: _formatDate(recurrenceEndsAt!),
-                      onTap: pickRecurrenceEndDate,
+                  const SizedBox(height: 16),
+                  SegmentedButton<AvailabilityWindowRecurrence>(
+                    segments: AvailabilityWindowRecurrence.values
+                        .map(
+                          (value) => ButtonSegment(
+                            value: value,
+                            label: Text(value.displayName),
+                            icon: Icon(
+                              value == AvailabilityWindowRecurrence.once
+                                  ? Icons.event_outlined
+                                  : Icons.repeat,
+                            ),
+                          ),
+                        )
+                        .toList(),
+                    selected: {recurrence},
+                    onSelectionChanged: (selected) {
+                      setSheetState(() => recurrence = selected.first);
+                    },
+                  ),
+                  if (recurrence == AvailabilityWindowRecurrence.weekly) ...[
+                    const SizedBox(height: 16),
+                    _buildWeeklyScheduleHint(),
+                    const SizedBox(height: 16),
+                    Text(
+                      'Ngày lặp lại',
+                      style: GoogleFonts.poppins(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
-                  const SizedBox(height: 8),
-                  Text(
-                    existingWindow?.timezoneName != null
-                        ? 'Múi giờ: ${existingWindow!.timezoneName}'
-                        : existingWindow != null &&
-                              existingWindow.timezoneOffsetMinutes !=
-                                  AvailabilityTimeZone.vietnamOffsetMinutes
-                        ? 'Múi giờ: UTC${_offsetLabel(existingWindow.timezoneOffsetMinutes)}'
-                        : 'Múi giờ: Việt Nam (GMT+7)',
-                    style: GoogleFonts.poppins(
-                      fontSize: 12,
-                      color: AppColors.textSecondary,
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: List.generate(7, (index) {
+                        final weekday = index + 1;
+                        return FilterChip(
+                          label: Text(_weekdayLabel(weekday)),
+                          selected: recurringWeekdays.contains(weekday),
+                          onSelected: (selected) {
+                            setSheetState(() {
+                              if (selected) {
+                                recurringWeekdays.add(weekday);
+                              } else {
+                                recurringWeekdays.remove(weekday);
+                              }
+                            });
+                          },
+                        );
+                      }),
                     ),
+                    const SizedBox(height: 12),
+                    SwitchListTile.adaptive(
+                      contentPadding: EdgeInsets.zero,
+                      title: const Text('Đặt ngày kết thúc'),
+                      value: recurrenceEndsAt != null,
+                      onChanged: (enabled) async {
+                        if (enabled) {
+                          await pickRecurrenceEndDate();
+                        } else {
+                          setSheetState(() => recurrenceEndsAt = null);
+                        }
+                      },
+                    ),
+                    if (recurrenceEndsAt != null)
+                      _buildDateTimeTile(
+                        label: 'Lặp lại đến',
+                        value: _formatDate(recurrenceEndsAt!),
+                        onTap: pickRecurrenceEndDate,
+                      ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Chỉ chọn giờ trong ngày. Các ngày lặp lại ở trên sẽ dùng cùng khung giờ này.',
+                      style: GoogleFonts.poppins(
+                        fontSize: 12,
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      existingWindow?.timezoneName != null
+                          ? 'Múi giờ: ${existingWindow!.timezoneName}'
+                          : existingWindow != null &&
+                                existingWindow.timezoneOffsetMinutes !=
+                                    AvailabilityTimeZone.vietnamOffsetMinutes
+                          ? 'Múi giờ: UTC${_offsetLabel(existingWindow.timezoneOffsetMinutes)}'
+                          : 'Múi giờ: Việt Nam (GMT+7)',
+                      style: GoogleFonts.poppins(
+                        fontSize: 12,
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                  ],
+                  _buildDateTimeTile(
+                    label: recurrence == AvailabilityWindowRecurrence.weekly
+                        ? 'Giờ bắt đầu'
+                        : 'Bắt đầu',
+                    value: recurrence == AvailabilityWindowRecurrence.weekly
+                        ? _formatTime(startTime)
+                        : _formatDateTime(startTime),
+                    onTap: () => pickDateTime(true),
+                  ),
+                  const SizedBox(height: 12),
+                  _buildDateTimeTile(
+                    label: recurrence == AvailabilityWindowRecurrence.weekly
+                        ? 'Giờ kết thúc'
+                        : 'Kết thúc',
+                    value: recurrence == AvailabilityWindowRecurrence.weekly
+                        ? _formatTime(endTime)
+                        : _formatDateTime(endTime),
+                    onTap: () => pickDateTime(false),
                   ),
                   const SizedBox(height: 16),
+                  TextField(
+                    controller: noteController,
+                    decoration: InputDecoration(
+                      labelText: 'Ghi chú',
+                      prefixIcon: const Icon(Icons.notes),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    maxLength: 200,
+                  ),
+                  const SizedBox(height: 16),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      onPressed: submit,
+                      icon: const Icon(Icons.save_outlined),
+                      label: const Text('Lưu lịch'),
+                      style: ElevatedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        backgroundColor: AppColors.primary,
+                        foregroundColor: Colors.white,
+                      ),
+                    ),
+                  ),
                 ],
-                _buildDateTimeTile(
-                  label: recurrence == AvailabilityWindowRecurrence.weekly
-                      ? 'Giờ bắt đầu (mốc đầu tiên)'
-                      : 'Bắt đầu',
-                  value: _formatDateTime(startTime),
-                  onTap: () => pickDateTime(true),
-                ),
-                const SizedBox(height: 12),
-                _buildDateTimeTile(
-                  label: recurrence == AvailabilityWindowRecurrence.weekly
-                      ? 'Giờ kết thúc (mốc đầu tiên)'
-                      : 'Kết thúc',
-                  value: _formatDateTime(endTime),
-                  onTap: () => pickDateTime(false),
-                ),
-                const SizedBox(height: 16),
-                TextField(
-                  controller: noteController,
-                  decoration: InputDecoration(
-                    labelText: 'Ghi chú',
-                    prefixIcon: const Icon(Icons.notes),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                  maxLength: 200,
-                ),
-                const SizedBox(height: 16),
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton.icon(
-                    onPressed: submit,
-                    icon: const Icon(Icons.save_outlined),
-                    label: const Text('Lưu lịch'),
-                    style: ElevatedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      backgroundColor: AppColors.primary,
-                      foregroundColor: Colors.white,
-                    ),
-                  ),
-                ),
-              ],
+              ),
             ),
           );
         },
       ),
     ).whenComplete(noteController.dispose);
+  }
+
+  Widget _buildWeeklyScheduleHint() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: AppColors.primary.withOpacity(0.08),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.primary.withOpacity(0.18)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(Icons.info_outline, size: 18, color: AppColors.primary),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              'Lịch hàng tuần dùng các ngày bạn chọn và chỉ cần giờ bắt đầu/kết thúc. Ví dụ chọn T4, T5 với 15:48-23:48 nghĩa là xe rảnh vào thứ Tư và thứ Năm hằng tuần trong khung giờ đó.',
+              style: GoogleFonts.poppins(
+                fontSize: 12,
+                color: AppColors.textSecondary,
+                height: 1.35,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   Widget _buildDateTimeTile({
@@ -1708,7 +1758,7 @@ class _VehicleDetailContentState extends State<_VehicleDetailContent> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: Colors.white,
+      backgroundColor: Theme.of(context).colorScheme.surface,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
       ),
@@ -1872,574 +1922,584 @@ class _VehicleDetailContentState extends State<_VehicleDetailContent> {
             }
           }
 
-          return Padding(
-            padding: EdgeInsets.only(
-              bottom: MediaQuery.of(sheetContext).viewInsets.bottom + 20,
-              left: 20,
-              right: 20,
-              top: 20,
-            ),
-            child: Form(
-              key: formKey,
-              child: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Thanh kéo trang trí
-                    Center(
-                      child: Container(
-                        width: 40,
-                        height: 4,
-                        decoration: BoxDecoration(
-                          color: Colors.grey[300],
-                          borderRadius: BorderRadius.circular(10),
+          return SafeArea(
+            child: Padding(
+              padding: EdgeInsets.only(
+                bottom: MediaQuery.of(sheetContext).viewInsets.bottom + 20,
+                left: 20,
+                right: 20,
+                top: 20,
+              ),
+              child: Form(
+                key: formKey,
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Thanh kéo trang trí
+                      Center(
+                        child: Container(
+                          width: 40,
+                          height: 4,
+                          decoration: BoxDecoration(
+                            color: Colors.grey[300],
+                            borderRadius: BorderRadius.circular(10),
+                          ),
                         ),
                       ),
-                    ),
-                    const SizedBox(height: 20),
-                    Text(
-                      'Chỉnh sửa thông tin xe',
-                      style: GoogleFonts.poppins(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 24),
-
-                    TextFormField(
-                      controller: nameController,
-                      decoration: InputDecoration(
-                        labelText: 'Tên dòng xe',
-                        prefixIcon: const Icon(Icons.motorcycle),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                      validator: (v) =>
-                          v!.isEmpty ? 'Không được để trống' : null,
-                    ),
-                    const SizedBox(height: 16),
-
-                    TextFormField(
-                      controller: priceController,
-                      decoration: InputDecoration(
-                        labelText: 'Giá thuê mỗi giờ',
-                        prefixIcon: const Icon(Icons.payments_outlined),
-                        suffixText: 'đ',
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                      keyboardType: TextInputType.number,
-                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                      validator: (v) {
-                        final value = double.tryParse(v?.trim() ?? '');
-                        if (value == null) return 'Vui lòng nhập giá';
-                        if (value < 1000) return 'Giá tối thiểu 1.000đ';
-                        return null;
-                      },
-                    ),
-                    const SizedBox(height: 16),
-
-                    TextFormField(
-                      controller: pricePerDayController,
-                      decoration: InputDecoration(
-                        labelText: 'Giá thuê mỗi ngày',
-                        prefixIcon: const Icon(Icons.today_outlined),
-                        suffixText: 'đ',
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                      keyboardType: TextInputType.number,
-                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                      validator: (v) {
-                        if (v == null || v.trim().isEmpty) return null;
-                        final value = double.tryParse(v.trim());
-                        if (value == null) return 'Giá không hợp lệ';
-                        if (value < 1000) return 'Giá tối thiểu 1.000đ';
-                        return null;
-                      },
-                    ),
-                    const SizedBox(height: 16),
-
-                    TextFormField(
-                      controller: descriptionController,
-                      decoration: InputDecoration(
-                        labelText: 'Mô tả xe',
-                        alignLabelWithHint: true,
-                        prefixIcon: const Icon(Icons.description_outlined),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                      maxLines: 3,
-                    ),
-                    const SizedBox(height: 24),
-
-                    Text(
-                      'Chính sách thuê',
-                      style: GoogleFonts.poppins(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    SwitchListTile.adaptive(
-                      contentPadding: EdgeInsets.zero,
-                      secondary: Icon(
-                        Icons.flash_on,
-                        color: instantBook
-                            ? AppColors.primary
-                            : AppColors.textMuted,
-                      ),
-                      title: Text(
-                        'Đặt xe nhanh',
+                      const SizedBox(height: 20),
+                      Text(
+                        'Chỉnh sửa thông tin xe',
                         style: GoogleFonts.poppins(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
                         ),
                       ),
-                      subtitle: Text(
-                        'Tự động xác nhận booking khi khung giờ còn trống',
-                        style: GoogleFonts.poppins(fontSize: 12),
-                      ),
-                      value: instantBook,
-                      activeThumbColor: AppColors.primary,
-                      onChanged: (value) =>
-                          setSheetState(() => instantBook = value),
-                    ),
-                    const Divider(height: 24),
-                    DropdownButtonFormField<CancellationPolicy>(
-                      initialValue: cancellationPolicy,
-                      decoration: InputDecoration(
-                        labelText: 'Chính sách hủy của người thuê',
-                        prefixIcon: const Icon(Icons.event_busy_outlined),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                      items: CancellationPolicy.values
-                          .map(
-                            (value) => DropdownMenuItem(
-                              value: value,
-                              child: Text(value.displayName),
-                            ),
-                          )
-                          .toList(),
-                      onChanged: (value) {
-                        if (value != null) {
-                          setSheetState(() => cancellationPolicy = value);
-                        }
-                      },
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      cancellationPolicy.summaryText,
-                      style: GoogleFonts.poppins(
-                        fontSize: 12,
-                        color: AppColors.textSecondary,
-                      ),
-                    ),
-                    const Divider(height: 24),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: _buildPolicyNumberField(
-                            controller: dailyKmLimitController,
-                            label: 'Km/ngày',
-                            hintText: 'Bỏ trống = không giới hạn',
-                            validator: (value) {
-                              if (value == null || value.trim().isEmpty) {
-                                return null;
-                              }
-                              final parsed = int.tryParse(value.trim());
-                              if (parsed == null || parsed < 1) {
-                                return 'Tối thiểu 1';
-                              }
-                              return null;
-                            },
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: _buildPolicyNumberField(
-                            controller: excessKmPriceController,
-                            label: 'Phí vượt/km',
-                            hintText: 'VD: 3000',
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: _buildPolicyNumberField(
-                            controller: weeklyDiscountController,
-                            label: 'Giảm tuần (%)',
-                            hintText: 'VD: 10',
-                            validator: _discountValidator,
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: _buildPolicyNumberField(
-                            controller: monthlyDiscountController,
-                            label: 'Giảm tháng (%)',
-                            hintText: 'VD: 20',
-                            validator: _discountValidator,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-                    DropdownButtonFormField<String>(
-                      initialValue: geoRestriction,
-                      decoration: InputDecoration(
-                        labelText: 'Phạm vi di chuyển',
-                        prefixIcon: const Icon(Icons.map_outlined),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                      items: const [
-                        DropdownMenuItem(
-                          value: 'no_restriction',
-                          child: Text('Không giới hạn'),
-                        ),
-                        DropdownMenuItem(
-                          value: 'city',
-                          child: Text('Trong thành phố'),
-                        ),
-                        DropdownMenuItem(
-                          value: 'district',
-                          child: Text('Trong quận/huyện'),
-                        ),
-                        DropdownMenuItem(
-                          value: 'province',
-                          child: Text('Trong tỉnh/thành'),
-                        ),
-                      ],
-                      onChanged: (value) {
-                        if (value != null) {
-                          setSheetState(() => geoRestriction = value);
-                        }
-                      },
-                    ),
-                    const SizedBox(height: 12),
-                    SwitchListTile.adaptive(
-                      contentPadding: EdgeInsets.zero,
-                      secondary: Icon(
-                        Icons.battery_saver,
-                        color: enforceBatteryReturn
-                            ? AppColors.primary
-                            : AppColors.textMuted,
-                      ),
-                      title: Text(
-                        'Yêu cầu pin tối thiểu khi trả',
-                        style: GoogleFonts.poppins(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      subtitle: Text(
-                        enforceBatteryReturn
-                            ? '${batteryReturnMin.round()}%'
-                            : 'Không áp dụng',
-                        style: GoogleFonts.poppins(fontSize: 12),
-                      ),
-                      value: enforceBatteryReturn,
-                      activeThumbColor: AppColors.primary,
-                      onChanged: (value) =>
-                          setSheetState(() => enforceBatteryReturn = value),
-                    ),
-                    if (enforceBatteryReturn)
-                      Slider(
-                        value: batteryReturnMin,
-                        min: 0,
-                        max: 100,
-                        divisions: 20,
-                        label: '${batteryReturnMin.round()}%',
-                        onChanged: (value) =>
-                            setSheetState(() => batteryReturnMin = value),
-                      ),
-                    const Divider(height: 24),
-                    SwitchListTile.adaptive(
-                      contentPadding: EdgeInsets.zero,
-                      secondary: Icon(
-                        Icons.smoke_free,
-                        color: allowSmoke
-                            ? AppColors.primary
-                            : AppColors.textMuted,
-                      ),
-                      title: Text(
-                        'Cho phép hút thuốc',
-                        style: GoogleFonts.poppins(fontSize: 14),
-                      ),
-                      value: allowSmoke,
-                      activeThumbColor: AppColors.primary,
-                      onChanged: (value) =>
-                          setSheetState(() => allowSmoke = value),
-                    ),
-                    SwitchListTile.adaptive(
-                      contentPadding: EdgeInsets.zero,
-                      secondary: Icon(
-                        Icons.pets_outlined,
-                        color: allowPets
-                            ? AppColors.primary
-                            : AppColors.textMuted,
-                      ),
-                      title: Text(
-                        'Cho phép thú cưng',
-                        style: GoogleFonts.poppins(fontSize: 14),
-                      ),
-                      value: allowPets,
-                      activeThumbColor: AppColors.primary,
-                      onChanged: (value) =>
-                          setSheetState(() => allowPets = value),
-                    ),
-                    const SizedBox(height: 24),
+                      const SizedBox(height: 24),
 
-                    Text(
-                      'Tình trạng xe điện',
-                      style: GoogleFonts.poppins(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    DropdownButtonFormField<VehicleCondition>(
-                      initialValue: condition,
-                      decoration: InputDecoration(
-                        labelText: 'Tình trạng xe',
-                        prefixIcon: const Icon(Icons.verified_outlined),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                      items: VehicleCondition.values
-                          .map(
-                            (value) => DropdownMenuItem(
-                              value: value,
-                              child: Text(value.displayName),
-                            ),
-                          )
-                          .toList(),
-                      onChanged: (value) =>
-                          setSheetState(() => condition = value),
-                    ),
-                    if (condition != null)
-                      Align(
-                        alignment: Alignment.centerRight,
-                        child: TextButton(
-                          onPressed: () =>
-                              setSheetState(() => condition = null),
-                          child: const Text('Xóa tình trạng'),
-                        ),
-                      ),
-                    const SizedBox(height: 16),
-                    DropdownButtonFormField<BatteryType>(
-                      initialValue: batteryType,
-                      decoration: InputDecoration(
-                        labelText: 'Loại pin',
-                        prefixIcon: const Icon(Icons.battery_unknown_outlined),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                      items: BatteryType.values
-                          .map(
-                            (value) => DropdownMenuItem(
-                              value: value,
-                              child: Text(value.displayName),
-                            ),
-                          )
-                          .toList(),
-                      onChanged: (value) =>
-                          setSheetState(() => batteryType = value),
-                    ),
-                    if (batteryType != null)
-                      Align(
-                        alignment: Alignment.centerRight,
-                        child: TextButton(
-                          onPressed: () =>
-                              setSheetState(() => batteryType = null),
-                          child: const Text('Xóa loại pin'),
-                        ),
-                      ),
-                    const SizedBox(height: 16),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: _buildPolicyNumberField(
-                            controller: firstRegistrationYearController,
-                            label: 'Năm đăng ký',
-                            hintText: 'VD: 2023',
-                            validator: (value) {
-                              if (value == null || value.trim().isEmpty) {
-                                return null;
-                              }
-                              final parsed = int.tryParse(value.trim());
-                              final currentYear = DateTime.now().year;
-                              if (parsed == null ||
-                                  parsed < 2000 ||
-                                  parsed > currentYear + 1) {
-                                return '2000-${currentYear + 1}';
-                              }
-                              return null;
-                            },
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: _buildPolicyNumberField(
-                            controller: batteryHealthController,
-                            label: 'Sức khỏe pin (%)',
-                            hintText: 'VD: 92',
-                            validator: (value) {
-                              if (value == null || value.trim().isEmpty) {
-                                return null;
-                              }
-                              final parsed = int.tryParse(value.trim());
-                              if (parsed == null ||
-                                  parsed < 0 ||
-                                  parsed > 100) {
-                                return '0-100';
-                              }
-                              return null;
-                            },
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                    _buildPolicyNumberField(
-                      controller: batteryCycleCountController,
-                      label: 'Số chu kỳ sạc',
-                      hintText: 'VD: 180',
-                      validator: (value) {
-                        if (value == null || value.trim().isEmpty) return null;
-                        final parsed = int.tryParse(value.trim());
-                        if (parsed == null || parsed < 0) return 'Không hợp lệ';
-                        return null;
-                      },
-                    ),
-                    const SizedBox(height: 16),
-                    InkWell(
-                      onTap: () async {
-                        final now = DateTime.now();
-                        final date = await showDatePicker(
-                          context: sheetContext,
-                          initialDate: batteryLastServicedAt ?? now,
-                          firstDate: DateTime(2000),
-                          lastDate: now,
-                        );
-                        if (date != null) {
-                          setSheetState(() => batteryLastServicedAt = date);
-                        }
-                      },
-                      borderRadius: BorderRadius.circular(12),
-                      child: InputDecorator(
+                      TextFormField(
+                        controller: nameController,
                         decoration: InputDecoration(
-                          labelText: 'Ngày bảo dưỡng pin gần nhất',
-                          prefixIcon: const Icon(Icons.build_circle_outlined),
+                          labelText: 'Tên dòng xe',
+                          prefixIcon: const Icon(Icons.motorcycle),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
                           ),
                         ),
-                        child: Row(
-                          children: [
-                            Expanded(
-                              child: Text(
-                                batteryLastServicedAt == null
-                                    ? 'Chưa chọn'
-                                    : _formatDate(batteryLastServicedAt!),
-                                style: GoogleFonts.poppins(
-                                  color: batteryLastServicedAt == null
-                                      ? AppColors.textMuted
-                                      : AppColors.textPrimary,
-                                ),
-                              ),
-                            ),
-                            if (batteryLastServicedAt != null)
-                              IconButton(
-                                onPressed: () => setSheetState(
-                                  () => batteryLastServicedAt = null,
-                                ),
-                                icon: const Icon(Icons.close, size: 18),
-                                color: AppColors.textMuted,
-                                tooltip: 'Xóa ngày',
-                              ),
-                          ],
+                        validator: (v) =>
+                            v!.isEmpty ? 'Không được để trống' : null,
+                      ),
+                      const SizedBox(height: 16),
+
+                      TextFormField(
+                        controller: priceController,
+                        decoration: InputDecoration(
+                          labelText: 'Giá thuê mỗi giờ',
+                          prefixIcon: const Icon(Icons.payments_outlined),
+                          suffixText: 'đ',
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        keyboardType: TextInputType.number,
+                        inputFormatters: [
+                          FilteringTextInputFormatter.digitsOnly,
+                        ],
+                        validator: (v) {
+                          final value = double.tryParse(v?.trim() ?? '');
+                          if (value == null) return 'Vui lòng nhập giá';
+                          if (value < 1000) return 'Giá tối thiểu 1.000đ';
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 16),
+
+                      TextFormField(
+                        controller: pricePerDayController,
+                        decoration: InputDecoration(
+                          labelText: 'Giá thuê mỗi ngày',
+                          prefixIcon: const Icon(Icons.today_outlined),
+                          suffixText: 'đ',
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        keyboardType: TextInputType.number,
+                        inputFormatters: [
+                          FilteringTextInputFormatter.digitsOnly,
+                        ],
+                        validator: (v) {
+                          if (v == null || v.trim().isEmpty) return null;
+                          final value = double.tryParse(v.trim());
+                          if (value == null) return 'Giá không hợp lệ';
+                          if (value < 1000) return 'Giá tối thiểu 1.000đ';
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 16),
+
+                      TextFormField(
+                        controller: descriptionController,
+                        decoration: InputDecoration(
+                          labelText: 'Mô tả xe',
+                          alignLabelWithHint: true,
+                          prefixIcon: const Icon(Icons.description_outlined),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        maxLines: 3,
+                      ),
+                      const SizedBox(height: 24),
+
+                      Text(
+                        'Chính sách thuê',
+                        style: GoogleFonts.poppins(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
                         ),
                       ),
-                    ),
-                    const SizedBox(height: 24),
-
-                    Text(
-                      'Hình ảnh xe (${existingUrls.length + newImageBytes.length})',
-                      style: GoogleFonts.poppins(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    SizedBox(
-                      height: 100,
-                      child: ListView(
-                        scrollDirection: Axis.horizontal,
-                        children: [
-                          // Nút thêm ảnh mới
-                          GestureDetector(
-                            onTap: isUploading ? null : _pickImage,
-                            child: _buildAddImageButton(),
+                      const SizedBox(height: 12),
+                      SwitchListTile.adaptive(
+                        contentPadding: EdgeInsets.zero,
+                        secondary: Icon(
+                          Icons.flash_on,
+                          color: instantBook
+                              ? AppColors.primary
+                              : AppColors.textMuted,
+                        ),
+                        title: Text(
+                          'Đặt xe nhanh',
+                          style: GoogleFonts.poppins(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
                           ),
-                          // Previews ảnh hiện tại từ Server (URL)
-                          ...existingUrls.asMap().entries.map(
-                            (entry) => _ImagePreview(
-                              image: NetworkImage(entry.value),
-                              onDelete: () => setSheetState(
-                                () => existingUrls.removeAt(entry.key),
+                        ),
+                        subtitle: Text(
+                          'Tự động xác nhận booking khi khung giờ còn trống',
+                          style: GoogleFonts.poppins(fontSize: 12),
+                        ),
+                        value: instantBook,
+                        activeThumbColor: AppColors.primary,
+                        onChanged: (value) =>
+                            setSheetState(() => instantBook = value),
+                      ),
+                      const Divider(height: 24),
+                      DropdownButtonFormField<CancellationPolicy>(
+                        initialValue: cancellationPolicy,
+                        decoration: InputDecoration(
+                          labelText: 'Chính sách hủy của người thuê',
+                          prefixIcon: const Icon(Icons.event_busy_outlined),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        items: CancellationPolicy.values
+                            .map(
+                              (value) => DropdownMenuItem(
+                                value: value,
+                                child: Text(value.displayName),
                               ),
+                            )
+                            .toList(),
+                        onChanged: (value) {
+                          if (value != null) {
+                            setSheetState(() => cancellationPolicy = value);
+                          }
+                        },
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        cancellationPolicy.summaryText,
+                        style: GoogleFonts.poppins(
+                          fontSize: 12,
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                      const Divider(height: 24),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _buildPolicyNumberField(
+                              controller: dailyKmLimitController,
+                              label: 'Km/ngày',
+                              hintText: 'Bỏ trống = không giới hạn',
+                              validator: (value) {
+                                if (value == null || value.trim().isEmpty) {
+                                  return null;
+                                }
+                                final parsed = int.tryParse(value.trim());
+                                if (parsed == null || parsed < 1) {
+                                  return 'Tối thiểu 1';
+                                }
+                                return null;
+                              },
                             ),
                           ),
-                          // Previews ảnh mới vừa chọn từ thiết bị (Bytes)
-                          ...newImageBytes.asMap().entries.map(
-                            (entry) => _ImagePreview(
-                              image: MemoryImage(entry.value),
-                              onDelete: () => setSheetState(() {
-                                newImageBytes.removeAt(entry.key);
-                                newImageNames.removeAt(entry.key);
-                              }),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: _buildPolicyNumberField(
+                              controller: excessKmPriceController,
+                              label: 'Phí vượt/km',
+                              hintText: 'VD: 3000',
                             ),
                           ),
                         ],
                       ),
-                    ),
-
-                    const SizedBox(height: 32),
-
-                    SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton(
-                        onPressed: isUploading ? null : _handleUpdate,
-                        style: ElevatedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                          shape: RoundedRectangleBorder(
+                      const SizedBox(height: 12),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _buildPolicyNumberField(
+                              controller: weeklyDiscountController,
+                              label: 'Giảm tuần (%)',
+                              hintText: 'VD: 10',
+                              validator: _discountValidator,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: _buildPolicyNumberField(
+                              controller: monthlyDiscountController,
+                              label: 'Giảm tháng (%)',
+                              hintText: 'VD: 20',
+                              validator: _discountValidator,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      DropdownButtonFormField<String>(
+                        initialValue: geoRestriction,
+                        decoration: InputDecoration(
+                          labelText: 'Phạm vi di chuyển',
+                          prefixIcon: const Icon(Icons.map_outlined),
+                          border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
                           ),
                         ),
-                        child: isUploading
-                            ? const SpinKitThreeBounce(
-                                color: Colors.white,
-                                size: 20,
-                              )
-                            : const Text('Cập nhật thay đổi'),
+                        items: const [
+                          DropdownMenuItem(
+                            value: 'no_restriction',
+                            child: Text('Không giới hạn'),
+                          ),
+                          DropdownMenuItem(
+                            value: 'city',
+                            child: Text('Trong thành phố'),
+                          ),
+                          DropdownMenuItem(
+                            value: 'district',
+                            child: Text('Trong quận/huyện'),
+                          ),
+                          DropdownMenuItem(
+                            value: 'province',
+                            child: Text('Trong tỉnh/thành'),
+                          ),
+                        ],
+                        onChanged: (value) {
+                          if (value != null) {
+                            setSheetState(() => geoRestriction = value);
+                          }
+                        },
                       ),
-                    ),
-                  ],
+                      const SizedBox(height: 12),
+                      SwitchListTile.adaptive(
+                        contentPadding: EdgeInsets.zero,
+                        secondary: Icon(
+                          Icons.battery_saver,
+                          color: enforceBatteryReturn
+                              ? AppColors.primary
+                              : AppColors.textMuted,
+                        ),
+                        title: Text(
+                          'Yêu cầu pin tối thiểu khi trả',
+                          style: GoogleFonts.poppins(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        subtitle: Text(
+                          enforceBatteryReturn
+                              ? '${batteryReturnMin.round()}%'
+                              : 'Không áp dụng',
+                          style: GoogleFonts.poppins(fontSize: 12),
+                        ),
+                        value: enforceBatteryReturn,
+                        activeThumbColor: AppColors.primary,
+                        onChanged: (value) =>
+                            setSheetState(() => enforceBatteryReturn = value),
+                      ),
+                      if (enforceBatteryReturn)
+                        Slider(
+                          value: batteryReturnMin,
+                          min: 0,
+                          max: 100,
+                          divisions: 20,
+                          label: '${batteryReturnMin.round()}%',
+                          onChanged: (value) =>
+                              setSheetState(() => batteryReturnMin = value),
+                        ),
+                      const Divider(height: 24),
+                      SwitchListTile.adaptive(
+                        contentPadding: EdgeInsets.zero,
+                        secondary: Icon(
+                          Icons.smoke_free,
+                          color: allowSmoke
+                              ? AppColors.primary
+                              : AppColors.textMuted,
+                        ),
+                        title: Text(
+                          'Cho phép hút thuốc',
+                          style: GoogleFonts.poppins(fontSize: 14),
+                        ),
+                        value: allowSmoke,
+                        activeThumbColor: AppColors.primary,
+                        onChanged: (value) =>
+                            setSheetState(() => allowSmoke = value),
+                      ),
+                      SwitchListTile.adaptive(
+                        contentPadding: EdgeInsets.zero,
+                        secondary: Icon(
+                          Icons.pets_outlined,
+                          color: allowPets
+                              ? AppColors.primary
+                              : AppColors.textMuted,
+                        ),
+                        title: Text(
+                          'Cho phép thú cưng',
+                          style: GoogleFonts.poppins(fontSize: 14),
+                        ),
+                        value: allowPets,
+                        activeThumbColor: AppColors.primary,
+                        onChanged: (value) =>
+                            setSheetState(() => allowPets = value),
+                      ),
+                      const SizedBox(height: 24),
+
+                      Text(
+                        'Tình trạng xe điện',
+                        style: GoogleFonts.poppins(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      DropdownButtonFormField<VehicleCondition>(
+                        initialValue: condition,
+                        decoration: InputDecoration(
+                          labelText: 'Tình trạng xe',
+                          prefixIcon: const Icon(Icons.verified_outlined),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        items: VehicleCondition.values
+                            .map(
+                              (value) => DropdownMenuItem(
+                                value: value,
+                                child: Text(value.displayName),
+                              ),
+                            )
+                            .toList(),
+                        onChanged: (value) =>
+                            setSheetState(() => condition = value),
+                      ),
+                      if (condition != null)
+                        Align(
+                          alignment: Alignment.centerRight,
+                          child: TextButton(
+                            onPressed: () =>
+                                setSheetState(() => condition = null),
+                            child: const Text('Xóa tình trạng'),
+                          ),
+                        ),
+                      const SizedBox(height: 16),
+                      DropdownButtonFormField<BatteryType>(
+                        initialValue: batteryType,
+                        decoration: InputDecoration(
+                          labelText: 'Loại pin',
+                          prefixIcon: const Icon(
+                            Icons.battery_unknown_outlined,
+                          ),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        items: BatteryType.values
+                            .map(
+                              (value) => DropdownMenuItem(
+                                value: value,
+                                child: Text(value.displayName),
+                              ),
+                            )
+                            .toList(),
+                        onChanged: (value) =>
+                            setSheetState(() => batteryType = value),
+                      ),
+                      if (batteryType != null)
+                        Align(
+                          alignment: Alignment.centerRight,
+                          child: TextButton(
+                            onPressed: () =>
+                                setSheetState(() => batteryType = null),
+                            child: const Text('Xóa loại pin'),
+                          ),
+                        ),
+                      const SizedBox(height: 16),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _buildPolicyNumberField(
+                              controller: firstRegistrationYearController,
+                              label: 'Năm đăng ký',
+                              hintText: 'VD: 2023',
+                              validator: (value) {
+                                if (value == null || value.trim().isEmpty) {
+                                  return null;
+                                }
+                                final parsed = int.tryParse(value.trim());
+                                final currentYear = DateTime.now().year;
+                                if (parsed == null ||
+                                    parsed < 2000 ||
+                                    parsed > currentYear + 1) {
+                                  return '2000-${currentYear + 1}';
+                                }
+                                return null;
+                              },
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: _buildPolicyNumberField(
+                              controller: batteryHealthController,
+                              label: 'Sức khỏe pin (%)',
+                              hintText: 'VD: 92',
+                              validator: (value) {
+                                if (value == null || value.trim().isEmpty) {
+                                  return null;
+                                }
+                                final parsed = int.tryParse(value.trim());
+                                if (parsed == null ||
+                                    parsed < 0 ||
+                                    parsed > 100) {
+                                  return '0-100';
+                                }
+                                return null;
+                              },
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      _buildPolicyNumberField(
+                        controller: batteryCycleCountController,
+                        label: 'Số chu kỳ sạc',
+                        hintText: 'VD: 180',
+                        validator: (value) {
+                          if (value == null || value.trim().isEmpty)
+                            return null;
+                          final parsed = int.tryParse(value.trim());
+                          if (parsed == null || parsed < 0)
+                            return 'Không hợp lệ';
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 16),
+                      InkWell(
+                        onTap: () async {
+                          final now = DateTime.now();
+                          final date = await showDatePicker(
+                            context: sheetContext,
+                            initialDate: batteryLastServicedAt ?? now,
+                            firstDate: DateTime(2000),
+                            lastDate: now,
+                          );
+                          if (date != null) {
+                            setSheetState(() => batteryLastServicedAt = date);
+                          }
+                        },
+                        borderRadius: BorderRadius.circular(12),
+                        child: InputDecorator(
+                          decoration: InputDecoration(
+                            labelText: 'Ngày bảo dưỡng pin gần nhất',
+                            prefixIcon: const Icon(Icons.build_circle_outlined),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  batteryLastServicedAt == null
+                                      ? 'Chưa chọn'
+                                      : _formatDate(batteryLastServicedAt!),
+                                  style: GoogleFonts.poppins(
+                                    color: batteryLastServicedAt == null
+                                        ? AppColors.textMuted
+                                        : AppColors.textPrimary,
+                                  ),
+                                ),
+                              ),
+                              if (batteryLastServicedAt != null)
+                                IconButton(
+                                  onPressed: () => setSheetState(
+                                    () => batteryLastServicedAt = null,
+                                  ),
+                                  icon: const Icon(Icons.close, size: 18),
+                                  color: AppColors.textMuted,
+                                  tooltip: 'Xóa ngày',
+                                ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+
+                      Text(
+                        'Hình ảnh xe (${existingUrls.length + newImageBytes.length})',
+                        style: GoogleFonts.poppins(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      SizedBox(
+                        height: 100,
+                        child: ListView(
+                          scrollDirection: Axis.horizontal,
+                          children: [
+                            // Nút thêm ảnh mới
+                            GestureDetector(
+                              onTap: isUploading ? null : _pickImage,
+                              child: _buildAddImageButton(),
+                            ),
+                            // Previews ảnh hiện tại từ Server (URL)
+                            ...existingUrls.asMap().entries.map(
+                              (entry) => _ImagePreview(
+                                image: NetworkImage(entry.value),
+                                onDelete: () => setSheetState(
+                                  () => existingUrls.removeAt(entry.key),
+                                ),
+                              ),
+                            ),
+                            // Previews ảnh mới vừa chọn từ thiết bị (Bytes)
+                            ...newImageBytes.asMap().entries.map(
+                              (entry) => _ImagePreview(
+                                image: MemoryImage(entry.value),
+                                onDelete: () => setSheetState(() {
+                                  newImageBytes.removeAt(entry.key);
+                                  newImageNames.removeAt(entry.key);
+                                }),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+
+                      const SizedBox(height: 32),
+
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton(
+                          onPressed: isUploading ? null : _handleUpdate,
+                          style: ElevatedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                          child: isUploading
+                              ? const SpinKitThreeBounce(
+                                  color: Colors.white,
+                                  size: 20,
+                                )
+                              : const Text('Cập nhật thay đổi'),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),

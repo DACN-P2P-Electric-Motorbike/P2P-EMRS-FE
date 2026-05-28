@@ -33,7 +33,7 @@ abstract class VehicleRemoteDataSource {
   Future<List<VehicleModel>> getNearbyVehicles({
     required double latitude,
     required double longitude,
-    double radius = 5.0,
+    double radius = 50.0,
     DateTime? startTime,
     DateTime? endTime,
     bool? instantBookOnly,
@@ -112,6 +112,12 @@ class VehicleRemoteDataSourceImpl implements VehicleRemoteDataSource {
         Map<String, dynamic>.from(response.data as Map),
       );
     } on DioException catch (e) {
+      if (e.response?.statusCode == 404) {
+        return const VehicleAvailabilitySummaryModel(
+          hasAvailableCalendar: false,
+          rules: [],
+        );
+      }
       throw ServerException.fromDioException(e);
     }
   }
@@ -147,7 +153,7 @@ class VehicleRemoteDataSourceImpl implements VehicleRemoteDataSource {
   Future<List<VehicleModel>> getNearbyVehicles({
     required double latitude,
     required double longitude,
-    double radius = 5.0,
+    double radius = 50.0,
     DateTime? startTime,
     DateTime? endTime,
     bool? instantBookOnly,

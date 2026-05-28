@@ -102,7 +102,7 @@ class VehicleRepositoryImpl implements VehicleRepository {
   Future<Either<Failure, List<VehicleEntity>>> getNearbyVehicles({
     required double latitude,
     required double longitude,
-    double radius = 5.0,
+    double radius = 50.0,
     DateTime? startTime,
     DateTime? endTime,
     bool? instantBookOnly,

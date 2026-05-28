@@ -19,7 +19,7 @@ class NearbyVehicleParams extends Equatable {
   const NearbyVehicleParams({
     required this.latitude,
     required this.longitude,
-    this.radiusKm = 5.0,
+    this.radiusKm = 50.0,
     this.startTime,
     this.endTime,
     this.instantBookOnly,
