@@ -32,6 +32,7 @@ class BookingModel {
   final String? vehicleName;
   final int? vehicleBatteryLevel;
   final String? paymentStatus;
+  final BookingRefundInfo? refundInfo;
 
   const BookingModel({
     required this.id,
@@ -63,6 +64,7 @@ class BookingModel {
     this.vehicleName,
     this.vehicleBatteryLevel,
     this.paymentStatus,
+    this.refundInfo,
   });
 
   /// Parse from JSON response
@@ -116,6 +118,33 @@ class BookingModel {
           : null,
       vehicleBatteryLevel: vehicleBatteryLevel,
       paymentStatus: json['paymentStatus'] as String? ?? nestedPaymentStatus,
+      refundInfo: _parseRefundInfo(json['refundInfo']),
+    );
+  }
+
+  static BookingRefundInfo? _parseRefundInfo(dynamic raw) {
+    if (raw is! Map) return null;
+    final json = Map<String, dynamic>.from(raw);
+    double asDouble(dynamic v) => (v as num?)?.toDouble() ?? 0;
+    return BookingRefundInfo(
+      refundType: json['refundType'] as String? ?? 'none',
+      rentalRefundRate: asDouble(json['rentalRefundRate']),
+      refundableRentalAmount: asDouble(json['refundableRentalAmount']),
+      refundableProtectionAmount: asDouble(json['refundableProtectionAmount']),
+      refundablePrepaidChargingAmount: asDouble(
+        json['refundablePrepaidChargingAmount'],
+      ),
+      refundableRoadsideSupportAmount: asDouble(
+        json['refundableRoadsideSupportAmount'],
+      ),
+      refundableDepositAmount: asDouble(json['refundableDepositAmount']),
+      refundAmount: asDouble(json['refundAmount']),
+      paidAmount: asDouble(json['paidAmount']),
+      forfeitedAmount: asDouble(json['forfeitedAmount']),
+      cancelledBy: json['cancelledBy'] as String?,
+      cancelledAt: json['cancelledAt'] is String
+          ? DateTime.tryParse(json['cancelledAt'] as String)
+          : null,
     );
   }
 
@@ -189,6 +218,7 @@ class BookingModel {
       vehicleName: vehicleName,
       vehicleBatteryLevel: vehicleBatteryLevel,
       paymentStatus: paymentStatus,
+      refundInfo: refundInfo,
     );
   }
 }

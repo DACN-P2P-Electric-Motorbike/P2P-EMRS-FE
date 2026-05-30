@@ -137,6 +137,66 @@ void main() {
     expect(booking.cancellationPolicy, 'STRICT');
   });
 
+  test('BookingModel parses refundInfo so renters can see the refund', () {
+    final model = BookingModel.fromJson({
+      'id': 'booking-id',
+      'renterId': 'renter-id',
+      'ownerId': 'owner-id',
+      'vehicleId': 'vehicle-id',
+      'status': 'CANCELLED',
+      'startTime': '2026-05-10T03:00:00.000Z',
+      'endTime': '2026-05-10T04:00:00.000Z',
+      'totalPrice': 100000,
+      'deposit': 500000,
+      'cancellationPolicy': 'MODERATE',
+      'cancellationReason': 'Đổi kế hoạch',
+      'createdAt': '2026-05-09T03:00:00.000Z',
+      'updatedAt': '2026-05-09T03:00:00.000Z',
+      'paymentStatus': 'REFUNDED',
+      'refundInfo': {
+        'refundType': 'partial',
+        'rentalRefundRate': 0.5,
+        'refundableRentalAmount': 50000,
+        'refundableProtectionAmount': 0,
+        'refundablePrepaidChargingAmount': 0,
+        'refundableRoadsideSupportAmount': 0,
+        'refundableDepositAmount': 500000,
+        'refundAmount': 550000,
+        'paidAmount': 600000,
+        'forfeitedAmount': 50000,
+        'cancelledBy': 'RENTER',
+        'cancelledAt': '2026-05-09T05:00:00.000Z',
+      },
+    });
+
+    final booking = model.toEntity();
+    expect(booking.refundInfo, isNotNull);
+    expect(booking.refundInfo!.refundAmount, 550000);
+    expect(booking.refundInfo!.refundableRentalAmount, 50000);
+    expect(booking.refundInfo!.refundableDepositAmount, 500000);
+    expect(booking.refundInfo!.forfeitedAmount, 50000);
+    expect(booking.refundInfo!.cancelledBy, 'RENTER');
+  });
+
+  test('BookingModel leaves refundInfo null when absent', () {
+    final model = BookingModel.fromJson({
+      'id': 'booking-id',
+      'renterId': 'renter-id',
+      'ownerId': 'owner-id',
+      'vehicleId': 'vehicle-id',
+      'status': 'CONFIRMED',
+      'startTime': '2026-05-10T03:00:00.000Z',
+      'endTime': '2026-05-10T04:00:00.000Z',
+      'totalPrice': 100000,
+      'deposit': 500000,
+      'cancellationPolicy': 'FLEXIBLE',
+      'createdAt': '2026-05-09T03:00:00.000Z',
+      'updatedAt': '2026-05-09T03:00:00.000Z',
+    });
+
+    expect(model.toEntity().refundInfo, isNull);
+  });
+
   test('BookingPolicyModel parses protection and add-on policy payload', () {
     final policy = BookingPolicyModel.fromJson({
       'defaultProtectionPlan': 'STANDARD',

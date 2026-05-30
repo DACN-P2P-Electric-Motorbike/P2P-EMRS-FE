@@ -109,11 +109,14 @@ class TrustScoreBreakdown extends Equatable {
   final int totalReviewsReceived;
   final int cancelledBookings;
   final int cancellationPenalty;
+  final int cancellationWarnings;
   final int rejectedBookings;
   final int rejectionPenalty;
+  final int rejectionWarnings;
   final int completedTrips;
   final int tripsWithIssues;
   final int violationPenalty;
+  final int violationWarnings;
   final List<TrustScoreEvent> recentEvents;
   final List<TrustScoreWarning> activeWarnings;
 
@@ -125,11 +128,14 @@ class TrustScoreBreakdown extends Equatable {
     required this.totalReviewsReceived,
     required this.cancelledBookings,
     required this.cancellationPenalty,
+    this.cancellationWarnings = 0,
     required this.rejectedBookings,
     required this.rejectionPenalty,
+    this.rejectionWarnings = 0,
     required this.completedTrips,
     required this.tripsWithIssues,
     required this.violationPenalty,
+    this.violationWarnings = 0,
     this.recentEvents = const [],
     this.activeWarnings = const [],
   });
@@ -143,11 +149,14 @@ class TrustScoreBreakdown extends Equatable {
     totalReviewsReceived,
     cancelledBookings,
     cancellationPenalty,
+    cancellationWarnings,
     rejectedBookings,
     rejectionPenalty,
+    rejectionWarnings,
     completedTrips,
     tripsWithIssues,
     violationPenalty,
+    violationWarnings,
     recentEvents,
     activeWarnings,
   ];

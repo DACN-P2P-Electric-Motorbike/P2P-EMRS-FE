@@ -258,10 +258,12 @@ class _TrustScoreView extends StatelessWidget {
             iconColor: AppColors.error,
             label: 'Hủy đơn (người thuê)',
             value: '${b.cancelledBookings} lần',
-            delta: b.cancellationPenalty != 0
-                ? '${b.cancellationPenalty}'
-                : null,
+            delta: _penaltyDelta(b.cancellationPenalty),
             deltaPositive: false,
+            warningBadge: _warningBadge(
+              b.cancellationPenalty,
+              b.cancellationWarnings,
+            ),
           ),
           const Divider(height: 24),
 
@@ -270,10 +272,12 @@ class _TrustScoreView extends StatelessWidget {
             iconColor: AppColors.warning,
             label: 'Từ chối đơn (chủ xe)',
             value: '${b.rejectedBookings} lần',
-            delta: b.rejectionPenalty != 0
-                ? '${b.rejectionPenalty}'
-                : null,
+            delta: _penaltyDelta(b.rejectionPenalty),
             deltaPositive: false,
+            warningBadge: _warningBadge(
+              b.rejectionPenalty,
+              b.rejectionWarnings,
+            ),
           ),
           const Divider(height: 24),
 
@@ -282,15 +286,26 @@ class _TrustScoreView extends StatelessWidget {
             iconColor: AppColors.error,
             label: 'Vi phạm / Sự cố',
             value: '${b.tripsWithIssues} lần',
-            delta: b.violationPenalty != 0
-                ? '${b.violationPenalty}'
-                : null,
+            delta: _penaltyDelta(b.violationPenalty),
             deltaPositive: false,
+            warningBadge: _warningBadge(
+              b.violationPenalty,
+              b.violationWarnings,
+            ),
           ),
         ],
       ),
     );
   }
+
+  /// Returns the negative-delta label only when points were actually deducted.
+  /// A warning-only violation deducts nothing, so we hide the misleading "-5".
+  String? _penaltyDelta(int penalty) => penalty != 0 ? '$penalty' : null;
+
+  /// Shows a neutral "Cảnh báo" badge when there is an active warning but no
+  /// points have been deducted yet (first minor violation in a 30-day window).
+  bool _warningBadge(int penalty, int warnings) =>
+      penalty == 0 && warnings > 0;
 
   Widget _buildBreakdownRow({
     required IconData icon,
@@ -299,6 +314,7 @@ class _TrustScoreView extends StatelessWidget {
     required String value,
     required String? delta,
     required bool deltaPositive,
+    bool warningBadge = false,
   }) {
     return Row(
       children: [
@@ -334,7 +350,23 @@ class _TrustScoreView extends StatelessWidget {
             ],
           ),
         ),
-        if (delta != null)
+        if (warningBadge)
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+            decoration: BoxDecoration(
+              color: AppColors.warning.withOpacity(0.12),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Text(
+              'Cảnh báo',
+              style: GoogleFonts.poppins(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: AppColors.warning,
+              ),
+            ),
+          )
+        else if (delta != null)
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
             decoration: BoxDecoration(
