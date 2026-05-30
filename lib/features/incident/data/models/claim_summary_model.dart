@@ -366,6 +366,32 @@ class BookingClaimSummaryModel {
     required this.canProcessPayout,
   });
 
+  factory BookingClaimSummaryModel.empty(String bookingId) {
+    return BookingClaimSummaryModel(
+      bookingId: bookingId,
+      status: 'NO_CLAIM',
+      statusLabel: '',
+      totals: const ClaimSummaryTotalsModel(
+        incidentCount: 0,
+        openIncidentCount: 0,
+        unresolvedIncidentCount: 0,
+        pendingChargeAmount: 0,
+        approvedChargeAmount: 0,
+        capturedChargeAmount: 0,
+        finalizedChargeAmount: 0,
+        heldDepositAmount: 0,
+        releasableDepositAmount: 0,
+        ownerPayoutAmount: 0,
+      ),
+      blockers: const [],
+      nextActions: const [],
+      timeline: const [],
+      incidents: const [],
+      canReleaseDeposit: true,
+      canProcessPayout: true,
+    );
+  }
+
   factory BookingClaimSummaryModel.fromJson(Map<String, dynamic> json) {
     final claimCaseJson = _asNullableMap(json['claimCase']);
     return BookingClaimSummaryModel(

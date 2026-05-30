@@ -36,6 +36,7 @@ class _BrowseVehiclesView extends StatefulWidget {
 
 class _BrowseVehiclesViewState extends State<_BrowseVehiclesView> {
   final _searchController = TextEditingController();
+  final _scrollController = ScrollController();
   List<VehicleEntity> _allVehicles = [];
 
   // Filter states (from vehicle_list_page)
@@ -60,9 +61,24 @@ class _BrowseVehiclesViewState extends State<_BrowseVehiclesView> {
   DateTime? _desiredEndTime;
 
   @override
+  void initState() {
+    super.initState();
+    _scrollController.addListener(_onScroll);
+  }
+
+  @override
   void dispose() {
+    _scrollController.dispose();
     _searchController.dispose();
     super.dispose();
+  }
+
+  void _onScroll() {
+    if (!_scrollController.hasClients || _hasActiveFilters) return;
+    final position = _scrollController.position;
+    if (position.pixels >= position.maxScrollExtent - 320) {
+      context.read<VehicleListCubit>().loadMoreVehicles();
+    }
   }
 
   // Apply filters method from vehicle_list_page
@@ -230,6 +246,7 @@ class _BrowseVehiclesViewState extends State<_BrowseVehiclesView> {
               // Content (Quick Actions + Vehicle List)
               Expanded(
                 child: CustomScrollView(
+                  controller: _scrollController,
                   slivers: [
                     // Quick Actions
                     _buildQuickActions(context),
@@ -731,7 +748,9 @@ class _BrowseVehiclesViewState extends State<_BrowseVehiclesView> {
               width: double.infinity,
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               child: Text(
-                'Tìm thấy ${state.vehicles.length} xe',
+                state.total > state.vehicles.length
+                    ? 'Đang hiển thị ${state.vehicles.length}/${state.total} xe'
+                    : 'Tìm thấy ${state.vehicles.length} xe',
                 style: GoogleFonts.poppins(
                   fontSize: 14,
                   fontWeight: FontWeight.w500,
@@ -750,11 +769,8 @@ class _BrowseVehiclesViewState extends State<_BrowseVehiclesView> {
   Widget _buildVehiclesGrid() {
     return BlocConsumer<VehicleListCubit, VehicleListState>(
       listener: (context, state) {
-        if (state is VehicleListLoaded) {
-          // Store all vehicles for filtering
-          if (_allVehicles.isEmpty) {
-            _allVehicles = List.from(state.vehicles);
-          }
+        if (state is VehicleListLoaded && !state.isLoadingMore) {
+          _allVehicles = List.from(state.vehicles);
         }
       },
       builder: (context, state) {
@@ -883,13 +899,17 @@ class _BrowseVehiclesViewState extends State<_BrowseVehiclesView> {
             );
           }
 
-          final displayedVehicles = state.vehicles
-              .take(6) // giới hạn chỉ hiển thị 6 xe ở trang Browse
-              .toList();
+          final displayedVehicles = state.vehicles;
           return SliverPadding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
             sliver: SliverList(
               delegate: SliverChildBuilderDelegate((context, index) {
+                if (index == displayedVehicles.length) {
+                  return const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 16),
+                    child: Center(child: CircularProgressIndicator()),
+                  );
+                }
                 final vehicle = displayedVehicles[index];
                 return Padding(
                   padding: const EdgeInsets.only(bottom: 16),
@@ -902,7 +922,7 @@ class _BrowseVehiclesViewState extends State<_BrowseVehiclesView> {
                     },
                   ),
                 );
-              }, childCount: displayedVehicles.length),
+              }, childCount: displayedVehicles.length + (state.isLoadingMore ? 1 : 0)),
             ),
           );
         }

@@ -79,6 +79,9 @@ class IncidentRemoteDataSourceImpl implements IncidentRemoteDataSource {
         statusCode: response.statusCode,
       );
     } on DioException catch (e) {
+      if (e.response?.statusCode == 404) {
+        return BookingClaimSummaryModel.empty(bookingId);
+      }
       throw ServerException.fromDioException(e);
     }
   }
@@ -123,6 +126,12 @@ class IncidentRemoteDataSourceImpl implements IncidentRemoteDataSource {
         statusCode: response.statusCode,
       );
     } on DioException catch (e) {
+      if (e.response?.statusCode == 404) {
+        throw const ServerException(
+          message: 'Máy chủ hiện chưa hỗ trợ báo cáo sự cố. Vui lòng thử lại sau.',
+          statusCode: 404,
+        );
+      }
       throw ServerException.fromDioException(e);
     }
   }

@@ -3,6 +3,7 @@ import 'package:fe_capstone_project/features/vehicle/domain/entities/vehicle_ent
 import '../../../../../core/error/exceptions.dart';
 import '../../../../../core/error/failures.dart';
 import '../../domain/entities/availability_summary.dart';
+import '../../domain/entities/vehicle_page.dart';
 import '../../domain/repositories/vehicle_repository.dart';
 import '../datasources/vehicle_remote_datasource.dart';
 
@@ -13,13 +14,15 @@ class VehicleRepositoryImpl implements VehicleRepository {
     : _remoteDataSource = remoteDataSource;
 
   @override
-  Future<Either<Failure, List<VehicleEntity>>> getAvailableVehicles({
+  Future<Either<Failure, VehiclePage>> getAvailableVehicles({
     DateTime? startTime,
     DateTime? endTime,
     bool? instantBookOnly,
     VehicleCondition? condition,
     BatteryType? batteryType,
     int? minBatteryHealth,
+    int? limit,
+    int? offset,
   }) async {
     try {
       final vehicles = await _remoteDataSource.getAvailableVehicles(
@@ -29,8 +32,15 @@ class VehicleRepositoryImpl implements VehicleRepository {
         condition: condition,
         batteryType: batteryType,
         minBatteryHealth: minBatteryHealth,
+        limit: limit,
+        offset: offset,
       );
-      return Right(vehicles.map((model) => model.toEntity()).toList());
+      return Right(
+        VehiclePage(
+          vehicles: vehicles.vehicles.map((model) => model.toEntity()).toList(),
+          total: vehicles.total,
+        ),
+      );
     } on ServerException catch (e) {
       return Left(ServerFailure(message: e.message, statusCode: e.statusCode));
     } on NetworkException {
@@ -99,7 +109,7 @@ class VehicleRepositoryImpl implements VehicleRepository {
   }
 
   @override
-  Future<Either<Failure, List<VehicleEntity>>> getNearbyVehicles({
+  Future<Either<Failure, VehiclePage>> getNearbyVehicles({
     required double latitude,
     required double longitude,
     double radius = 50.0,
@@ -109,6 +119,8 @@ class VehicleRepositoryImpl implements VehicleRepository {
     VehicleCondition? condition,
     BatteryType? batteryType,
     int? minBatteryHealth,
+    int? limit,
+    int? offset,
   }) async {
     try {
       final vehicles = await _remoteDataSource.getNearbyVehicles(
@@ -121,8 +133,15 @@ class VehicleRepositoryImpl implements VehicleRepository {
         condition: condition,
         batteryType: batteryType,
         minBatteryHealth: minBatteryHealth,
+        limit: limit,
+        offset: offset,
       );
-      return Right(vehicles.map((model) => model.toEntity()).toList());
+      return Right(
+        VehiclePage(
+          vehicles: vehicles.vehicles.map((model) => model.toEntity()).toList(),
+          total: vehicles.total,
+        ),
+      );
     } on ServerException catch (e) {
       return Left(ServerFailure(message: e.message, statusCode: e.statusCode));
     } on NetworkException {

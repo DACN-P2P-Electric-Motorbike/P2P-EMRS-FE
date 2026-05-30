@@ -22,11 +22,19 @@ class VehicleListLoading extends VehicleListState {}
 
 class VehicleListLoaded extends VehicleListState {
   final List<VehicleEntity> vehicles;
+  final int total;
+  final bool isLoadingMore;
 
-  const VehicleListLoaded(this.vehicles);
+  const VehicleListLoaded(
+    this.vehicles, {
+    this.total = 0,
+    this.isLoadingMore = false,
+  });
+
+  bool get hasMore => vehicles.length < total;
 
   @override
-  List<Object?> get props => [vehicles];
+  List<Object?> get props => [vehicles, total, isLoadingMore];
 }
 
 class VehicleListError extends VehicleListState {
@@ -54,6 +62,7 @@ class VehicleListCubit extends Cubit<VehicleListState> {
   double? _activeNearbyLat;
   double? _activeNearbyLng;
   double? _activeNearbyRadius;
+  static const int _pageSize = 20;
 
   VehicleListCubit({
     required GetAvailableVehicles getAvailableVehicles,
@@ -84,11 +93,13 @@ class VehicleListCubit extends Cubit<VehicleListState> {
         condition: condition,
         batteryType: batteryType,
         minBatteryHealth: minBatteryHealth,
+        limit: _pageSize,
+        offset: 0,
       ),
     );
 
     result.fold((failure) => emit(VehicleListError(failure.message)), (
-      vehicles,
+      page,
     ) {
       _activeStartTime = startTime;
       _activeEndTime = endTime;
@@ -107,7 +118,7 @@ class VehicleListCubit extends Cubit<VehicleListState> {
         batteryType,
         minBatteryHealth,
       );
-      emit(VehicleListLoaded(vehicles));
+      emit(VehicleListLoaded(page.vehicles, total: page.total));
     });
   }
 
@@ -241,7 +252,7 @@ class VehicleListCubit extends Cubit<VehicleListState> {
         break;
     }
 
-    emit(VehicleListLoaded(filtered));
+    emit(VehicleListLoaded(filtered, total: filtered.length));
   }
 
   /// Load vehicles near a given user position within a radius.
@@ -270,11 +281,13 @@ class VehicleListCubit extends Cubit<VehicleListState> {
         condition: condition,
         batteryType: batteryType,
         minBatteryHealth: minBatteryHealth,
+        limit: _pageSize,
+        offset: 0,
       ),
     );
 
     result.fold((failure) => emit(VehicleListError(failure.message)), (
-      vehicles,
+      page,
     ) {
       _activeStartTime = startTime;
       _activeEndTime = endTime;
@@ -296,8 +309,66 @@ class VehicleListCubit extends Cubit<VehicleListState> {
         batteryType,
         minBatteryHealth,
       );
-      emit(VehicleListLoaded(vehicles));
+      emit(VehicleListLoaded(page.vehicles, total: page.total));
     });
+  }
+
+
+  Future<void> loadMoreVehicles() async {
+    final current = state;
+    if (current is! VehicleListLoaded ||
+        current.isLoadingMore ||
+        !current.hasMore) {
+      return;
+    }
+
+    emit(
+      VehicleListLoaded(
+        current.vehicles,
+        total: current.total,
+        isLoadingMore: true,
+      ),
+    );
+
+    final offset = current.vehicles.length;
+    final result = _activeNearbyLat != null && _activeNearbyLng != null
+        ? await _getNearbyVehicles(
+            NearbyVehicleParams(
+              latitude: _activeNearbyLat!,
+              longitude: _activeNearbyLng!,
+              radiusKm: _activeNearbyRadius ?? 5.0,
+              startTime: _activeStartTime,
+              endTime: _activeEndTime,
+              instantBookOnly: _activeInstantBookOnly,
+              condition: _activeCondition,
+              batteryType: _activeBatteryType,
+              minBatteryHealth: _activeMinBatteryHealth,
+              limit: _pageSize,
+              offset: offset,
+            ),
+          )
+        : await _getAvailableVehicles(
+            GetAvailableVehiclesParams(
+              startTime: _activeStartTime,
+              endTime: _activeEndTime,
+              instantBookOnly: _activeInstantBookOnly,
+              condition: _activeCondition,
+              batteryType: _activeBatteryType,
+              minBatteryHealth: _activeMinBatteryHealth,
+              limit: _pageSize,
+              offset: offset,
+            ),
+          );
+
+    result.fold(
+      (_) => emit(VehicleListLoaded(current.vehicles, total: current.total)),
+      (page) => emit(
+        VehicleListLoaded(
+          [...current.vehicles, ...page.vehicles],
+          total: page.total,
+        ),
+      ),
+    );
   }
 
   void _onCacheChanged(String key) {
@@ -318,6 +389,8 @@ class VehicleListCubit extends Cubit<VehicleListState> {
               condition: _activeCondition,
               batteryType: _activeBatteryType,
               minBatteryHealth: _activeMinBatteryHealth,
+              limit: _pageSize,
+              offset: 0,
             ),
           )
         : await _getAvailableVehicles(
@@ -328,11 +401,13 @@ class VehicleListCubit extends Cubit<VehicleListState> {
               condition: _activeCondition,
               batteryType: _activeBatteryType,
               minBatteryHealth: _activeMinBatteryHealth,
+              limit: _pageSize,
+              offset: 0,
             ),
           );
 
-    result.fold((_) {}, (vehicles) {
-      if (!isClosed) emit(VehicleListLoaded(vehicles));
+    result.fold((_) {}, (page) {
+      if (!isClosed) emit(VehicleListLoaded(page.vehicles, total: page.total));
     });
   }
 

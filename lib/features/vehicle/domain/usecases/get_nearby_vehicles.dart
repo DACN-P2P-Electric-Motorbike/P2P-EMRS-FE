@@ -3,6 +3,7 @@ import 'package:equatable/equatable.dart';
 import '../../../../../core/error/failures.dart';
 import '../../../../../core/usecases/usecase.dart';
 import '../entities/vehicle_entity.dart';
+import '../entities/vehicle_page.dart';
 import '../repositories/vehicle_repository.dart';
 
 class NearbyVehicleParams extends Equatable {
@@ -15,6 +16,8 @@ class NearbyVehicleParams extends Equatable {
   final VehicleCondition? condition;
   final BatteryType? batteryType;
   final int? minBatteryHealth;
+  final int? limit;
+  final int? offset;
 
   const NearbyVehicleParams({
     required this.latitude,
@@ -26,6 +29,8 @@ class NearbyVehicleParams extends Equatable {
     this.condition,
     this.batteryType,
     this.minBatteryHealth,
+    this.limit,
+    this.offset,
   });
 
   @override
@@ -39,17 +44,19 @@ class NearbyVehicleParams extends Equatable {
     condition,
     batteryType,
     minBatteryHealth,
+    limit,
+    offset,
   ];
 }
 
 class GetNearbyVehicles
-    implements UseCase<List<VehicleEntity>, NearbyVehicleParams> {
+    implements UseCase<VehiclePage, NearbyVehicleParams> {
   final VehicleRepository repository;
 
   GetNearbyVehicles(this.repository);
 
   @override
-  Future<Either<Failure, List<VehicleEntity>>> call(
+  Future<Either<Failure, VehiclePage>> call(
     NearbyVehicleParams params,
   ) async {
     return await repository.getNearbyVehicles(
@@ -62,6 +69,8 @@ class GetNearbyVehicles
       condition: params.condition,
       batteryType: params.batteryType,
       minBatteryHealth: params.minBatteryHealth,
+      limit: params.limit,
+      offset: params.offset,
     );
   }
 }

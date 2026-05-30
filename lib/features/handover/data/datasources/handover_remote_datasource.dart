@@ -98,6 +98,12 @@ class HandoverRemoteDataSourceImpl implements HandoverRemoteDataSource {
         statusCode: response.statusCode,
       );
     } on DioException catch (e) {
+      if (e.response?.statusCode == 404) {
+        throw const ServerException(
+          message: 'Máy chủ hiện chưa hỗ trợ bàn giao xe. Vui lòng thử lại sau.',
+          statusCode: 404,
+        );
+      }
       throw ServerException.fromDioException(e);
     }
   }
