@@ -1269,6 +1269,7 @@ class _VehicleDetailContentState extends State<_VehicleDetailContent> {
     final recurringWeekdays =
         existingWindow?.recurringWeekdays.toSet() ?? <int>{startTime.weekday};
     DateTime? recurrenceEndsAt = existingWindow?.recurrenceEndsAt;
+    final ownerVehicleBloc = context.read<OwnerVehicleBloc>();
 
     showModalBottomSheet(
       context: context,
@@ -1388,14 +1389,14 @@ class _VehicleDetailContentState extends State<_VehicleDetailContent> {
               note: noteController.text,
             );
             if (existingWindow == null) {
-              context.read<OwnerVehicleBloc>().add(
+              ownerVehicleBloc.add(
                 CreateVehicleAvailability(
                   vehicleId: vehicle.id,
                   params: params,
                 ),
               );
             } else {
-              context.read<OwnerVehicleBloc>().add(
+              ownerVehicleBloc.add(
                 UpdateVehicleAvailability(
                   vehicleId: vehicle.id,
                   windowId: existingWindow.id,

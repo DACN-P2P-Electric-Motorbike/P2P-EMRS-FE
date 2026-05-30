@@ -1,5 +1,6 @@
 import 'package:equatable/equatable.dart';
 import '../../data/models/register_params.dart';
+import '../../domain/entities/user.dart';
 
 /// Base class for auth events
 abstract class AuthEvent extends Equatable {
@@ -43,6 +44,15 @@ class AuthCheckRequested extends AuthEvent {
 /// Event triggered to reset auth state (after error handling)
 class AuthResetRequested extends AuthEvent {
   const AuthResetRequested();
+}
+
+class AuthProfileRefreshed extends AuthEvent {
+  final UserEntity user;
+
+  const AuthProfileRefreshed(this.user);
+
+  @override
+  List<Object?> get props => [user];
 }
 
 /// Event triggered when user updates their profile

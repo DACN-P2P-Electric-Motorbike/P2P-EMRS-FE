@@ -12,13 +12,15 @@ import '../../domain/entities/vehicle_entity.dart';
 
 /// Remote data source for vehicle operations
 abstract class VehicleRemoteDataSource {
-  Future<List<VehicleModel>> getAvailableVehicles({
+  Future<VehiclePageModel> getAvailableVehicles({
     DateTime? startTime,
     DateTime? endTime,
     bool? instantBookOnly,
     VehicleCondition? condition,
     BatteryType? batteryType,
     int? minBatteryHealth,
+    int? limit,
+    int? offset,
   });
   Future<VehicleModel> getVehicleById(String id);
   Future<VehicleAvailabilitySummaryModel> getAvailabilitySummary(String id);
@@ -30,7 +32,7 @@ abstract class VehicleRemoteDataSource {
     double? longitude,
     double? radius,
   });
-  Future<List<VehicleModel>> getNearbyVehicles({
+  Future<VehiclePageModel> getNearbyVehicles({
     required double latitude,
     required double longitude,
     double radius = 50.0,
@@ -40,7 +42,16 @@ abstract class VehicleRemoteDataSource {
     VehicleCondition? condition,
     BatteryType? batteryType,
     int? minBatteryHealth,
+    int? limit,
+    int? offset,
   });
+}
+
+class VehiclePageModel {
+  final List<VehicleModel> vehicles;
+  final int total;
+
+  const VehiclePageModel({required this.vehicles, required this.total});
 }
 
 class VehicleRemoteDataSourceImpl implements VehicleRemoteDataSource {
@@ -54,13 +65,15 @@ class VehicleRemoteDataSourceImpl implements VehicleRemoteDataSource {
        _cache = cache;
 
   @override
-  Future<List<VehicleModel>> getAvailableVehicles({
+  Future<VehiclePageModel> getAvailableVehicles({
     DateTime? startTime,
     DateTime? endTime,
     bool? instantBookOnly,
     VehicleCondition? condition,
     BatteryType? batteryType,
     int? minBatteryHealth,
+    int? limit,
+    int? offset,
   }) async {
     final queryParameters = _availabilityQuery(
       startTime,
@@ -70,8 +83,10 @@ class VehicleRemoteDataSourceImpl implements VehicleRemoteDataSource {
       batteryType: batteryType,
       minBatteryHealth: minBatteryHealth,
     );
+    if (limit != null) queryParameters['limit'] = limit;
+    if (offset != null) queryParameters['offset'] = offset;
     final cacheKey = 'vehicles.available:${_cacheSuffix(queryParameters)}';
-    final cached = await _cachedVehicleList(cacheKey);
+    final cached = await _cachedVehiclePage(cacheKey);
     if (cached != null) {
       unawaited(_refreshVehicleList(cacheKey, queryParameters));
       return cached;
@@ -150,7 +165,7 @@ class VehicleRemoteDataSourceImpl implements VehicleRemoteDataSource {
   }
 
   @override
-  Future<List<VehicleModel>> getNearbyVehicles({
+  Future<VehiclePageModel> getNearbyVehicles({
     required double latitude,
     required double longitude,
     double radius = 50.0,
@@ -160,6 +175,8 @@ class VehicleRemoteDataSourceImpl implements VehicleRemoteDataSource {
     VehicleCondition? condition,
     BatteryType? batteryType,
     int? minBatteryHealth,
+    int? limit,
+    int? offset,
   }) async {
     final queryParameters = <String, dynamic>{
       'latitude': latitude,
@@ -179,9 +196,11 @@ class VehicleRemoteDataSourceImpl implements VehicleRemoteDataSource {
       batteryType: batteryType,
       minBatteryHealth: minBatteryHealth,
     );
+    if (limit != null) queryParameters['limit'] = limit;
+    if (offset != null) queryParameters['offset'] = offset;
 
     final cacheKey = 'vehicles.nearby:${_cacheSuffix(queryParameters)}';
-    final cached = await _cachedVehicleList(cacheKey);
+    final cached = await _cachedVehiclePage(cacheKey);
     if (cached != null) {
       unawaited(_refreshVehicleList(cacheKey, queryParameters));
       return cached;
@@ -232,6 +251,19 @@ class VehicleRemoteDataSourceImpl implements VehicleRemoteDataSource {
     }
   }
 
+  Future<VehiclePageModel?> _cachedVehiclePage(String cacheKey) async {
+    final cached = await _cache.read<Map<dynamic, dynamic>>(cacheKey);
+    if (cached == null) return null;
+    final vehicles = (cached['vehicles'] as List? ?? const [])
+        .whereType<Map>()
+        .map((json) => VehicleModel.fromJson(Map<String, dynamic>.from(json)))
+        .toList();
+    return VehiclePageModel(
+      vehicles: vehicles,
+      total: cached['total'] is int ? cached['total'] as int : vehicles.length,
+    );
+  }
+
   Future<List<VehicleModel>?> _cachedVehicleList(String cacheKey) async {
     final cached = await _cache.read<List<dynamic>>(cacheKey);
     if (cached == null) return null;
@@ -241,7 +273,7 @@ class VehicleRemoteDataSourceImpl implements VehicleRemoteDataSource {
         .toList();
   }
 
-  Future<List<VehicleModel>> _fetchAndCacheVehicleList(
+  Future<VehiclePageModel> _fetchAndCacheVehicleList(
     String cacheKey,
     Map<String, dynamic> queryParameters,
   ) async {
@@ -251,9 +283,12 @@ class VehicleRemoteDataSourceImpl implements VehicleRemoteDataSource {
         queryParameters: queryParameters,
       );
 
-      final vehicles = _vehicleListFromEnvelope(response.data);
-      await _cache.write(cacheKey, vehicles.map((v) => v.toJson()).toList());
-      return vehicles;
+      final page = _vehiclePageFromEnvelope(response.data);
+      await _cache.write(cacheKey, {
+        'vehicles': page.vehicles.map((v) => v.toJson()).toList(),
+        'total': page.total,
+      });
+      return page;
     } on DioException catch (e) {
       throw ServerException.fromDioException(e);
     }
@@ -284,12 +319,16 @@ class VehicleRemoteDataSourceImpl implements VehicleRemoteDataSource {
     }
   }
 
-  List<VehicleModel> _vehicleListFromEnvelope(dynamic data) {
+  VehiclePageModel _vehiclePageFromEnvelope(dynamic data) {
     if (data is Map<String, dynamic> && data['vehicles'] is List) {
-      return (data['vehicles'] as List)
+      final vehicles = (data['vehicles'] as List)
           .whereType<Map>()
           .map((json) => VehicleModel.fromJson(Map<String, dynamic>.from(json)))
           .toList();
+      return VehiclePageModel(
+        vehicles: vehicles,
+        total: data['total'] is int ? data['total'] as int : vehicles.length,
+      );
     }
 
     throw const ServerException(message: 'Invalid response format');

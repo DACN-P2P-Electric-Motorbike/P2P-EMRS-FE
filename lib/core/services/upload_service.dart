@@ -95,13 +95,20 @@ class UploadService {
       'file': MultipartFile.fromBytes(fileBytes, filename: fileName),
     });
 
-    final response = await _dioClient.post(
-      ApiConstants.uploadHandover,
-      data: formData,
-      options: Options(headers: {'Content-Type': 'multipart/form-data'}),
-    );
+    try {
+      final response = await _dioClient.post(
+        ApiConstants.uploadHandover,
+        data: formData,
+        options: Options(headers: {'Content-Type': 'multipart/form-data'}),
+      );
 
-    return UploadResult.fromJson(response.data);
+      return UploadResult.fromJson(response.data);
+    } on DioException catch (e) {
+      if (e.response?.statusCode == 404) {
+        throw 'Máy chủ hiện chưa hỗ trợ tải ảnh bàn giao. Vui lòng cập nhật ứng dụng hoặc thử lại sau.';
+      }
+      rethrow;
+    }
   }
 
   /// Upload an incident or claim evidence image
@@ -113,13 +120,20 @@ class UploadService {
       'file': MultipartFile.fromBytes(fileBytes, filename: fileName),
     });
 
-    final response = await _dioClient.post(
-      ApiConstants.uploadIncident,
-      data: formData,
-      options: Options(headers: {'Content-Type': 'multipart/form-data'}),
-    );
+    try {
+      final response = await _dioClient.post(
+        ApiConstants.uploadIncident,
+        data: formData,
+        options: Options(headers: {'Content-Type': 'multipart/form-data'}),
+      );
 
-    return UploadResult.fromJson(response.data);
+      return UploadResult.fromJson(response.data);
+    } on DioException catch (e) {
+      if (e.response?.statusCode == 404) {
+        throw 'Máy chủ hiện chưa hỗ trợ tải ảnh sự cố. Vui lòng cập nhật ứng dụng hoặc thử lại sau.';
+      }
+      rethrow;
+    }
   }
 
   /// Upload multiple vehicle images

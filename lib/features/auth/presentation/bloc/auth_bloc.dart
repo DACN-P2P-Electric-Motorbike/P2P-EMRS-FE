@@ -33,6 +33,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     on<AuthLogoutStarted>(_onLogoutStarted);
     on<AuthCheckRequested>(_onCheckRequested);
     on<AuthResetRequested>(_onResetRequested);
+    on<AuthProfileRefreshed>(_onProfileRefreshed);
     on<UpdateProfileStarted>(_onUpdateProfile);
     on<RequestSensitiveOtpStarted>(_onRequestSensitiveOtp);
   }
@@ -132,6 +133,13 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       (failure) => emit(AuthFailure(message: failure.message)),
       (user) => emit(ProfileUpdated(user: user)),
     );
+  }
+
+  void _onProfileRefreshed(
+    AuthProfileRefreshed event,
+    Emitter<AuthState> emit,
+  ) {
+    emit(AuthAuthenticated(user: event.user));
   }
 
   Future<void> _onRequestSensitiveOtp(

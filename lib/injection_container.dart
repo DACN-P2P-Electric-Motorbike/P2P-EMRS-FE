@@ -356,7 +356,12 @@ Future<void> init() async {
   sl.registerLazySingleton(() => BecomeOwner(sl()));
 
   // Cubit - Factory
-  sl.registerFactory(() => BecomeOwnerCubit(becomeOwner: sl()));
+  sl.registerFactory(
+    () => BecomeOwnerCubit(
+      becomeOwner: sl(),
+      authRepository: sl(),
+    ),
+  );
 
   //============================================================================
   // FEATURES - BOOKING

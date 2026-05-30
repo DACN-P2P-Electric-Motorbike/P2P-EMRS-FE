@@ -2,6 +2,8 @@ import 'package:fe_capstone_project/features/owner_vehicle/data/models/create_ve
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:equatable/equatable.dart';
 import '../../data/models/become_owner_response_model.dart';
+import '../../../auth/domain/entities/user.dart';
+import '../../../auth/domain/repositories/auth_repository.dart';
 import '../../domain/usecases/become_owner.dart';
 
 // States
@@ -18,11 +20,12 @@ class BecomeOwnerLoading extends BecomeOwnerState {}
 
 class BecomeOwnerSuccess extends BecomeOwnerState {
   final BecomeOwnerResponseDto response;
+  final UserEntity? updatedUser;
 
-  const BecomeOwnerSuccess(this.response);
+  const BecomeOwnerSuccess(this.response, {this.updatedUser});
 
   @override
-  List<Object?> get props => [response];
+  List<Object?> get props => [response, updatedUser];
 }
 
 class BecomeOwnerError extends BecomeOwnerState {
@@ -37,10 +40,14 @@ class BecomeOwnerError extends BecomeOwnerState {
 // Cubit
 class BecomeOwnerCubit extends Cubit<BecomeOwnerState> {
   final BecomeOwner _becomeOwner;
+  final AuthRepository? _authRepository;
 
-  BecomeOwnerCubit({required BecomeOwner becomeOwner})
-    : _becomeOwner = becomeOwner,
-      super(BecomeOwnerInitial());
+  BecomeOwnerCubit({
+    required BecomeOwner becomeOwner,
+    AuthRepository? authRepository,
+  }) : _becomeOwner = becomeOwner,
+       _authRepository = authRepository,
+       super(BecomeOwnerInitial());
 
   /// Submit become owner request with vehicle data
   /// Uses CreateVehicleParams to reuse vehicle data structure
@@ -49,9 +56,18 @@ class BecomeOwnerCubit extends Cubit<BecomeOwnerState> {
 
     final result = await _becomeOwner(params);
 
-    result.fold(
-      (failure) => emit(BecomeOwnerError(failure.message)),
-      (response) => emit(BecomeOwnerSuccess(response)),
+    await result.fold(
+      (failure) async => emit(BecomeOwnerError(failure.message)),
+      (response) async {
+        final profileResult = await _authRepository?.getProfile();
+        profileResult?.fold(
+          (_) => emit(BecomeOwnerSuccess(response)),
+          (user) => emit(BecomeOwnerSuccess(response, updatedUser: user)),
+        );
+        if (profileResult == null) {
+          emit(BecomeOwnerSuccess(response));
+        }
+      },
     );
   }
 

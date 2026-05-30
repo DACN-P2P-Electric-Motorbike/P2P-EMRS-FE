@@ -452,7 +452,14 @@ class _BikeRegistrationContentState extends State<_BikeRegistrationContent> {
 
                   // 2. Refresh auth to update roles
                   if (context.mounted) {
-                    context.read<AuthBloc>().add(const AuthCheckRequested());
+                    final updatedUser = state.updatedUser;
+                    if (updatedUser != null) {
+                      context.read<AuthBloc>().add(
+                        AuthProfileRefreshed(updatedUser),
+                      );
+                    } else {
+                      context.read<AuthBloc>().add(const AuthCheckRequested());
+                    }
                   }
 
                   // 3. Wait for auth to update
