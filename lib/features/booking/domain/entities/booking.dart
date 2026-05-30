@@ -17,6 +17,55 @@ enum BookingStatus {
   }
 }
 
+/// Refund summary recorded when a paid booking is cancelled, so the renter can
+/// see how much money is refunded (rental/deposit split + total) instead of
+/// only the cancellation reason.
+class BookingRefundInfo extends Equatable {
+  final String refundType;
+  final double rentalRefundRate;
+  final double refundableRentalAmount;
+  final double refundableProtectionAmount;
+  final double refundablePrepaidChargingAmount;
+  final double refundableRoadsideSupportAmount;
+  final double refundableDepositAmount;
+  final double refundAmount;
+  final double paidAmount;
+  final double forfeitedAmount;
+  final String? cancelledBy;
+  final DateTime? cancelledAt;
+
+  const BookingRefundInfo({
+    this.refundType = 'none',
+    this.rentalRefundRate = 0,
+    this.refundableRentalAmount = 0,
+    this.refundableProtectionAmount = 0,
+    this.refundablePrepaidChargingAmount = 0,
+    this.refundableRoadsideSupportAmount = 0,
+    this.refundableDepositAmount = 0,
+    this.refundAmount = 0,
+    this.paidAmount = 0,
+    this.forfeitedAmount = 0,
+    this.cancelledBy,
+    this.cancelledAt,
+  });
+
+  @override
+  List<Object?> get props => [
+    refundType,
+    rentalRefundRate,
+    refundableRentalAmount,
+    refundableProtectionAmount,
+    refundablePrepaidChargingAmount,
+    refundableRoadsideSupportAmount,
+    refundableDepositAmount,
+    refundAmount,
+    paidAmount,
+    forfeitedAmount,
+    cancelledBy,
+    cancelledAt,
+  ];
+}
+
 /// Booking entity - pure Dart object without any JSON logic
 class BookingEntity extends Equatable {
   final String id;
@@ -48,6 +97,7 @@ class BookingEntity extends Equatable {
   final String? vehicleName;
   final int? vehicleBatteryLevel;
   final String? paymentStatus;
+  final BookingRefundInfo? refundInfo;
 
   const BookingEntity({
     required this.id,
@@ -79,6 +129,7 @@ class BookingEntity extends Equatable {
     this.vehicleName,
     this.vehicleBatteryLevel,
     this.paymentStatus,
+    this.refundInfo,
   });
 
   /// Check if booking is pending
@@ -195,6 +246,7 @@ class BookingEntity extends Equatable {
     vehicleName,
     vehicleBatteryLevel,
     paymentStatus,
+    refundInfo,
   ];
 
   BookingEntity copyWith({
@@ -227,6 +279,7 @@ class BookingEntity extends Equatable {
     String? vehicleName,
     int? vehicleBatteryLevel,
     String? paymentStatus,
+    BookingRefundInfo? refundInfo,
   }) {
     return BookingEntity(
       id: id ?? this.id,
@@ -261,6 +314,7 @@ class BookingEntity extends Equatable {
       vehicleName: vehicleName ?? this.vehicleName,
       vehicleBatteryLevel: vehicleBatteryLevel ?? this.vehicleBatteryLevel,
       paymentStatus: paymentStatus ?? this.paymentStatus,
+      refundInfo: refundInfo ?? this.refundInfo,
     );
   }
 }

@@ -210,6 +210,13 @@ class _BookingDetailPageState extends State<BookingDetailPage> {
           if (booking.cancellationReason != null)
             _buildCancellationCard(booking.cancellationReason!),
 
+          // Refund summary for cancelled paid bookings (renter visibility)
+          if (booking.refundInfo != null &&
+              booking.refundInfo!.paidAmount > 0) ...[
+            const SizedBox(height: 16),
+            _buildRefundCard(booking.refundInfo!),
+          ],
+
           const SizedBox(height: 16),
 
           // Actions
@@ -558,6 +565,153 @@ class _BookingDetailPageState extends State<BookingDetailPage> {
             style: GoogleFonts.poppins(
               fontSize: 14,
               color: AppColors.textSecondary,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRefundCard(BookingRefundInfo refund) {
+    final currency = NumberFormat.currency(locale: 'vi_VN', symbol: 'đ');
+    final refundColor = refund.refundAmount > 0
+        ? AppColors.success
+        : AppColors.textSecondary;
+
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16),
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: AppColors.success.withOpacity(0.05),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.success.withOpacity(0.2)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(
+                Icons.account_balance_wallet_outlined,
+                color: AppColors.success,
+                size: 20,
+              ),
+              const SizedBox(width: 8),
+              Text(
+                'Hoàn tiền khi hủy',
+                style: GoogleFonts.poppins(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.success,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          if (refund.refundableRentalAmount > 0)
+            _buildRefundRow(
+              'Hoàn phí thuê',
+              currency.format(refund.refundableRentalAmount),
+            ),
+          if (refund.refundableProtectionAmount > 0)
+            _buildRefundRow(
+              'Hoàn phí bảo vệ',
+              currency.format(refund.refundableProtectionAmount),
+            ),
+          if (refund.refundablePrepaidChargingAmount > 0)
+            _buildRefundRow(
+              'Hoàn phí sạc trả trước',
+              currency.format(refund.refundablePrepaidChargingAmount),
+            ),
+          if (refund.refundableRoadsideSupportAmount > 0)
+            _buildRefundRow(
+              'Hoàn phí hỗ trợ cứu hộ',
+              currency.format(refund.refundableRoadsideSupportAmount),
+            ),
+          if (refund.refundableDepositAmount > 0)
+            _buildRefundRow(
+              'Hoàn tiền cọc',
+              currency.format(refund.refundableDepositAmount),
+            ),
+          const Divider(height: 20),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Tổng hoàn',
+                style: GoogleFonts.poppins(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.textPrimary,
+                ),
+              ),
+              Text(
+                currency.format(refund.refundAmount),
+                style: GoogleFonts.poppins(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: refundColor,
+                ),
+              ),
+            ],
+          ),
+          if (refund.forfeitedAmount > 0) ...[
+            const SizedBox(height: 6),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Không hoàn (theo chính sách)',
+                  style: GoogleFonts.poppins(
+                    fontSize: 12,
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+                Text(
+                  currency.format(refund.forfeitedAmount),
+                  style: GoogleFonts.poppins(
+                    fontSize: 12,
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+              ],
+            ),
+          ],
+          const SizedBox(height: 10),
+          Text(
+            refund.refundAmount > 0
+                ? 'Tiền hoàn được xử lý về phương thức thanh toán ban đầu.'
+                : 'Theo chính sách hủy, không có khoản hoàn cho lần hủy này.',
+            style: GoogleFonts.poppins(
+              fontSize: 12,
+              color: AppColors.textSecondary,
+              height: 1.4,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRefundRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 6),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            label,
+            style: GoogleFonts.poppins(
+              fontSize: 13,
+              color: AppColors.textSecondary,
+            ),
+          ),
+          Text(
+            value,
+            style: GoogleFonts.poppins(
+              fontSize: 13,
+              fontWeight: FontWeight.w500,
+              color: AppColors.textPrimary,
             ),
           ),
         ],

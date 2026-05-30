@@ -42,9 +42,18 @@ class _UnifiedBookingsPageState extends State<UnifiedBookingsPage>
   Widget build(BuildContext context) {
     return BlocBuilder<AuthBloc, AuthState>(
       builder: (context, authState) {
-        final isOwner =
-            authState is AuthAuthenticated &&
-            (authState.user.isOwner || authState.user.isAdmin);
+        // Resolve the user from any authenticated state. After login the
+        // AuthBloc emits `AuthSuccess`, while app startup emits
+        // `AuthAuthenticated` and profile edits emit `ProfileUpdated`. Only
+        // checking `AuthAuthenticated` here meant a dual-role (renter+owner)
+        // user saw the renter-only view until the app was restarted.
+        final user = switch (authState) {
+          AuthAuthenticated(:final user) => user,
+          AuthSuccess(:final user) => user,
+          ProfileUpdated(:final user) => user,
+          _ => null,
+        };
+        final isOwner = user != null && (user.isOwner || user.isAdmin);
 
         return Scaffold(
           backgroundColor: const Color(0xFFF8F9FD),
