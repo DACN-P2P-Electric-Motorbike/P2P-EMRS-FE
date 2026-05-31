@@ -10,6 +10,7 @@ import '../../../../core/network/dio_client.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/widgets/app_avatar.dart';
 import '../../../../injection_container.dart';
+import '../../data/models/user_model.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
 import '../../../auth/presentation/bloc/auth_event.dart';
 import '../../../auth/presentation/bloc/auth_state.dart';
@@ -498,8 +499,28 @@ class ProfilePage extends StatelessWidget {
   }
 
   Future<void> _uploadAvatar(BuildContext context) async {
-    final picker = ImagePicker();
-    final pickedFile = await picker.pickImage(source: ImageSource.gallery);
+    final messenger = ScaffoldMessenger.of(context);
+    final authBloc = context.read<AuthBloc>();
+
+    // Pick the image first, OUTSIDE the loading dialog. The picker can throw a
+    // PlatformException (permissions, channel errors) — guard it so it never
+    // bubbles up as an unhandled exception and crashes the app.
+    XFile? pickedFile;
+    try {
+      pickedFile = await ImagePicker().pickImage(
+        source: ImageSource.gallery,
+        imageQuality: 85,
+        maxWidth: 1024,
+      );
+    } catch (_) {
+      messenger.showSnackBar(
+        const SnackBar(
+          content: Text('Không mở được thư viện ảnh. Vui lòng thử lại.'),
+          backgroundColor: AppColors.error,
+        ),
+      );
+      return;
+    }
 
     if (pickedFile == null) return;
     if (!context.mounted) return;
@@ -512,38 +533,76 @@ class ProfilePage extends StatelessWidget {
           const Center(child: CircularProgressIndicator()),
     );
 
+    var dialogOpen = true;
+    void closeDialog() {
+      if (dialogOpen && context.mounted) {
+        Navigator.of(context, rootNavigator: true).pop();
+        dialogOpen = false;
+      }
+    }
+
     try {
+      // Read bytes so the upload works on web as well as mobile
+      // (MultipartFile.fromFile is not supported on web).
+      final bytes = await pickedFile.readAsBytes();
       final dioClient = sl<DioClient>();
       final formData = FormData.fromMap({
-        'file': await MultipartFile.fromFile(
-          pickedFile.path,
-          filename: pickedFile.name,
+        'file': MultipartFile.fromBytes(
+          bytes,
+          filename: pickedFile.name.isNotEmpty ? pickedFile.name : 'avatar.jpg',
         ),
       });
 
-      await dioClient.post('/auth/upload-avatar', data: formData);
+      final response = await dioClient.post(
+        '/auth/upload-avatar',
+        data: formData,
+      );
 
-      if (context.mounted) {
-        Navigator.pop(context); // Close loading dialog
-        context.read<AuthBloc>().add(const AuthCheckRequested());
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Cập nhật ảnh đại diện thành công'),
-            backgroundColor: AppColors.success,
-          ),
-        );
+      closeDialog();
+
+      // Refresh auth state from the returned user so the new avatar shows
+      // immediately without a full re-login.
+      final data = response.data;
+      if (data is Map<String, dynamic>) {
+        try {
+          final user = UserModel.fromJson(data).toEntity();
+          authBloc.add(AuthProfileRefreshed(user));
+        } catch (_) {
+          authBloc.add(const AuthCheckRequested());
+        }
+      } else {
+        authBloc.add(const AuthCheckRequested());
       }
+
+      messenger.showSnackBar(
+        const SnackBar(
+          content: Text('Cập nhật ảnh đại diện thành công'),
+          backgroundColor: AppColors.success,
+        ),
+      );
     } catch (e) {
-      if (context.mounted) {
-        Navigator.pop(context); // Close loading dialog
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Lỗi khi tải ảnh lên'),
-            backgroundColor: AppColors.error,
-          ),
-        );
-      }
+      closeDialog();
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text('Lỗi khi tải ảnh lên: ${_avatarErrorText(e)}'),
+          backgroundColor: AppColors.error,
+        ),
+      );
     }
+  }
+
+  String _avatarErrorText(Object error) {
+    if (error is DioException) {
+      final status = error.response?.statusCode;
+      if (status == 404) {
+        return 'Máy chủ chưa hỗ trợ tải ảnh đại diện.';
+      }
+      if (status == 413) {
+        return 'Ảnh quá lớn, vui lòng chọn ảnh nhỏ hơn.';
+      }
+      return 'Vui lòng thử lại.';
+    }
+    return 'Vui lòng thử lại.';
   }
 
   Widget _buildRoleBadge(String role) {
