@@ -687,9 +687,11 @@ class _BrowseVehiclesViewState extends State<_BrowseVehiclesView> {
               ? state.user
               : (state is AuthAuthenticated ? state.user : null);
 
-          if (user?.isRenter != true) {
+          if (user == null) {
             return const SizedBox.shrink();
           }
+
+          final isOwner = user.isOwner || user.isAdmin;
 
           return Padding(
             padding: const EdgeInsets.all(20),
@@ -718,15 +720,30 @@ class _BrowseVehiclesViewState extends State<_BrowseVehiclesView> {
                       ),
                     ),
                     const SizedBox(width: 16),
+                    // Owners get a quick link to their revenue dashboard.
+                    // Renters get a direct entry to bookings where cancelled
+                    // bookings show the refund breakdown. The old
+                    // "Thanh toán → /bookings" card was relabeled because the
+                    // generic "Đặt xe" duplicated the bottom navigation tab and
+                    // gave no hint about where refunds are shown.
                     Expanded(
-                      child: _buildActionCard(
-                        context,
-                        icon: Icons.payments_outlined,
-                        title: 'Thanh toán',
-                        subtitle: 'Đặt xe',
-                        color: AppColors.success,
-                        onTap: () => context.push('/bookings'),
-                      ),
+                      child: isOwner
+                          ? _buildActionCard(
+                              context,
+                              icon: Icons.account_balance_wallet_outlined,
+                              title: 'Doanh thu',
+                              subtitle: 'Thu nhập',
+                              color: AppColors.success,
+                              onTap: () => context.push('/owner-earnings'),
+                            )
+                          : _buildActionCard(
+                              context,
+                              icon: Icons.receipt_long_outlined,
+                              title: 'Hoàn tiền',
+                              subtitle: 'Booking đã hủy',
+                              color: AppColors.success,
+                              onTap: () => context.push('/bookings'),
+                            ),
                     ),
                   ],
                 ),
