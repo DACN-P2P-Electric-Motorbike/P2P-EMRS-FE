@@ -1308,33 +1308,7 @@ class _BookingDetailPageState extends State<BookingDetailPage> {
     if (widget.isOwnerView && (booking.isConfirmed || booking.isOngoing)) {
       return Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16),
-        child: SizedBox(
-          width: double.infinity,
-          child: ElevatedButton.icon(
-            onPressed: () => Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (_) => HandoverSummaryPage(
-                  bookingId: booking.id,
-                  allowCheckOut: booking.isOngoing,
-                ),
-              ),
-            ),
-            icon: const Icon(Icons.assignment_turned_in_outlined),
-            label: Text(
-              'Biên bản bàn giao',
-              style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
-            ),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primary,
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(vertical: 16),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-            ),
-          ),
-        ),
+        child: _buildOwnerHandoverButton(context, booking),
       );
     }
 
@@ -1343,25 +1317,9 @@ class _BookingDetailPageState extends State<BookingDetailPage> {
         padding: const EdgeInsets.symmetric(horizontal: 16),
         child: Column(
           children: [
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton.icon(
-                onPressed: () => _showManualChargeDialog(context, booking),
-                icon: const Icon(Icons.add_card_outlined),
-                label: Text(
-                  'Thêm phí sau chuyến',
-                  style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
-                ),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primary,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-              ),
-            ),
+            _buildOwnerHandoverButton(context, booking),
+            const SizedBox(height: 12),
+            _buildOwnerManualChargeButton(context, booking),
             const SizedBox(height: 12),
             _buildReviewExperience(context, booking),
           ],
@@ -1511,6 +1469,64 @@ class _BookingDetailPageState extends State<BookingDetailPage> {
     }
 
     return const SizedBox.shrink();
+  }
+
+  Widget _buildOwnerHandoverButton(
+    BuildContext context,
+    BookingEntity booking,
+  ) {
+    return SizedBox(
+      width: double.infinity,
+      child: ElevatedButton.icon(
+        onPressed: () => Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => HandoverSummaryPage(
+              bookingId: booking.id,
+              allowCheckOut: booking.isOngoing,
+            ),
+          ),
+        ),
+        icon: const Icon(Icons.assignment_turned_in_outlined),
+        label: Text(
+          booking.isCompleted ? 'Xem check-out trả xe' : 'Biên bản bàn giao',
+          style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
+        ),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: AppColors.primary,
+          foregroundColor: Colors.white,
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildOwnerManualChargeButton(
+    BuildContext context,
+    BookingEntity booking,
+  ) {
+    return SizedBox(
+      width: double.infinity,
+      child: ElevatedButton.icon(
+        onPressed: () => _showManualChargeDialog(context, booking),
+        icon: const Icon(Icons.add_card_outlined),
+        label: Text(
+          'Thêm phí sau chuyến',
+          style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
+        ),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: AppColors.primary,
+          foregroundColor: Colors.white,
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
+      ),
+    );
   }
 
   Widget _buildReviewExperience(BuildContext context, BookingEntity booking) {
